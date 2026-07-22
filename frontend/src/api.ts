@@ -31,8 +31,8 @@ export const uploadFile = (projectId: number, file: File) => {
 }
 export const deleteFile = (id: number) => API.delete(`/files/${id}`)
 
-export const previewImport = (fileId: number, sheet?: string) => API.get(`/import/${fileId}/preview`, { params: { sheet } })
-export const importDataset = (fileId: number, featureType: string) => API.post(`/import/${fileId}/import`, null, { params: { feature_type: featureType } })
+export const previewImport = (fileId: number, sheet?: string, alignmentFileId?: number) => API.get(`/import/${fileId}/preview`, { params: { sheet, alignment_file_id: alignmentFileId } })
+export const importDataset = (fileId: number, featureType: string, alignmentFileId?: number) => API.post(`/import/${fileId}/import`, null, { params: { feature_type: featureType, alignment_file_id: alignmentFileId } })
 
 export const listDatasets = (projectId: number) => API.get(`/analysis/${projectId}/datasets`)
 export const preprocess = (projectId: number, datasetId: number, params: any) => API.post(`/analysis/${projectId}/dataset/${datasetId}/preprocess`, params)

@@ -57,4 +57,5 @@ export interface ImportPreview {
   feature_columns: string[]
   row_count: number
   suggested_mapping: Record<string, string>
+  sample_groups: Record<string, string>
 }

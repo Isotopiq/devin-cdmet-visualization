@@ -8,6 +8,7 @@ export default function Import() {
   const [projectId, setProjectId] = useState<number | ''>('')
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null)
+  const [alignmentFile, setAlignmentFile] = useState<UploadedFile | null>(null)
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [selectedSheet, setSelectedSheet] = useState('')
   const [message, setMessage] = useState('')
@@ -34,13 +35,13 @@ export default function Import() {
 
   const loadPreview = async () => {
     if (!selectedFile) return
-    const res = await previewImport(selectedFile.id, selectedSheet || undefined)
+    const res = await previewImport(selectedFile.id, selectedSheet || undefined, alignmentFile?.id)
     setPreview(res.data)
   }
 
   const runImport = async (featureType: string) => {
     if (!selectedFile) return
-    await importDataset(selectedFile.id, featureType)
+    await importDataset(selectedFile.id, featureType, alignmentFile?.id)
     setMessage('Dataset imported successfully')
   }
 
@@ -54,7 +55,7 @@ export default function Import() {
 
       <div {...getRootProps()} className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center mb-4 cursor-pointer">
         <input {...getInputProps()} />
-        <p className="text-gray-600 dark:text-gray-300">Drag & drop Excel, CSV, or TSV files here, or click to select files</p>
+        <p className="text-gray-600 dark:text-gray-300">Drag & drop Excel, CSV, TSV, or LipidSearch .txt files here, or click to select files</p>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
@@ -63,10 +64,21 @@ export default function Import() {
           {files.map((f) => (
             <div key={f.id} className={`p-2 border rounded-lg cursor-pointer ${selectedFile?.id === f.id ? 'bg-blue-50 dark:bg-blue-900' : ''}`} onClick={() => setSelectedFile(f)}>
               {f.original_name} <span className="text-xs text-gray-500">({f.detected_format || 'unknown'})</span>
+              {selectedFile?.id === f.id && <span className="text-xs text-blue-600 ml-2 font-semibold">main</span>}
             </div>
           ))}
         </div>
       </div>
+
+      {selectedFile && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
+          <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Optional LipidSearch Alignment File</h3>
+          <select value={alignmentFile?.id || ''} onChange={(e) => setAlignmentFile(files.find((f) => f.id === Number(e.target.value)) || null)} className="border rounded-lg p-2 mb-2 w-full md:w-1/2">
+            <option value="">None (use header-derived groups)</option>
+            {files.map((f) => <option key={f.id} value={f.id}>{f.original_name}</option>)}
+          </select>
+        </div>
+      )}
 
       {selectedFile && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
@@ -87,8 +99,9 @@ export default function Import() {
           <p className="text-sm text-gray-600 dark:text-gray-300">Detected format: {preview.detected_format || 'unknown'}</p>
           <p className="text-sm text-gray-600 dark:text-gray-300">Rows: {preview.row_count}</p>
           <p className="text-sm text-gray-600 dark:text-gray-300">Columns: {preview.columns.length}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-300">Sample columns: {preview.sample_columns.join(', ')}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Sample columns: {preview.sample_columns.length}</p>
           <p className="text-sm text-gray-600 dark:text-gray-300">Suggested mapping: {JSON.stringify(preview.suggested_mapping)}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Sample groups: {JSON.stringify(preview.sample_groups)}</p>
         </div>
       )}
 

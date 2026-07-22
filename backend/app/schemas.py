@@ -61,6 +61,8 @@ class DatasetOut(BaseModel):
     source_file_id: Optional[int]
     name: str
     feature_type: str
+    sample_metadata: Dict[str, Any]
+    feature_metadata: List[Dict[str, Any]]
     created_at: dt.datetime
 
 
