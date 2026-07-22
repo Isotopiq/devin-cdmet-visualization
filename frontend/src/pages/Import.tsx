@@ -41,7 +41,7 @@ export default function Import() {
 
   const runImport = async (featureType: string) => {
     if (!selectedFile) return
-    await importDataset(selectedFile.id, featureType, alignmentFile?.id)
+    await importDataset(selectedFile.id, featureType, alignmentFile?.id, selectedSheet || undefined)
     setMessage('Dataset imported successfully')
   }
 
@@ -72,7 +72,8 @@ export default function Import() {
 
       {selectedFile && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
-          <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Optional LipidSearch Alignment File</h3>
+          <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Optional Sample Metadata / Alignment File</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Upload a LipidSearch alignment .txt or a Compound Discoverer metadata .xlsx/.csv to assign sample groups automatically.</p>
           <select value={alignmentFile?.id || ''} onChange={(e) => setAlignmentFile(files.find((f) => f.id === Number(e.target.value)) || null)} className="border rounded-lg p-2 mb-2 w-full md:w-1/2">
             <option value="">None (use header-derived groups)</option>
             {files.map((f) => <option key={f.id} value={f.id}>{f.original_name}</option>)}

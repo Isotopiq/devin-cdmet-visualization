@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  db-easypanel:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-metabolomics}
+    volumes:
+      - pgdata-easypanel:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend-easypanel:
+    build: ./backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db-easypanel:5432/metabolomics}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+    volumes:
+      - upload-data-easypanel:/app/uploads
+    ports:
+      - "8001:8000"
+    depends_on:
+      db-easypanel:
+        condition: service_healthy
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    restart: unless-stopped
+
+  frontend-easypanel:
+    build: ./frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend-easypanel
+    volumes:
+      - ./frontend/nginx.easypanel.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+
+volumes:
+  pgdata-easypanel:
+  upload-data-easypanel:
