@@ -1,35 +1,89 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Plot from 'react-plotly.js'
-import { listProjects, listDatasets, generatePlot } from '../api'
-import { Project, Dataset } from '../types'
+import { useWorkspace } from '../context/WorkspaceContext'
+import DatasetPicker from '../components/DatasetPicker'
+import { generatePlot } from '../api'
+import { LuLayers, LuRefreshCw, LuDownload } from 'react-icons/lu'
 
 export default function PCA() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [datasets, setDatasets] = useState<Dataset[]>([])
-  const [projectId, setProjectId] = useState<number | ''>('')
-  const [datasetId, setDatasetId] = useState<number | ''>('')
-  const [plot, setPlot] = useState<string>('score')
+  const { projectId, datasetId, selectedDataset } = useWorkspace()
+  const [plot, setPlot] = useState('score')
+  const [components, setComponents] = useState(3)
+  const [scale, setScale] = useState(true)
   const [figure, setFigure] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => { listProjects().then((r) => setProjects(r.data)) }, [])
-  useEffect(() => { if (projectId) listDatasets(Number(projectId)).then((r) => setDatasets(r.data)) }, [projectId])
+  const plotOptions = [
+    { value: 'score', label: 'Score Plot' },
+    { value: 'loading', label: 'Loading Plot' },
+    { value: 'scree', label: 'Scree Plot' },
+    { value: 'biplot', label: 'Biplot' },
+  ]
 
   const generate = async () => {
     if (!projectId || !datasetId) return
-    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'pca', parameters: { plot } })
+    setLoading(true)
+    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'pca', parameters: { plot, components, scale } })
     setFigure(res.data)
+    setLoading(false)
   }
 
+  const exportJson = () => {
+    if (!figure) return
+    const blob = new Blob([JSON.stringify(figure)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pca_${plot}.json`
+    a.click()
+  }
+
+  useEffect(() => { setFigure(null) }, [selectedDataset])
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">PCA</h1>
-      <div className="flex gap-2 mb-4">
-        <select value={projectId} onChange={(e) => setProjectId(Number(e.target.value))} className="border rounded-lg p-2"><option value="">Project</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-        <select value={datasetId} onChange={(e) => setDatasetId(Number(e.target.value))} className="border rounded-lg p-2"><option value="">Dataset</option>{datasets.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-        <select value={plot} onChange={(e) => setPlot(e.target.value)} className="border rounded-lg p-2"><option value="score">Score Plot</option><option value="loading">Loading Plot</option><option value="scree">Scree Plot</option></select>
-        <button onClick={generate} className="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700">Generate</button>
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">PCA / PLS-DA</h1>
+        <p className="page-subtitle">Explore variance, sample separation, and key loadings.</p>
       </div>
-      {figure && <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4"><Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '500px' }} config={{ responsive: true }} /></div>}
+
+      <DatasetPicker />
+
+      {!selectedDataset && <div className="card p-8 text-center text-slate-500 dark:text-slate-400">Select a dataset for PCA.</div>}
+
+      {selectedDataset && (
+        <>
+          <div className="card p-5">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuLayers /> PCA Options</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Plot type</label>
+                <select value={plot} onChange={(e) => setPlot(e.target.value)} className="input">
+                  {plotOptions.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Components</label>
+                <input type="number" min={2} max={10} value={components} onChange={(e) => setComponents(Number(e.target.value))} className="input" />
+              </div>
+              <div className="flex items-center gap-2 pb-2">
+                <input type="checkbox" id="scale" checked={scale} onChange={(e) => setScale(e.target.checked)} className="rounded border-slate-300" />
+                <label htmlFor="scale" className="text-sm text-slate-700 dark:text-slate-200">Scale variables</label>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+                <button onClick={exportJson} disabled={!figure} className="btn-secondary"><LuDownload /> Export</button>
+              </div>
+            </div>
+          </div>
+
+          {figure && (
+            <div className="card p-5">
+              <Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '500px' }} config={{ responsive: true }} />
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

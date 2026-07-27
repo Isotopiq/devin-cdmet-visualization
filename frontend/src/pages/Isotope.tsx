@@ -1,49 +1,106 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Plot from 'react-plotly.js'
-import { listProjects, listDatasets, runIsotope } from '../api'
-import { Project, Dataset } from '../types'
+import { useWorkspace } from '../context/WorkspaceContext'
+import DatasetPicker from '../components/DatasetPicker'
+import { runIsotope } from '../api'
+import { LuDna, LuRefreshCw } from 'react-icons/lu'
 
 export default function Isotope() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [datasets, setDatasets] = useState<Dataset[]>([])
-  const [projectId, setProjectId] = useState<number | ''>('')
-  const [datasetId, setDatasetId] = useState<number | ''>('')
+  const { selectedDataset, projectId, datasetId } = useWorkspace()
   const [tracer, setTracer] = useState('13C')
   const [maxLabel, setMaxLabel] = useState(6)
+  const [naturalAbundanceCorrection, setNaturalAbundanceCorrection] = useState(false)
+  const [normalization, setNormalization] = useState('none')
   const [results, setResults] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => { listProjects().then((r) => setProjects(r.data)) }, [])
-  useEffect(() => { if (projectId) listDatasets(Number(projectId)).then((r) => setDatasets(r.data)) }, [projectId])
+  const featureOptions = useMemo(() => {
+    return (selectedDataset?.feature_metadata || []).slice(0, 20).map((f: any) => f.feature_id)
+  }, [selectedDataset])
+  const [selectedFeature, setSelectedFeature] = useState('')
+
+  useEffect(() => { if (featureOptions[0]) setSelectedFeature(featureOptions[0]) }, [featureOptions])
 
   const run = async () => {
     if (!projectId || !datasetId) return
-    const res = await runIsotope(Number(projectId), Number(datasetId), { tracer, max_label: maxLabel, natural_abundance_correction: false, normalization: 'none' })
+    setLoading(true)
+    const res = await runIsotope(Number(projectId), Number(datasetId), { tracer, max_label: maxLabel, natural_abundance_correction: naturalAbundanceCorrection, normalization })
     setResults(res.data)
+    setLoading(false)
   }
 
   const makeBar = () => {
-    if (!results || !results.fractions) return null
-    const first = Object.values(results.fractions)[0] as Record<string, number>
-    const labels = Object.keys(first)
-    const values = Object.values(first).map((v) => Number(v))
-    return { data: [{ x: labels, y: values, type: 'bar' as const }], layout: { title: 'Isotopologue Fractions', yaxis: { title: 'Fraction' } } }
+    if (!results || !results.fractions || !selectedFeature) return null
+    const fractions = results.fractions[selectedFeature]
+    if (!fractions) return null
+    const labels = Object.keys(fractions)
+    const values = Object.values(fractions).map((v) => Number(v))
+    return { data: [{ x: labels, y: values, type: 'bar' as const }], layout: { title: `Isotopologue fractions - ${selectedFeature}`, yaxis: { title: 'Fraction' } } }
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Isotope Tracing</h1>
-      <div className="flex flex-wrap gap-2 mb-4">
-        <select value={projectId} onChange={(e) => setProjectId(Number(e.target.value))} className="border rounded-lg p-2"><option value="">Project</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-        <select value={datasetId} onChange={(e) => setDatasetId(Number(e.target.value))} className="border rounded-lg p-2"><option value="">Dataset</option>{datasets.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-        <select value={tracer} onChange={(e) => setTracer(e.target.value)} className="border rounded-lg p-2"><option value="13C">13C</option><option value="15N">15N</option><option value="D">D</option></select>
-        <input type="number" value={maxLabel} onChange={(e) => setMaxLabel(Number(e.target.value))} className="border rounded-lg p-2" placeholder="Max label" />
-        <button onClick={run} className="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700">Run</button>
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">Isotope Tracing</h1>
+        <p className="page-subtitle">M+0 through M+n isotopologue fractions, pooled labeling, and enrichment.</p>
       </div>
-      {results && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <p className="text-sm text-gray-600 dark:text-gray-300">Pooled labeling: {JSON.stringify(results.pooled_labeling).slice(0, 200)}</p>
-          {makeBar() && <Plot data={makeBar()!.data} layout={makeBar()!.layout} style={{ width: '100%', height: '400px' }} config={{ responsive: true }} />}
-        </div>
+
+      <DatasetPicker />
+
+      {!selectedDataset && <div className="card p-8 text-center text-slate-500 dark:text-slate-400">Select a dataset to run isotope tracing.</div>}
+
+      {selectedDataset && (
+        <>
+          <div className="card p-5">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuDna /> Tracer Parameters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Tracer</label>
+                <select value={tracer} onChange={(e) => setTracer(e.target.value)} className="input">
+                  <option value="13C">13C</option>
+                  <option value="15N">15N</option>
+                  <option value="D">Deuterium</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Max label</label>
+                <input type="number" min={1} value={maxLabel} onChange={(e) => setMaxLabel(Number(e.target.value))} className="input" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Normalization</label>
+                <select value={normalization} onChange={(e) => setNormalization(e.target.value)} className="input">
+                  <option value="none">None</option>
+                  <option value="total_area">Total area</option>
+                  <option value="protein">Protein</option>
+                  <option value="dna">DNA</option>
+                  <option value="cell_number">Cell number</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2 pb-2">
+                <input type="checkbox" id="nats" checked={naturalAbundanceCorrection} onChange={(e) => setNaturalAbundanceCorrection(e.target.checked)} className="rounded border-slate-300" />
+                <label htmlFor="nats" className="text-sm text-slate-700 dark:text-slate-200">Natural abundance correction</label>
+              </div>
+              <button onClick={run} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Run</button>
+            </div>
+          </div>
+
+          {results && (
+            <div className="card p-5">
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Isotopologue Fractions</h3>
+              <div className="mb-4">
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Feature</label>
+                <select value={selectedFeature} onChange={(e) => setSelectedFeature(e.target.value)} className="input max-w-md">
+                  {featureOptions.map((f) => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </div>
+              {makeBar() && <Plot data={makeBar()!.data} layout={makeBar()!.layout} style={{ width: '100%', height: '400px' }} config={{ responsive: true }} />}
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50"><span className="text-slate-500 dark:text-slate-400">Pooled labeling</span><pre className="font-medium text-slate-900 dark:text-white mt-1 overflow-auto max-h-32">{JSON.stringify(results.pooled_labeling, null, 2)}</pre></div>
+                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50"><span className="text-slate-500 dark:text-slate-400">Total labeled fraction</span><pre className="font-medium text-slate-900 dark:text-white mt-1 overflow-auto max-h-32">{JSON.stringify(results.total_labeled_fraction, null, 2)}</pre></div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

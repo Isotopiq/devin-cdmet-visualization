@@ -1,39 +1,99 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Plot from 'react-plotly.js'
-import { listProjects, listDatasets, generatePlot } from '../api'
-import { Project, Dataset } from '../types'
+import { useWorkspace } from '../context/WorkspaceContext'
+import DatasetPicker from '../components/DatasetPicker'
+import { generatePlot } from '../api'
+import { LuBarChart3, LuRefreshCw, LuDownload } from 'react-icons/lu'
 
 export default function Plots() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [projectId, setProjectId] = useState<number | ''>('')
-  const [datasets, setDatasets] = useState<Dataset[]>([])
-  const [datasetId, setDatasetId] = useState<number | ''>('')
+  const { selectedDataset, projectId, datasetId } = useWorkspace()
   const [plotType, setPlotType] = useState('bar')
+  const [feature, setFeature] = useState(0)
+  const [search, setSearch] = useState('')
+  const [groupOrder, setGroupOrder] = useState('')
   const [figure, setFigure] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => { listProjects().then((r) => setProjects(r.data)) }, [])
-  useEffect(() => { if (projectId) listDatasets(Number(projectId)).then((r) => setDatasets(r.data)) }, [projectId])
+  const features = useMemo(() => (selectedDataset?.feature_metadata || []).map((f: any) => f.feature_id), [selectedDataset])
+  const filteredFeatures = useMemo(() => features.map((f, i) => ({ name: f, index: i })).filter((f) => f.name.toLowerCase().includes(search.toLowerCase())), [features, search])
 
   const generate = async () => {
     if (!projectId || !datasetId) return
-    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: plotType, parameters: {} })
+    setLoading(true)
+    const order = groupOrder.split(',').map((s) => s.trim()).filter(Boolean)
+    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: plotType, parameters: { feature, group_order: order } })
     setFigure(res.data)
+    setLoading(false)
   }
 
+  const exportPng = () => {
+    if (!figure) return
+    const blob = new Blob([JSON.stringify(figure)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `plot_${plotType}.json`
+    a.click()
+  }
+
+  useEffect(() => { setFigure(null) }, [plotType, selectedDataset])
+
+  const plotTypes = [
+    { value: 'bar', label: 'Bar Plot' },
+    { value: 'box', label: 'Box Plot' },
+    { value: 'violin', label: 'Violin Plot' },
+    { value: 'dot', label: 'Dot Plot' },
+    { value: 'rt_mz', label: 'RT vs m/z' },
+  ]
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Compound Plots</h1>
-      <div className="flex gap-2 mb-4">
-        <select value={projectId} onChange={(e) => setProjectId(Number(e.target.value))} className="border rounded-lg p-2"><option value="">Project</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-        <select value={datasetId} onChange={(e) => setDatasetId(Number(e.target.value))} className="border rounded-lg p-2"><option value="">Dataset</option>{datasets.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-        <select value={plotType} onChange={(e) => setPlotType(e.target.value)} className="border rounded-lg p-2">
-          <option value="bar">Bar Plot</option>
-          <option value="box">Box Plot</option>
-          <option value="rt_mz">RT vs m/z</option>
-        </select>
-        <button onClick={generate} className="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700">Generate</button>
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">Compound Plots</h1>
+        <p className="page-subtitle">Per-feature and global visualizations with group ordering.</p>
       </div>
-      {figure && <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4"><Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '500px' }} config={{ responsive: true }} /></div>}
+
+      <DatasetPicker />
+
+      {!selectedDataset && <div className="card p-8 text-center text-slate-500 dark:text-slate-400">Select a dataset to generate plots.</div>}
+
+      {selectedDataset && (
+        <>
+          <div className="card p-5">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuBarChart3 /> Plot Options</h3>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Plot type</label>
+                <select value={plotType} onChange={(e) => setPlotType(e.target.value)} className="input">
+                  {plotTypes.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Feature</label>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search feature..." className="input mb-2" />
+                <select value={feature} onChange={(e) => setFeature(Number(e.target.value))} className="input" disabled={plotType === 'rt_mz'}>
+                  {filteredFeatures.slice(0, 50).map((f) => <option key={f.index} value={f.index}>{f.name}</option>)}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Group order</label>
+                <input value={groupOrder} onChange={(e) => setGroupOrder(e.target.value)} placeholder="e.g. Ctrl, KO, Treat" className="input" />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Comma-separated group names to reorder samples.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> {loading ? 'Generating...' : 'Generate'}</button>
+              <button onClick={exportPng} disabled={!figure} className="btn-secondary"><LuDownload /> Export JSON</button>
+            </div>
+          </div>
+
+          {figure && (
+            <div className="card p-5">
+              <Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '500px' }} config={{ responsive: true, toImageButtonOptions: { format: 'png' } }} />
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

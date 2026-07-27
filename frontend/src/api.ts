@@ -35,7 +35,10 @@ export const previewImport = (fileId: number, sheet?: string, alignmentFileId?: 
 export const importDataset = (fileId: number, featureType: string, alignmentFileId?: number, sheet?: string) => API.post(`/import/${fileId}/import`, null, { params: { feature_type: featureType, alignment_file_id: alignmentFileId, sheet } })
 
 export const listDatasets = (projectId: number) => API.get(`/analysis/${projectId}/datasets`)
+export const getDataset = (projectId: number, datasetId: number) => API.get(`/analysis/${projectId}/dataset/${datasetId}`)
 export const preprocess = (projectId: number, datasetId: number, params: any) => API.post(`/analysis/${projectId}/dataset/${datasetId}/preprocess`, params)
+
+export const listAnalyses = (projectId: number) => API.get(`/analysis/${projectId}/analyses`)
 
 export const runStats = (projectId: number, datasetId: number, params: any) => API.post(`/stats/${projectId}/dataset/${datasetId}/stats`, params)
 export const generatePlot = (projectId: number, datasetId: number, params: any) => API.post(`/plots/${projectId}/dataset/${datasetId}/plot`, params)

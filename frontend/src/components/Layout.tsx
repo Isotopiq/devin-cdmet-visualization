@@ -1,22 +1,81 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import {
+  LuLayoutDashboard, LuFolderOpen, LuUploadCloud, LuTable,
+  LuSlidersHorizontal, LuCalculator, LuBarChart3, LuPieChart, LuLayers, LuDna,
+  LuGitMerge, LuFileText, LuSettings, LuSun, LuMoon,
+  LuLogOut, LuMenu, LuChevronLeft, LuMicroscope
+} from 'react-icons/lu'
+import { useWorkspace } from '../context/WorkspaceContext'
 
-const links = [
-  { to: '/projects', label: 'Projects' },
-  { to: '/import', label: 'Import' },
-  { to: '/data', label: 'Data Table' },
-  { to: '/stats', label: 'Statistics' },
-  { to: '/compound-plots', label: 'Compound Plots' },
-  { to: '/heatmap', label: 'Heat Map' },
-  { to: '/pca', label: 'PCA' },
-  { to: '/volcano', label: 'Volcano Plot' },
-  { to: '/isotope', label: 'Isotope Tracing' },
-  { to: '/pathway', label: 'Pathway Mapping' },
-  { to: '/reports', label: 'Reports' },
-  { to: '/settings', label: 'Settings' },
+interface NavItem {
+  to: string
+  label: string
+  icon: React.ReactNode
+  section?: string
+}
+
+const navItems: NavItem[] = [
+  { to: '/', label: 'Dashboard', icon: <LuLayoutDashboard /> },
+  { to: '/projects', label: 'Projects', icon: <LuFolderOpen /> },
+  { to: '/import', label: 'Import Data', icon: <LuUploadCloud /> },
+  { to: '/data', label: 'Data Table', icon: <LuTable /> },
+  { section: 'Analysis', to: '/preprocessing', label: 'Preprocessing', icon: <LuSlidersHorizontal /> },
+  { to: '/stats', label: 'Statistics', icon: <LuCalculator /> },
+  { to: '/compound-plots', label: 'Compound Plots', icon: <LuBarChart3 /> },
+  { to: '/heatmap', label: 'Heat Map', icon: <LuPieChart /> },
+  { to: '/pca', label: 'PCA / PLS-DA', icon: <LuLayers /> },
+  { to: '/volcano', label: 'Volcano Plot', icon: <LuMicroscope /> },
+  { section: 'Specialized', to: '/isotope', label: 'Isotope Tracing', icon: <LuDna /> },
+  { to: '/pathway', label: 'Pathway Mapping', icon: <LuGitMerge /> },
+  { section: 'Output', to: '/reports', label: 'Reports', icon: <LuFileText /> },
+  { to: '/settings', label: 'Settings', icon: <LuSettings /> },
 ]
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme')
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isDark = saved ? saved === 'dark' : prefersDark
+    setDark(isDark)
+    if (isDark) document.documentElement.classList.add('dark')
+    else document.documentElement.classList.remove('dark')
+  }, [])
+
+  const toggle = () => {
+    const next = !dark
+    setDark(next)
+    localStorage.setItem('theme', next ? 'dark' : 'light')
+    if (next) document.documentElement.classList.add('dark')
+    else document.documentElement.classList.remove('dark')
+  }
+
+  return (
+    <button onClick={toggle} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700" title="Toggle theme">
+      {dark ? <LuSun /> : <LuMoon />}
+    </button>
+  )
+}
+
+function WorkspaceBadge() {
+  const { projectId, selectedDataset, projects } = useWorkspace()
+  const project = projects.find((p) => p.id === projectId)
+  if (!project) return <span className="text-sm text-slate-500">No project selected</span>
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="px-2 py-1 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200 font-medium truncate max-w-[12rem]">{project.name}</span>
+      {selectedDataset && <span className="text-slate-400">/</span>}
+      {selectedDataset && <span className="px-2 py-1 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200 font-medium truncate max-w-[14rem]">{selectedDataset.name}</span>}
+    </div>
+  )
+}
 
 export default function Layout() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [collapsed, setCollapsed] = useState(false)
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -25,29 +84,64 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-        <div className="p-4 font-bold text-xl text-blue-700 dark:text-blue-400">MetaboScope</div>
-        <nav className="flex-1 overflow-y-auto px-2 space-y-1">
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              className={({ isActive }) =>
-                `block px-4 py-2 rounded-lg text-sm font-medium ${
-                  isActive ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-                }`
-              }
-            >
-              {l.label}
-            </NavLink>
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+      <aside className={`${collapsed ? 'w-16' : 'w-64'} flex-shrink-0 bg-slate-900 text-slate-200 transition-all duration-300 flex flex-col`}>
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-700">
+          {!collapsed && <div className="flex items-center gap-2 font-bold text-xl text-white"><LuMicroscope className="text-indigo-400" /> MetaboScope</div>}
+          <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-md hover:bg-slate-700 text-slate-300">
+            {collapsed ? <LuMenu /> : <LuChevronLeft />}
+          </button>
+        </div>
+        <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+          {navItems.map((item, idx) => (
+            <div key={item.to}>
+              {item.section && !collapsed && (idx === 0 || navItems[idx - 1].section !== item.section) && (
+                <div className="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">{item.section}</div>
+              )}
+              <NavLink
+                to={item.to}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  } ${collapsed ? 'justify-center' : ''}`
+                }
+                title={collapsed ? item.label : undefined}
+              >
+                <span className="text-lg">{item.icon}</span>
+                {!collapsed && <span>{item.label}</span>}
+              </NavLink>
+            </div>
           ))}
         </nav>
-        <button onClick={logout} className="m-4 px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700">Logout</button>
+        <div className="p-3 border-t border-slate-700">
+          <button onClick={logout} className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-red-400 hover:bg-slate-800 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''}`} title={collapsed ? 'Logout' : undefined}>
+            <LuLogOut />
+            {!collapsed && <span>Logout</span>}
+          </button>
+        </div>
       </aside>
-      <main className="flex-1 overflow-y-auto p-6">
-        <Outlet />
-      </main>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 shadow-sm">
+          <div className="flex items-center gap-4 min-w-0">
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-white truncate">
+              {navItems.find((n) => n.to === location.pathname)?.label || 'MetaboScope'}
+            </h1>
+            <div className="hidden md:block h-6 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="hidden md:flex items-center gap-2 min-w-0">
+              <WorkspaceBadge />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+          </div>
+        </header>
+        <main className="flex-1 overflow-y-auto p-6">
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }
