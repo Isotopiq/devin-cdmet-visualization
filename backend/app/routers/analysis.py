@@ -42,6 +42,20 @@ async def list_datasets(project_id: int, db: AsyncSession = Depends(get_db),
     return result.scalars().all()
 
 
+@router.delete("/{project_id}/dataset/{dataset_id}")
+async def delete_dataset(project_id: int, dataset_id: int, db: AsyncSession = Depends(get_db),
+                         current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Dataset.id == dataset_id, models.Dataset.project_id == project_id,
+        models.Project.owner_id == current_user.id))
+    dataset = result.scalar_one_or_none()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    await db.delete(dataset)
+    await db.commit()
+    return {"ok": True}
+
+
 @router.get("/{project_id}/analyses", response_model=List[schemas.AnalysisOut])
 async def list_analyses(project_id: int, db: AsyncSession = Depends(get_db),
                         current_user: models.User = Depends(get_current_active_user)):

@@ -37,6 +37,7 @@ export const importDataset = (fileId: number, featureType: string, alignmentFile
 
 export const listDatasets = (projectId: number) => API.get(`/analysis/${projectId}/datasets`)
 export const getDataset = (projectId: number, datasetId: number) => API.get(`/analysis/${projectId}/dataset/${datasetId}`)
+export const deleteDataset = (projectId: number, datasetId: number) => API.delete(`/analysis/${projectId}/dataset/${datasetId}`)
 export const preprocess = (projectId: number, datasetId: number, params: any) => API.post(`/analysis/${projectId}/dataset/${datasetId}/preprocess`, params)
 
 export const listAnalyses = (projectId: number) => API.get(`/analysis/${projectId}/analyses`)

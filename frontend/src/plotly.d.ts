@@ -1,3 +1,8 @@
+declare module 'plotly.js/dist/plotly' {
+  import * as Plotly from 'plotly.js'
+  export default Plotly
+}
+
 declare module 'react-plotly.js' {
   import * as React from 'react'
   import { Layout, Config, Data } from 'plotly.js'

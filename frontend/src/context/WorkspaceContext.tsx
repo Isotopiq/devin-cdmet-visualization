@@ -12,6 +12,7 @@ interface WorkspaceCtx {
   selectedDataset: Dataset | null
   loading: boolean
   refreshProjects: () => Promise<void>
+  refreshDatasets: () => Promise<void>
 }
 
 const WorkspaceContext = createContext<WorkspaceCtx | undefined>(undefined)
@@ -34,6 +35,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     try {
       const res = await listProjects()
       setProjects(res.data)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const refreshDatasets = async () => {
+    if (!projectId) return
+    setLoading(true)
+    try {
+      const res = await listDatasets(Number(projectId))
+      setDatasets(res.data)
+      const exists = res.data.find((d: Dataset) => d.id === datasetId)
+      if (!exists) setDatasetId('')
     } finally {
       setLoading(false)
     }
@@ -72,7 +86,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     <WorkspaceContext.Provider value={{
       projects, projectId, setProjectId,
       datasets, datasetId, setDatasetId,
-      selectedDataset, loading, refreshProjects
+      selectedDataset, loading, refreshProjects,
+      refreshDatasets
     }}>
       {children}
     </WorkspaceContext.Provider>

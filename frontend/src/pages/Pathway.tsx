@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import Plot from 'react-plotly.js'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
+import PlotWithDownload from '../components/PlotWithDownload'
 import { buildPathway } from '../api'
-import { LuGitMerge, LuRefreshCw, LuDownload } from 'react-icons/lu'
+import { LuGitMerge, LuRefreshCw } from 'react-icons/lu'
 
 export default function Pathway() {
   const { projectId, datasetId, selectedDataset } = useWorkspace()
@@ -18,16 +18,6 @@ export default function Pathway() {
     const res = await buildPathway(Number(projectId), Number(datasetId), { value_type: valueType, pathway_source: pathwaySource })
     setFigure(res.data)
     setLoading(false)
-  }
-
-  const exportJson = () => {
-    if (!figure) return
-    const blob = new Blob([JSON.stringify(figure)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `pathway_${pathwaySource}.json`
-    a.click()
   }
 
   useEffect(() => { setFigure(null) }, [selectedDataset])
@@ -72,7 +62,6 @@ export default function Pathway() {
               </div>
               <div className="flex gap-3 md:col-span-2">
                 <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
-                <button onClick={exportJson} disabled={!figure} className="btn-secondary"><LuDownload /> Export</button>
               </div>
             </div>
             <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">Nodes: metabolites. Edges: reactions. Colors distinguish measured abundance, measured isotope enrichment, inferred flux proxies, user-provided fluxes, and formally modeled fluxes.</p>
@@ -80,7 +69,7 @@ export default function Pathway() {
 
           {figure && (
             <div className="card p-5">
-              <Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '600px' }} config={{ responsive: true }} />
+              <PlotWithDownload data={figure.data} layout={figure.layout} style={{ width: '100%', height: '600px' }} filename={`pathway_${pathwaySource}`} />
             </div>
           )}
         </>

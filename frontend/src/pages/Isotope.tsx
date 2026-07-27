@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import Plot from 'react-plotly.js'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
+import PlotWithDownload from '../components/PlotWithDownload'
 import { runIsotope } from '../api'
 import { LuDna, LuRefreshCw } from 'react-icons/lu'
 
@@ -93,7 +93,7 @@ export default function Isotope() {
                   {featureOptions.map((f) => <option key={f} value={f}>{f}</option>)}
                 </select>
               </div>
-              {makeBar() && <Plot data={makeBar()!.data} layout={makeBar()!.layout} style={{ width: '100%', height: '400px' }} config={{ responsive: true }} />}
+              {makeBar() && <PlotWithDownload data={makeBar()!.data} layout={makeBar()!.layout} style={{ width: '100%', height: '400px' }} filename={`isotope_${selectedFeature}`} />}
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50"><span className="text-slate-500 dark:text-slate-400">Pooled labeling</span><pre className="font-medium text-slate-900 dark:text-white mt-1 overflow-auto max-h-32">{JSON.stringify(results.pooled_labeling, null, 2)}</pre></div>
                 <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50"><span className="text-slate-500 dark:text-slate-400">Total labeled fraction</span><pre className="font-medium text-slate-900 dark:text-white mt-1 overflow-auto max-h-32">{JSON.stringify(results.total_labeled_fraction, null, 2)}</pre></div>

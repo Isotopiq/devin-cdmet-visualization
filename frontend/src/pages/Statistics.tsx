@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import Plot from 'react-plotly.js'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
+import PlotWithDownload from '../components/PlotWithDownload'
 import { runStats, generatePlot } from '../api'
 import { LuPlay, LuDownload, LuAlertCircle } from 'react-icons/lu'
 
@@ -13,7 +13,10 @@ export default function Statistics() {
   const [paired, setPaired] = useState(false)
   const [multipleTesting, setMultipleTesting] = useState('fdr_bh')
   const [alpha, setAlpha] = useState(0.05)
-  const [fcThreshold, setFcThreshold] = useState(0)
+  const [fcThreshold, setFcThreshold] = useState(0.5)
+  const [pvalueFilter, setPvalueFilter] = useState(1)
+  const [padjFilter, setPadjFilter] = useState(0.05)
+  const [directionFilter, setDirectionFilter] = useState('all')
   const [results, setResults] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -38,13 +41,9 @@ export default function Statistics() {
     try {
       const res = await runStats(Number(projectId), Number(datasetId), { test, group_a: groupA, group_b: groupB, paired, multiple_testing: multipleTesting, alpha })
       const data = res.data
-      if (fcThreshold > 0) {
-        data.results = data.results.filter((r: any) => Math.abs(r.log2fc || 0) >= fcThreshold)
-        data.n_features = data.results.length
-      }
       data.results.sort((a: any, b: any) => (a.pvalue || 1) - (b.pvalue || 1))
       setResults(data)
-      const vres = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: data.results } })
+      const vres = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: data.results, fc_threshold: fcThreshold, p_threshold: pvalueFilter } })
       setVolcano(vres.data)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Statistics failed')
@@ -53,10 +52,33 @@ export default function Statistics() {
     }
   }
 
+  const displayResults = useMemo(() => {
+    if (!results) return []
+    return results.results.filter((r: any) => {
+      const absfc = Math.abs(r.log2fc || 0)
+      if (absfc < fcThreshold) return false
+      if ((r.pvalue ?? 1) > pvalueFilter) return false
+      if ((r.padj ?? 1) > padjFilter) return false
+      if (directionFilter === 'up' && (r.log2fc || 0) <= 0) return false
+      if (directionFilter === 'down' && (r.log2fc || 0) >= 0) return false
+      return true
+    })
+  }, [results, fcThreshold, pvalueFilter, padjFilter, directionFilter])
+
+  const rowClass = (r: any) => {
+    const absfc = Math.abs(r.log2fc || 0)
+    const sig = (r.padj ?? 1) < padjFilter
+    const bigFc = absfc >= fcThreshold
+    if (sig && bigFc) return 'bg-emerald-50 dark:bg-emerald-900/30'
+    if (sig) return 'bg-amber-50 dark:bg-amber-900/30'
+    if (bigFc) return 'bg-blue-50 dark:bg-blue-900/30'
+    return ''
+  }
+
   const downloadCsv = () => {
     if (!results) return
     const headers = ['feature_id', 'mean_a', 'mean_b', 'log2fc', 'statistic', 'pvalue', 'padj']
-    const rows = results.results.map((r: any) => headers.map((h) => r[h] ?? '').join(','))
+    const rows = displayResults.map((r: any) => headers.map((h) => r[h] ?? '').join(','))
     const csv = [headers.join(','), ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -98,7 +120,7 @@ export default function Statistics() {
         <>
           <div className="card p-5">
             <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Test Parameters</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
               <div>
                 <label className="label-like">Test</label>
                 <select value={test} onChange={(e) => setTest(e.target.value)} className="input">
@@ -127,10 +149,6 @@ export default function Statistics() {
                 <label className="label-like">Alpha</label>
                 <input type="number" step="0.01" min="0" max="1" value={alpha} onChange={(e) => setAlpha(Number(e.target.value))} className="input" />
               </div>
-              <div>
-                <label className="label-like">|log2FC| threshold</label>
-                <input type="number" step="0.1" min="0" value={fcThreshold} onChange={(e) => setFcThreshold(Number(e.target.value))} className="input" />
-              </div>
               <div className="flex items-end">
                 <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
                   <input type="checkbox" checked={paired} onChange={(e) => setPaired(e.target.checked)} className="rounded border-slate-300" />
@@ -141,6 +159,35 @@ export default function Statistics() {
                 <button onClick={run} disabled={loading || !groupA || !groupB} className="btn-primary"><LuPlay /> {loading ? 'Running...' : 'Run Test'}</button>
               </div>
             </div>
+
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-2 mt-4">Result Filters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2">
+              <div>
+                <label className="label-like">Min |log2FC|</label>
+                <input type="number" step="0.1" min="0" value={fcThreshold} onChange={(e) => setFcThreshold(Number(e.target.value))} className="input" />
+              </div>
+              <div>
+                <label className="label-like">Max p-value</label>
+                <input type="number" step="0.01" min="0" max="1" value={pvalueFilter} onChange={(e) => setPvalueFilter(Number(e.target.value))} className="input" />
+              </div>
+              <div>
+                <label className="label-like">Max adj. p-value</label>
+                <input type="number" step="0.01" min="0" max="1" value={padjFilter} onChange={(e) => setPadjFilter(Number(e.target.value))} className="input" />
+              </div>
+              <div>
+                <label className="label-like">Direction</label>
+                <select value={directionFilter} onChange={(e) => setDirectionFilter(e.target.value)} className="input">
+                  <option value="all">All</option>
+                  <option value="up">Up (log2FC &gt; 0)</option>
+                  <option value="down">Down (log2FC &lt; 0)</option>
+                </select>
+              </div>
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-3">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-100 dark:bg-emerald-900/50" /> padj &lt; threshold &amp; |log2FC| &ge; threshold</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-100 dark:bg-amber-900/50" /> padj &lt; threshold only</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-blue-100 dark:bg-blue-900/50" /> |log2FC| &ge; threshold only</span>
+            </div>
             {error && <div className="p-3 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 flex items-center gap-2 text-sm"><LuAlertCircle /> {error}</div>}
           </div>
 
@@ -148,7 +195,7 @@ export default function Statistics() {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="card p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-slate-900 dark:text-white">Results <span className="text-sm font-normal text-slate-500">({results.n_features} features, {test})</span></h3>
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Results <span className="text-sm font-normal text-slate-500">({displayResults.length} of {results.n_features} features, {test})</span></h3>
                   <button onClick={downloadCsv} className="btn-secondary"><LuDownload /> CSV</button>
                 </div>
                 <div className="overflow-x-auto max-h-[32rem]">
@@ -162,8 +209,8 @@ export default function Statistics() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {(results.results || []).map((r: any, i: number) => (
-                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                      {displayResults.map((r: any, i: number) => (
+                        <tr key={i} className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 ${rowClass(r)}`}>
                           <td className="p-2 font-medium text-slate-900 dark:text-white">{r.feature_id}</td>
                           <td className="p-2">{r.log2fc?.toFixed(3) || '-'}</td>
                           <td className="p-2">{r.pvalue?.toExponential(2)}</td>
@@ -178,7 +225,7 @@ export default function Statistics() {
               {volcano && (
                 <div className="card p-5">
                   <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Volcano Plot</h3>
-                  <Plot data={volcano.data} layout={volcano.layout} style={{ width: '100%', height: '500px' }} config={{ responsive: true }} />
+                  <PlotWithDownload data={volcano.data} layout={volcano.layout} style={{ width: '100%', height: '500px' }} filename={`volcano_${groupA}_vs_${groupB}`} />
                 </div>
               )}
             </div>

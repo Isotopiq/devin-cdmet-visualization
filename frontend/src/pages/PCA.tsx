@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import Plot from 'react-plotly.js'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
+import PlotWithDownload from '../components/PlotWithDownload'
 import { generatePlot } from '../api'
-import { LuLayers, LuRefreshCw, LuDownload } from 'react-icons/lu'
+import { LuLayers, LuRefreshCw } from 'react-icons/lu'
 
 export default function PCA() {
   const { projectId, datasetId, selectedDataset } = useWorkspace()
@@ -26,16 +26,6 @@ export default function PCA() {
     const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'pca', parameters: { plot, components, scale } })
     setFigure(res.data)
     setLoading(false)
-  }
-
-  const exportJson = () => {
-    if (!figure) return
-    const blob = new Blob([JSON.stringify(figure)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `pca_${plot}.json`
-    a.click()
   }
 
   useEffect(() => { setFigure(null) }, [selectedDataset])
@@ -72,14 +62,13 @@ export default function PCA() {
               </div>
               <div className="flex gap-3">
                 <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
-                <button onClick={exportJson} disabled={!figure} className="btn-secondary"><LuDownload /> Export</button>
               </div>
             </div>
           </div>
 
           {figure && (
             <div className="card p-5">
-              <Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '500px' }} config={{ responsive: true }} />
+              <PlotWithDownload data={figure.data} layout={figure.layout} style={{ width: '100%', height: '500px' }} filename={`pca_${plot}`} />
             </div>
           )}
         </>

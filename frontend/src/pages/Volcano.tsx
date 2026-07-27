@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import Plot from 'react-plotly.js'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
+import PlotWithDownload from '../components/PlotWithDownload'
 import { runStats, generatePlot } from '../api'
-import { LuMicroscope, LuRefreshCw, LuDownload } from 'react-icons/lu'
+import { LuMicroscope, LuRefreshCw } from 'react-icons/lu'
 
 export default function Volcano() {
   const { selectedDataset, projectId, datasetId } = useWorkspace()
@@ -11,6 +11,8 @@ export default function Volcano() {
   const [groupB, setGroupB] = useState('')
   const [fcThreshold, setFcThreshold] = useState(0.5)
   const [pThreshold, setPThreshold] = useState(0.05)
+  const [showLabels, setShowLabels] = useState(false)
+  const [topN, setTopN] = useState(10)
   const [figure, setFigure] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
@@ -30,19 +32,9 @@ export default function Volcano() {
     if (!projectId || !datasetId) return
     setLoading(true)
     const statsRes = await runStats(Number(projectId), Number(datasetId), { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
-    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold } })
+    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, show_labels: showLabels, top_n: topN } })
     setFigure(res.data)
     setLoading(false)
-  }
-
-  const exportJson = () => {
-    if (!figure) return
-    const blob = new Blob([JSON.stringify(figure)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `volcano_${groupA}_vs_${groupB}.json`
-    a.click()
   }
 
   return (
@@ -60,7 +52,7 @@ export default function Volcano() {
         <>
           <div className="card p-5">
             <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuMicroscope /> Comparison</h3>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-end">
               <div>
                 <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Group A</label>
                 <select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">
@@ -81,16 +73,23 @@ export default function Volcano() {
                 <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">p-value threshold</label>
                 <input type="number" step="0.01" min="0" max="1" value={pThreshold} onChange={(e) => setPThreshold(Number(e.target.value))} className="input" />
               </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Top N labels</label>
+                <input type="number" min="0" max="100" value={topN} onChange={(e) => setTopN(Number(e.target.value))} className="input" disabled={!showLabels} />
+              </div>
+              <div className="flex items-center gap-2 pb-2">
+                <input type="checkbox" id="showLabels" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} className="rounded border-slate-300" />
+                <label htmlFor="showLabels" className="text-sm text-slate-700 dark:text-slate-200">Show labels</label>
+              </div>
               <div className="flex gap-3">
                 <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
-                <button onClick={exportJson} disabled={!figure} className="btn-secondary"><LuDownload /> Export</button>
               </div>
             </div>
           </div>
 
           {figure && (
             <div className="card p-5">
-              <Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '550px' }} config={{ responsive: true }} />
+              <PlotWithDownload data={figure.data} layout={figure.layout} style={{ width: '100%', height: '550px' }} filename={`volcano_${groupA}_vs_${groupB}`} />
             </div>
           )}
         </>
