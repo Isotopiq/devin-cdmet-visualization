@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react'
 import { login } from '../api'
-import { LuMicroscope, LuMail, LuLock } from 'react-icons/lu'
+import { LuMail, LuLock } from 'react-icons/lu'
 
 export default function Login({ onLogin }: { onLogin: (t: string) => void }) {
   const [email, setEmail] = useState('')
@@ -20,9 +20,10 @@ export default function Login({ onLogin }: { onLogin: (t: string) => void }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800 p-4">
       <div className="w-full max-w-md card p-8">
-        <div className="flex items-center gap-3 justify-center mb-8">
-          <div className="p-3 rounded-xl bg-indigo-600 text-white text-2xl"><LuMicroscope /></div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">MetaboScope</h1>
+        <div className="flex justify-center mb-8">
+          <div className="bg-black rounded-xl p-4">
+            <img src="/logo.png" alt="isotopiq" className="h-10 w-auto object-contain" />
+          </div>
         </div>
         {error && <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 text-sm">{error}</div>}
         <form onSubmit={submit} className="space-y-5">

@@ -87,8 +87,10 @@ export default function Layout() {
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
       <aside className={`${collapsed ? 'w-16' : 'w-64'} flex-shrink-0 bg-slate-900 text-slate-200 transition-all duration-300 flex flex-col`}>
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-700">
-          {!collapsed && <div className="flex items-center gap-2 font-bold text-xl text-white"><LuMicroscope className="text-indigo-400" /> MetaboScope</div>}
-          <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-md hover:bg-slate-700 text-slate-300">
+          <div className={`flex items-center ${collapsed ? 'justify-center w-full' : ''}`}>
+            <img src="/logo.png" alt="isotopiq" className={`object-contain ${collapsed ? 'h-7 max-w-[2.5rem]' : 'h-8 max-w-[11rem]'}`} />
+          </div>
+          <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-md hover:bg-slate-700 text-slate-300 flex-shrink-0">
             {collapsed ? <LuMenu /> : <LuChevronLeft />}
           </button>
         </div>
