@@ -1,26 +1,30 @@
 services:
-  db-easypanel:
+  db:
     image: postgres:15
+    container_name: metabolomics-db-easypanel
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-metabolomics}
     volumes:
       - pgdata-easypanel:/var/lib/postgresql/data
+    ports:
+      - "5437:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
-  backend-easypanel:
+  backend:
     build: ./backend
+    container_name: metabolomics-backend-easypanel
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db-easypanel:5432/metabolomics}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/metabolomics}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
-      ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-preview@example.com}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-preview123}
@@ -29,19 +33,24 @@ services:
     ports:
       - "8457:8000"
     depends_on:
-      db-easypanel:
+      db:
         condition: service_healthy
     command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
-  frontend-easypanel:
+  frontend:
     build: ./frontend
+    container_name: metabolomics-frontend-easypanel
     ports:
       - "3457:80"
     depends_on:
-      - backend-easypanel
-    volumes:
-      - ./frontend/nginx.easypanel.conf:/etc/nginx/conf.d/default.conf:ro
+      - backend
     restart: unless-stopped
 
 volumes:
