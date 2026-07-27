@@ -2,7 +2,22 @@ export interface User {
   id: number
   email: string
   is_active: boolean
+  is_admin: boolean
   created_at: string
+}
+
+export interface AdminLog {
+  id: number
+  user_id?: number
+  action: string
+  target_user_id?: number
+  details: Record<string, any>
+  created_at: string
+}
+
+export interface SiteSettings {
+  login_logo_url?: string
+  dashboard_logo_url?: string
 }
 
 export interface Project {

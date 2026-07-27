@@ -1,0 +1,54 @@
+*Parameters setting
+Job Name	EL-03192026_1-29_KennedyPathway-Dtracing-Lipids
+Folder	Metabolomics Center
+SearchType	LCMS_PRODUCT_SEARCH
+MergeType	MEAN
+FilterType	NEW_FILTER
+GroupSummaryType	SAMPLE
+
+*Filter expression
+
+
+*Class setting
+NormalizeType	NONE
+Normalize Base	SUMMARY_AREA
+
+Class	IS	MainIon	
+
+*Target search job
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-001.raw	s1-1	*FLVCR1_Ser_Ctrl	1228f960-688d-4ee7-a274-d97c53c831dc
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-002.raw	s1-2	*FLVCR1_Ser_Ctrl	9d84a8f5-51dc-4f1e-8bc8-bd8740d3ad58
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-003.raw	s1-3	*FLVCR1_Ser_Ctrl	64508f8f-b46d-4a5b-8994-6cd92133591f
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-028.raw	s10-1	PCYT1A_Ser_KO	ea953fff-9ded-4b29-bf99-cc7b34cfbbaa
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-029.raw	s10-2	PCYT1A_Ser_KO	2de618a6-a031-4db5-a761-122aafd54178
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-030.raw	s10-3	PCYT1A_Ser_KO	8d8fc2ec-3951-4df3-a0df-7aa975403001
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-031.raw	s11-1	*PCYT1A_Etn_Ctrl	0d0c854a-c9dd-473d-8e4c-108358ddef65
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-032.raw	s11-2	*PCYT1A_Etn_Ctrl	8c0c906e-9cf8-4b42-9566-d033da88dc1a
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-033.raw	s11-3	*PCYT1A_Etn_Ctrl	84ecc250-abff-4c2d-9f58-09220f22ee7c
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-034.raw	s12-1	PCYT1A_Etn_KO	f0652a0c-f496-4a6e-ab8c-d4fa2efee537
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-035.raw	s12-2	PCYT1A_Etn_KO	af14d1a2-9700-4a33-939f-e6e10d874525
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-036.raw	s12-3	PCYT1A_Etn_KO	8125bb2a-d647-45c8-a8af-a03164f012b7
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	QC-Blank2.raw	s13-1	Blanks	73d33ab8-1bd5-47dd-aeee-e91f6d2959e9
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-004.raw	s2-1	FLVCR1_Ser_KO	b03a2f14-fc72-44e0-bd07-d1c755e9f86a
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-005.raw	s2-2	FLVCR1_Ser_KO	7ca77c54-2dd5-43da-ba6d-374eba4da0cf
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-006.raw	s2-3	FLVCR1_Ser_KO	03089d9c-aac6-4426-887f-804eb64a1f5f
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-008.raw	s3-1	*FLVCR1_Etn_Ctrl	99b52cef-b495-48c8-b4a2-a2c68d9f3ca8
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-009.raw	s3-2	*FLVCR1_Etn_Ctrl	8b90c336-9f99-4679-8cd0-add6cb02819a
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-010.raw	s4-1	FLVCR1_Etn_KO	bdf1f32a-e273-4e15-9986-03c259ce8808
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-011.raw	s4-2	FLVCR1_Etn_KO	53ff2cbb-76cb-4b7a-8285-3b92764353ec
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-012.raw	s4-3	FLVCR1_Etn_KO	79fd4d73-99a2-4e90-9ea0-233832ec9ddf
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-013.raw	s5-1	*PISD_Ser_Ctrl	87686bb9-2cd8-490d-a8b8-129ccce899ad
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-014.raw	s5-2	*PISD_Ser_Ctrl	8a4e18b5-254b-4a19-942e-c12a9d2318cf
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-015.raw	s5-3	*PISD_Ser_Ctrl	872ca25d-41c9-4756-b79a-24852070bf65
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-016.raw	s6-1	PISD_Ser_KO	0db86775-b3ac-4d2c-9a37-0ce1928ee987
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-017.raw	s6-2	PISD_Ser_KO	8c7d4f85-d2ef-4094-a015-7a55ec70fa67
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-018.raw	s6-3	PISD_Ser_KO	d31206de-0c23-4f1a-b7bf-4b16d3e39932
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-019.raw	s7-1	*PISD_Etn_Ctrl	5f6ab76a-fc59-49e6-920a-d26313c19c44
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-020.raw	s7-2	*PISD_Etn_Ctrl	37c1d79d-fcba-4380-9eaf-14036f11b5a7
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-021.raw	s7-3	*PISD_Etn_Ctrl	14a8c3b2-6ba5-4ca0-ba31-085a7e0405a6
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-022.raw	s8-1	PISD_Etn_KO	5abbbd4b-84b8-4cc2-a56d-a2c3ecb4c7df
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-023.raw	s8-2	PISD_Etn_KO	5739bd03-85fc-42bc-834f-ee452cb60f81
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-024.raw	s8-3	PISD_Etn_KO	4a8c71d0-edb9-46aa-a53f-c2bee43b191c
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-025.raw	s9-1	*PCYT1A_Ser_Ctrl	5ac0c412-1773-49ec-86e3-70c359ebeea9
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-026.raw	s9-2	*PCYT1A_Ser_Ctrl	9452e034-c823-4ec7-abad-f5d97fd68487
+EL-03192026_1-29_KennedyPathway-Dtracing-Lipids	EL-027.raw	s9-3	*PCYT1A_Ser_Ctrl	3cbb35b0-e503-4c0a-a2f5-fa47463a7bf7

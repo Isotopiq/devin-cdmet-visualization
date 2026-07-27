@@ -18,6 +18,7 @@ export const health = () => API.get('/health')
 export const register = (data: { email: string; password: string }) => API.post('/auth/register', data)
 export const login = (data: { username: string; password: string }) => API.post('/auth/token', data, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
 export const me = () => API.get('/auth/me')
+export const updateMe = (data: { email?: string; password?: string }) => API.patch('/auth/me', data)
 
 export const listProjects = () => API.get('/projects/')
 export const createProject = (data: { name: string; description?: string }) => API.post('/projects/', data)
@@ -45,3 +46,15 @@ export const generatePlot = (projectId: number, datasetId: number, params: any) 
 
 export const runIsotope = (projectId: number, datasetId: number, params: any) => API.post(`/isotope/${projectId}/dataset/${datasetId}/isotope`, params)
 export const buildPathway = (projectId: number, datasetId: number, params: any) => API.post(`/pathways/${projectId}/dataset/${datasetId}/pathway`, params)
+
+export const getSettings = () => API.get('/admin/settings')
+export const uploadLogo = (logoType: 'login' | 'dashboard', file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return API.post(`/admin/logo/${logoType}`, form)
+}
+export const listUsers = () => API.get('/admin/users')
+export const createUser = (data: { email: string; password: string; is_admin?: boolean; is_active?: boolean }) => API.post('/admin/users', data)
+export const updateUser = (id: number, data: any) => API.patch(`/admin/users/${id}`, data)
+export const deleteUser = (id: number) => API.delete(`/admin/users/${id}`)
+export const listLogs = () => API.get('/admin/logs')

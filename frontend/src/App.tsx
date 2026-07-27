@@ -17,6 +17,8 @@ import Pathway from './pages/Pathway'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import Preprocessing from './pages/Preprocessing'
+import Profile from './pages/Profile'
+import Admin from './pages/Admin'
 
 function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
@@ -49,6 +51,8 @@ function App() {
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
           <Route path="preprocessing" element={<Preprocessing />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Route>
       </Routes>

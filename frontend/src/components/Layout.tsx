@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, useState, useRef } from 'react'
+import { NavLink, Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
 import {
   LuLayoutDashboard, LuFolderOpen, LuUploadCloud, LuTable,
   LuSlidersHorizontal, LuCalculator, LuBarChart3, LuPieChart, LuLayers, LuDna,
   LuGitMerge, LuFileText, LuSettings, LuSun, LuMoon,
-  LuLogOut, LuMenu, LuChevronLeft, LuMicroscope
+  LuLogOut, LuMenu, LuChevronLeft, LuMicroscope, LuUsers, LuUser
 } from 'react-icons/lu'
 import { useWorkspace } from '../context/WorkspaceContext'
+import type { User, SiteSettings } from '../types'
+import { me, getSettings } from '../api'
 
 interface NavItem {
   to: string
@@ -15,7 +17,7 @@ interface NavItem {
   section?: string
 }
 
-const navItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: <LuLayoutDashboard /> },
   { to: '/projects', label: 'Projects', icon: <LuFolderOpen /> },
   { to: '/import', label: 'Import Data', icon: <LuUploadCloud /> },
@@ -72,10 +74,56 @@ function WorkspaceBadge() {
   )
 }
 
+function UserMenu({ user, onLogout }: { user: User | null; onLogout: () => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [])
+
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm">
+        <span className="hidden sm:inline max-w-[8rem] truncate">{user?.email || 'User'}</span>
+        <LuUser className="text-lg" />
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">
+          <Link to="/profile" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
+            <LuUser /> Profile
+          </Link>
+          {user?.is_admin && (
+            <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
+              <LuUsers /> Admin
+            </Link>
+          )}
+          <button onClick={() => { setOpen(false); onLogout() }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700">
+            <LuLogOut /> Logout
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const [logoUrl, setLogoUrl] = useState('/logo-white.png')
+
+  useEffect(() => {
+    me().then((res) => setUser(res.data)).catch(() => { })
+    getSettings().then((res: { data: SiteSettings }) => {
+      if (res.data.dashboard_logo_url) setLogoUrl(res.data.dashboard_logo_url)
+    }).catch(() => { })
+  }, [])
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -83,12 +131,17 @@ export default function Layout() {
     window.location.reload()
   }
 
+  const navItems: NavItem[] = [...baseNavItems]
+  if (user?.is_admin) {
+    navItems.push({ section: 'Admin', to: '/admin', label: 'Admin Panel', icon: <LuUsers /> })
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
       <aside className={`${collapsed ? 'w-16' : 'w-64'} flex-shrink-0 bg-slate-900 text-slate-200 transition-all duration-300 flex flex-col`}>
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-700">
           <div className={`flex items-center ${collapsed ? 'justify-center w-full' : ''}`}>
-            <img src="/logo.png" alt="isotopiq" className={`object-contain ${collapsed ? 'h-7 max-w-[2.5rem]' : 'h-8 max-w-[11rem]'}`} />
+            <img src={logoUrl} alt="isotopiq" className={`object-contain ${collapsed ? 'h-7 max-w-[2.5rem]' : 'h-8 max-w-[11rem]'}`} />
           </div>
           <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-md hover:bg-slate-700 text-slate-300 flex-shrink-0">
             {collapsed ? <LuMenu /> : <LuChevronLeft />}
@@ -138,6 +191,7 @@ export default function Layout() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
+            <UserMenu user={user} onLogout={logout} />
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-6">

@@ -1,11 +1,18 @@
-import { useState, FormEvent } from 'react'
-import { login } from '../api'
+import { useState, useEffect, FormEvent } from 'react'
+import { login, getSettings } from '../api'
 import { LuMail, LuLock } from 'react-icons/lu'
 
 export default function Login({ onLogin }: { onLogin: (t: string) => void }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [logoUrl, setLogoUrl] = useState('/logo.png')
+
+  useEffect(() => {
+    getSettings().then((res) => {
+      if (res.data.login_logo_url) setLogoUrl(res.data.login_logo_url)
+    }).catch(() => { /* use default */ })
+  }, [])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -21,7 +28,7 @@ export default function Login({ onLogin }: { onLogin: (t: string) => void }) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800 p-4">
       <div className="w-full max-w-md card p-8">
         <div className="flex justify-center mb-8">
-          <img src="/logo.png" alt="isotopiq" className="h-10 w-auto object-contain" />
+          <img src={logoUrl} alt="isotopiq" className="h-10 w-auto object-contain" />
         </div>
         {error && <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 text-sm">{error}</div>}
         <form onSubmit={submit} className="space-y-5">

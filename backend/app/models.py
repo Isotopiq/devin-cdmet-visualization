@@ -11,9 +11,11 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=dt.datetime.utcnow)
 
     projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
+    logs = relationship("AdminLog", back_populates="user", cascade="all, delete-orphan")
 
 
 class Project(Base):
@@ -87,3 +89,24 @@ class Analysis(Base):
 
     project = relationship("Project", back_populates="analyses")
     dataset = relationship("Dataset", back_populates="analyses")
+
+
+class AdminLog(Base):
+    __tablename__ = "admin_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    action = Column(String, nullable=False)
+    target_user_id = Column(Integer, nullable=True)
+    details = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), default=dt.datetime.utcnow)
+
+    user = relationship("User", back_populates="logs")
+
+
+class SiteSetting(Base):
+    __tablename__ = "site_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True, nullable=False)
+    value = Column(String, nullable=True)

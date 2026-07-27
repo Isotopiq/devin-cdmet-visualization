@@ -15,7 +15,41 @@ class UserOut(UserBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     is_active: bool
+    is_admin: bool
     created_at: dt.datetime
+
+
+class UserUpdate(BaseModel):
+    email: Optional[str] = None
+    password: Optional[str] = None
+
+
+class UserAdminCreate(BaseModel):
+    email: str
+    password: str
+    is_admin: bool = False
+    is_active: bool = True
+
+
+class UserAdminUpdate(BaseModel):
+    email: Optional[str] = None
+    is_admin: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+
+class AdminLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    user_id: Optional[int]
+    action: str
+    target_user_id: Optional[int]
+    details: Dict[str, Any]
+    created_at: dt.datetime
+
+
+class SiteSettingsOut(BaseModel):
+    login_logo_url: Optional[str]
+    dashboard_logo_url: Optional[str]
 
 
 class Token(BaseModel):
@@ -145,3 +179,8 @@ class PathwayRequest(BaseModel):
     pathway_source: str = "kegg"
     custom_nodes: Optional[List[Dict[str, Any]]] = None
     custom_edges: Optional[List[Dict[str, Any]]] = None
+
+
+class SiteSettingsUpdate(BaseModel):
+    login_logo_url: Optional[str] = None
+    dashboard_logo_url: Optional[str] = None
