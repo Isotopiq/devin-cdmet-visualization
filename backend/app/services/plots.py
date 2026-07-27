@@ -1,4 +1,5 @@
 import json
+import math
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -8,7 +9,7 @@ from scipy.spatial.distance import pdist
 from sklearn.decomposition import PCA as PCA_SKL
 from sklearn.preprocessing import StandardScaler
 from app import models, schemas
-from app.services.preprocessing import to_dataframe
+from app.services.preprocessing import to_dataframe, _to_json_safe
 
 
 def _get_feature_index(dataset, feature_arg):
@@ -32,6 +33,16 @@ def _reorder_columns(df, sample_meta, group_order):
                 order.append(col)
     order += [c for c in df.columns if c not in order]
     return df[order]
+
+
+def _safe_float(value, default=0.0):
+    try:
+        v = float(value)
+        if math.isfinite(v):
+            return v
+        return default
+    except (TypeError, ValueError):
+        return default
 
 
 def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
@@ -58,14 +69,17 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                          title=f"Abundance: {title}")
         elif plot_type == "box":
             fig = go.Figure()
-            for sample, group in zip(ordered_samples, ordered_groups):
-                fig.add_trace(go.Box(y=[ordered_values[ordered_samples.index(sample)]], name=f"{group}:{sample}", boxpoints="all"))
-            fig.update_layout(title=f"Box Plot: {title}", xaxis_title="Sample", yaxis_title="Abundance")
+            group_vals = {}
+            for s, g in zip(ordered_samples, ordered_groups):
+                group_vals.setdefault(g, []).append(_safe_float(ordered_values[ordered_samples.index(s)]))
+            for g, vals in group_vals.items():
+                fig.add_trace(go.Box(y=vals, name=g, boxpoints="all"))
+            fig.update_layout(title=f"Box Plot: {title}", xaxis_title="Group", yaxis_title="Abundance")
         elif plot_type == "violin":
             fig = go.Figure()
             group_vals = {}
             for s, g in zip(ordered_samples, ordered_groups):
-                group_vals.setdefault(g, []).append(float(ordered_values[ordered_samples.index(s)]))
+                group_vals.setdefault(g, []).append(_safe_float(ordered_values[ordered_samples.index(s)]))
             for g, vals in group_vals.items():
                 fig.add_trace(go.Violin(y=vals, name=g, box_visible=True, meanline_visible=True))
             fig.update_layout(title=f"Violin Plot: {title}", yaxis_title="Abundance")
@@ -84,15 +98,15 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 df = df.iloc[:, order]
             except Exception:
                 pass
-        corr = df.corr()
-        fig = px.imshow(corr, text_auto=True, aspect="auto", title="Correlation Heatmap")
+        corr = df.corr().fillna(0)
+        fig = px.imshow(corr, text_auto=".2f", aspect="auto", title="Correlation Heatmap")
 
     elif plot_type == "pca":
         ptype = params.get("plot", "score")
         components = max(2, min(int(params.get("components", 3)), len(df.columns), len(df)))
         do_scale = bool(params.get("scale", True))
         X = df.dropna().T
-        if X.empty or X.shape[1] < 2:
+        if X.empty or X.shape[1] < 2 or X.shape[0] < 2:
             fig = go.Figure()
             fig.update_layout(title="Not enough data for PCA")
             return json.loads(fig.to_json())
@@ -121,8 +135,10 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                              title="PCA Biplot")
             loadings = pca.components_[:2]
             feat_ids = [m.get("feature_id", i) for i, m in enumerate(dataset.feature_metadata)]
+            x_scale = max(np.abs(scores[:, 0]).max(), 1e-9)
+            y_scale = max(np.abs(scores[:, 1]).max(), 1e-9)
             for i in range(min(20, len(loadings[0]))):
-                fig.add_trace(go.Scatter(x=[0, loadings[0, i]*max(scores[:,0])], y=[0, loadings[1, i]*max(scores[:,1])],
+                fig.add_trace(go.Scatter(x=[0, loadings[0, i]*x_scale], y=[0, loadings[1, i]*y_scale],
                                          mode="lines+text", text=["", feat_ids[i]], textposition="top center",
                                          line=dict(color="gray"), showlegend=False))
         else:
@@ -132,23 +148,26 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                              title="PCA Score Plot")
 
     elif plot_type == "volcano":
-        stats = params.get("stats", [])
+        stats_data = params.get("stats", [])
         fc_thresh = float(params.get("fc_threshold", 0.5))
         p_thresh = float(params.get("p_threshold", 0.05))
         fc = []
         neglogp = []
         names = []
         colors = []
-        for s in stats:
-            if s.get("log2fc") is None or s.get("padj") is None or s["padj"] <= 0:
+        for s in stats_data:
+            lfc = s.get("log2fc")
+            padj = s.get("padj")
+            if lfc is None or padj is None or not math.isfinite(padj) or padj <= 0 or not math.isfinite(lfc):
                 continue
-            lfc = float(s["log2fc"])
-            p = -np.log10(float(s["padj"]))
+            p = -np.log10(padj)
+            if not math.isfinite(p):
+                continue
             fc.append(lfc)
             neglogp.append(p)
             names.append(s.get("feature_id", ""))
-            up = lfc > fc_thresh and s["padj"] < p_thresh
-            down = lfc < -fc_thresh and s["padj"] < p_thresh
+            up = lfc > fc_thresh and padj < p_thresh
+            down = lfc < -fc_thresh and padj < p_thresh
             colors.append("Up" if up else ("Down" if down else "Not significant"))
         fig = px.scatter(x=fc, y=neglogp, hover_name=names, color=colors,
                          color_discrete_map={"Up": "red", "Down": "blue", "Not significant": "gray"},
@@ -159,8 +178,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         fig.add_vline(x=-fc_thresh, line_dash="dash", line_color="black")
 
     elif plot_type == "rt_mz":
-        mz = [float(f.get("mz", 0) or 0) for f in dataset.feature_metadata]
-        rt = [float(f.get("rt", 0) or 0) for f in dataset.feature_metadata]
+        mz = [_safe_float(f.get("mz", 0)) for f in dataset.feature_metadata]
+        rt = [_safe_float(f.get("rt", 0)) for f in dataset.feature_metadata]
         grades = [str(f.get("grade", "unknown")) for f in dataset.feature_metadata]
         fig = px.scatter(x=mz, y=rt, color=grades,
                          labels={"x": "m/z", "y": "Retention Time"},

@@ -12,14 +12,20 @@ from app.auth import get_password_hash
 
 
 async def ensure_admin_user():
-    if not settings.ADMIN_EMAIL or not settings.ADMIN_PASSWORD:
+    # Allow either ADMIN_EMAIL or ADMIN_USERNAME (treated as the login email).
+    admin_email = settings.ADMIN_EMAIL or settings.ADMIN_USERNAME
+    if not admin_email:
         return
+
     async with AsyncSessionLocal() as db:
-        result = await db.execute(select(models.User).where(models.User.email == settings.ADMIN_EMAIL))
+        # If an admin already exists, do nothing unless a specific email is configured.
+        result = await db.execute(select(models.User).where(models.User.email == admin_email))
         user = result.scalar_one_or_none()
         if user is None:
+            if not settings.ADMIN_PASSWORD:
+                return
             user = models.User(
-                email=settings.ADMIN_EMAIL,
+                email=admin_email,
                 hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
                 is_active=True,
                 is_admin=True,

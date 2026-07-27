@@ -148,6 +148,7 @@ class PreprocessingParams(BaseModel):
     custom_factor: Optional[float] = None
     batch_correction: str = "none"
     batch_column: Optional[str] = None
+    batch_labels: Optional[Dict[str, str]] = None
 
 
 class StatsRequest(BaseModel):

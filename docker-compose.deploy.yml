@@ -28,6 +28,7 @@ services:
       ALGORITHM: ${ALGORITHM:-HS256}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-preview@example.com}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-preview123}
     volumes:
       - upload-data-deploy:/app/uploads
