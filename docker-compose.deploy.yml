@@ -19,8 +19,10 @@ services:
 
   backend:
     build: ./backend
+    image: metabolomics-platform-backend
     container_name: metabolomics-backend
     environment:
+      PYTHONPATH: /app
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/metabolomics}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
       ALGORITHM: ${ALGORITHM:-HS256}
@@ -46,6 +48,7 @@ services:
 
   frontend:
     build: ./frontend
+    image: metabolomics-platform-frontend
     container_name: metabolomics-frontend
     ports:
       - "3460:80"
