@@ -26,7 +26,7 @@ services:
     volumes:
       - upload-data-easypanel:/app/uploads
     ports:
-      - "8001:8000"
+      - "8457:8000"
     depends_on:
       db-easypanel:
         condition: service_healthy
@@ -36,7 +36,7 @@ services:
   frontend-easypanel:
     build: ./frontend
     ports:
-      - "3001:80"
+      - "3457:80"
     depends_on:
       - backend-easypanel
     volumes:
