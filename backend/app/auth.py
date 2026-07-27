@@ -1,1 +1,55 @@
-aW1wb3J0IGJjcnlwdAppbXBvcnQgZGF0ZXRpbWUgYXMgZHQKZnJvbSB0eXBpbmcgaW1wb3J0IE9wdGlvbmFsCmZyb20gam9zZSBpbXBvcnQgSldURXJyb3IsIGp3dApmcm9tIGZhc3RhcGkgaW1wb3J0IERlcGVuZHMsIEhUVFBFeGNlcHRpb24sIHN0YXR1cwpmcm9tIGZhc3RhcGkuc2VjdXJpdHkgaW1wb3J0IE9BdXRoMlBhc3N3b3JkQmVhcmVyCmZyb20gc3FsYWxjaGVteS5leHQuYXN5bmNpbyBpbXBvcnQgQXN5bmNTZXNzaW9uCmZyb20gc3FsYWxjaGVteSBpbXBvcnQgc2VsZWN0CmZyb20gYXBwLmNvbmZpZyBpbXBvcnQgc2V0dGluZ3MKZnJvbSBhcHAuZGF0YWJhc2UgaW1wb3J0IGdldF9kYgpmcm9tIGFwcCBpbXBvcnQgbW9kZWxzLCBzY2hlbWFzCgpvYXV0aDJfc2NoZW1lID0gT0F1dGgyUGFzc3dvcmRCZWFyZXIodG9rZW5Vcmw9Ii9hcGkvYXV0aC90b2tlbiIpCgoKZGVmIHZlcmlmeV9wYXNzd29yZChwbGFpbjogc3RyLCBoYXNoZWQ6IHN0cikgLT4gYm9vbDoKICAgIHJldHVybiBiY3J5cHQuY2hlY2twdyhwbGFpbi5lbmNvZGUoInV0Zi04IiksIGhhc2hlZC5lbmNvZGUoInV0Zi04IikpCgoKZGVmIGdldF9wYXNzd29yZF9oYXNoKHBhc3N3b3JkOiBzdHIpIC0+IHN0cjoKICAgIHJldHVybiBiY3J5cHQuaGFzaHB3KHBhc3N3b3JkLmVuY29kZSgidXRmLTgiKSwgYmNyeXB0LmdlbnNhbHQoKSkuZGVjb2RlKCJ1dGYtOCIpCgoKZGVmIGNyZWF0ZV9hY2Nlc3NfdG9rZW4oZGF0YTogZGljdCwgZXhwaXJlc19kZWx0YTogT3B0aW9uYWxbZHQudGltZWRlbHRhXSA9IE5vbmUpOgogICAgdG9fZW5jb2RlID0gZGF0YS5jb3B5KCkKICAgIGV4cGlyZSA9IGR0LmRhdGV0aW1lLnV0Y25vdygpICsgKGV4cGlyZXNfZGVsdGEgb3IgZHQudGltZWRlbHRhKG1pbnV0ZXM9c2V0dGluZ3MuQUNDRVNTX1RPS0VOX0VYUElSRV9NSU5VVEVTKSkKICAgIHRvX2VuY29kZS51cGRhdGUoeyJleHAiOiBleHBpcmV9KQogICAgcmV0dXJuIGp3dC5lbmNvZGUodG9fZW5jb2RlLCBzZXR0aW5ncy5TRUNSRVRfS0VZLCBhbGdvcml0aG09c2V0dGluZ3MuQUxHT1JJVEhNKQoKCmFzeW5jIGRlZiBnZXRfY3VycmVudF91c2VyKHRva2VuOiBzdHIgPSBEZXBlbmRzKG9hdXRoMl9zY2hlbWUpLCBkYjogQXN5bmNTZXNzaW9uID0gRGVwZW5kcyhnZXRfZGIpKSAtPiBtb2RlbHMuVXNlcjoKICAgIGNyZWRlbnRpYWxzX2V4Y2VwdGlvbiA9IEhUVFBFeGNlcHRpb24oCiAgICAgICAgc3RhdHVzX2NvZGU9c3RhdHVzLkhUVFBfNDAxX1VOQVVUSE9SSVpFRCwKICAgICAgICBkZXRhaWw9IkNvdWxkIG5vdCB2YWxpZGF0ZSBjcmVkZW50aWFscyIsCiAgICAgICAgaGVhZGVycz17IldXVy1BdXRoZW50aWNhdGUiOiAiQmVhcmVyIn0sCiAgICApCiAgICB0cnk6CiAgICAgICAgcGF5bG9hZCA9IGp3dC5kZWNvZGUodG9rZW4sIHNldHRpbmdzLlNFQ1JFVF9LRVksIGFsZ29yaXRobXM9W3NldHRpbmdzLkFMR09SSVRITV0pCiAgICAgICAgdXNlcl9pZDogc3RyID0gcGF5bG9hZC5nZXQoInN1YiIpCiAgICAgICAgaWYgdXNlcl9pZCBpcyBOb25lOgogICAgICAgICAgICByYWlzZSBjcmVkZW50aWFsc19leGNlcHRpb24KICAgIGV4Y2VwdCBKV1RFcnJvcjoKICAgICAgICByYWlzZSBjcmVkZW50aWFsc19leGNlcHRpb24KCiAgICByZXN1bHQgPSBhd2FpdCBkYi5leGVjdXRlKHNlbGVjdChtb2RlbHMuVXNlcikud2hlcmUobW9kZWxzLlVzZXIuaWQgPT0gaW50KHVzZXJfaWQpKSkKICAgIHVzZXIgPSByZXN1bHQuc2NhbGFyX29uZV9vcl9ub25lKCkKICAgIGlmIHVzZXIgaXMgTm9uZToKICAgICAgICByYWlzZSBjcmVkZW50aWFsc19leGNlcHRpb24KICAgIHJldHVybiB1c2VyCgoKYXN5bmMgZGVmIGdldF9jdXJyZW50X2FjdGl2ZV91c2VyKGN1cnJlbnRfdXNlcjogbW9kZWxzLlVzZXIgPSBEZXBlbmRzKGdldF9jdXJyZW50X3VzZXIpKSAtPiBtb2RlbHMuVXNlcjoKICAgIGlmIG5vdCBjdXJyZW50X3VzZXIuaXNfYWN0aXZlOgogICAgICAgIHJhaXNlIEhUVFBFeGNlcHRpb24oc3RhdHVzX2NvZGU9NDAwLCBkZXRhaWw9IkluYWN0aXZlIHVzZXIiKQogICAgcmV0dXJuIGN1cnJlbnRfdXNlcgo=
+import bcrypt
+import datetime as dt
+from typing import Optional
+from jose import JWTError, jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.config import settings
+from app.database import get_db
+from app import models, schemas
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+
+
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def create_access_token(data: dict, expires_delta: Optional[dt.timedelta] = None):
+    to_encode = data.copy()
+    expire = dt.datetime.utcnow() + (expires_delta or dt.timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> models.User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    result = await db.execute(select(models.User).where(models.User.id == int(user_id)))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+async def get_current_active_user(current_user: models.User = Depends(get_current_user)) -> models.User:
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user

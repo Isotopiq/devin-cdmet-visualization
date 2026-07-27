@@ -1,1 +1,24 @@
-aW1wb3J0IHB5dGVzdAoKCkBweXRlc3QubWFyay5hc3luY2lvCmFzeW5jIGRlZiB0ZXN0X2hlYWx0aChjbGllbnQpOgogICAgciA9IGF3YWl0IGNsaWVudC5nZXQoIi9hcGkvaGVhbHRoIikKICAgIGFzc2VydCByLnN0YXR1c19jb2RlID09IDIwMAogICAgYXNzZXJ0IHIuanNvbigpWyJzdGF0dXMiXSA9PSAib2siCgoKQHB5dGVzdC5tYXJrLmFzeW5jaW8KYXN5bmMgZGVmIHRlc3RfYXV0aF9mbG93KGNsaWVudCk6CiAgICByID0gYXdhaXQgY2xpZW50LnBvc3QoIi9hcGkvYXV0aC9yZWdpc3RlciIsIGpzb249eyJlbWFpbCI6ICJ0ZXN0QGV4YW1wbGUuY29tIiwgInBhc3N3b3JkIjogInNlY3JldCJ9KQogICAgYXNzZXJ0IHIuc3RhdHVzX2NvZGUgPT0gMjAwCiAgICB1c2VyID0gci5qc29uKCkKICAgIGFzc2VydCB1c2VyWyJlbWFpbCJdID09ICJ0ZXN0QGV4YW1wbGUuY29tIgoKICAgIHIgPSBhd2FpdCBjbGllbnQucG9zdCgiL2FwaS9hdXRoL3Rva2VuIiwgZGF0YT17InVzZXJuYW1lIjogInRlc3RAZXhhbXBsZS5jb20iLCAicGFzc3dvcmQiOiAic2VjcmV0In0pCiAgICBhc3NlcnQgci5zdGF0dXNfY29kZSA9PSAyMDAKICAgIHRva2VuID0gci5qc29uKClbImFjY2Vzc190b2tlbiJdCgogICAgciA9IGF3YWl0IGNsaWVudC5nZXQoIi9hcGkvYXV0aC9tZSIsIGhlYWRlcnM9eyJBdXRob3JpemF0aW9uIjogZiJCZWFyZXIge3Rva2VufSJ9KQogICAgYXNzZXJ0IHIuc3RhdHVzX2NvZGUgPT0gMjAwCiAgICBhc3NlcnQgci5qc29uKClbImVtYWlsIl0gPT0gInRlc3RAZXhhbXBsZS5jb20iCg==
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_health(client):
+    r = await client.get("/api/health")
+    assert r.status_code == 200
+    assert r.json()["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_auth_flow(client):
+    r = await client.post("/api/auth/register", json={"email": "test@example.com", "password": "secret"})
+    assert r.status_code == 200
+    user = r.json()
+    assert user["email"] == "test@example.com"
+
+    r = await client.post("/api/auth/token", data={"username": "test@example.com", "password": "secret"})
+    assert r.status_code == 200
+    token = r.json()["access_token"]
+
+    r = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+    assert r.json()["email"] == "test@example.com"

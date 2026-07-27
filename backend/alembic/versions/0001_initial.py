@@ -1,1 +1,101 @@
-IiIiaW5pdGlhbAoKUmV2aXNpb24gSUQ6IDAwMDEKUmV2aXNlczogCkNyZWF0ZSBEYXRlOiAyMDI2LTA3LTIyCgoiIiIKZnJvbSB0eXBpbmcgaW1wb3J0IFNlcXVlbmNlLCBVbmlvbgoKZnJvbSBhbGVtYmljIGltcG9ydCBvcAppbXBvcnQgc3FsYWxjaGVteSBhcyBzYQoKCiMgcmV2aXNpb24gaWRlbnRpZmllcnMsIHVzZWQgYnkgQWxlbWJpYy4KcmV2aXNpb246IHN0ciA9ICIwMDAxIgpkb3duX3JldmlzaW9uOiBVbmlvbltzdHIsIE5vbmVdID0gTm9uZQpicmFuY2hfbGFiZWxzOiBVbmlvbltzdHIsIFNlcXVlbmNlW3N0cl0sIE5vbmVdID0gTm9uZQpkZXBlbmRzX29uOiBVbmlvbltzdHIsIFNlcXVlbmNlW3N0cl0sIE5vbmVdID0gTm9uZQoKCmRlZiB1cGdyYWRlKCkgLT4gTm9uZToKICAgIG9wLmNyZWF0ZV90YWJsZSgKICAgICAgICAidXNlcnMiLAogICAgICAgIHNhLkNvbHVtbigiaWQiLCBzYS5JbnRlZ2VyKCksIG51bGxhYmxlPUZhbHNlKSwKICAgICAgICBzYS5Db2x1bW4oImVtYWlsIiwgc2EuU3RyaW5nKCksIG51bGxhYmxlPUZhbHNlKSwKICAgICAgICBzYS5Db2x1bW4oImhhc2hlZF9wYXNzd29yZCIsIHNhLlN0cmluZygpLCBudWxsYWJsZT1GYWxzZSksCiAgICAgICAgc2EuQ29sdW1uKCJpc19hY3RpdmUiLCBzYS5Cb29sZWFuKCksIG51bGxhYmxlPVRydWUpLAogICAgICAgIHNhLkNvbHVtbigiY3JlYXRlZF9hdCIsIHNhLkRhdGVUaW1lKHRpbWV6b25lPVRydWUpLCBudWxsYWJsZT1UcnVlKSwKICAgICAgICBzYS5QcmltYXJ5S2V5Q29uc3RyYWludCgiaWQiKSwKICAgICAgICBzYS5VbmlxdWVDb25zdHJhaW50KCJlbWFpbCIpLAogICAgKQogICAgb3AuY3JlYXRlX2luZGV4KCJpeF91c2Vyc19lbWFpbCIsICJ1c2VycyIsIFsiZW1haWwiXSwgdW5pcXVlPVRydWUpCiAgICBvcC5jcmVhdGVfdGFibGUoCiAgICAgICAgInByb2plY3RzIiwKICAgICAgICBzYS5Db2x1bW4oImlkIiwgc2EuSW50ZWdlcigpLCBudWxsYWJsZT1GYWxzZSksCiAgICAgICAgc2EuQ29sdW1uKCJuYW1lIiwgc2EuU3RyaW5nKCksIG51bGxhYmxlPUZhbHNlKSwKICAgICAgICBzYS5Db2x1bW4oImRlc2NyaXB0aW9uIiwgc2EuVGV4dCgpLCBudWxsYWJsZT1UcnVlKSwKICAgICAgICBzYS5Db2x1bW4oIm93bmVyX2lkIiwgc2EuSW50ZWdlcigpLCBudWxsYWJsZT1GYWxzZSksCiAgICAgICAgc2EuQ29sdW1uKCJjcmVhdGVkX2F0Iiwgc2EuRGF0ZVRpbWUodGltZXpvbmU9VHJ1ZSksIG51bGxhYmxlPVRydWUpLAogICAgICAgIHNhLkNvbHVtbigidXBkYXRlZF9hdCIsIHNhLkRhdGVUaW1lKHRpbWV6b25lPVRydWUpLCBudWxsYWJsZT1UcnVlKSwKICAgICAgICBzYS5Gb3JlaWduS2V5Q29uc3RyYWludChbIm93bmVyX2lkIl0sIFsidXNlcnMuaWQiXSksCiAgICAgICAgc2EuUHJpbWFyeUtleUNvbnN0cmFpbnQoImlkIiksCiAgICApCiAgICBvcC5jcmVhdGVfdGFibGUoCiAgICAgICAgInVwbG9hZGVkX2ZpbGVzIiwKICAgICAgICBzYS5Db2x1bW4oImlkIiwgc2EuSW50ZWdlcigpLCBudWxsYWJsZT1GYWxzZSksCiAgICAgICAgc2EuQ29sdW1uKCJwcm9qZWN0X2lkIiwgc2EuSW50ZWdlcigpLCBudWxsYWJsZT1GYWxzZSksCiAgICAgICAgc2EuQ29sdW1uKCJvcmlnaW5hbF9uYW1lIiwgc2EuU3RyaW5nKCksIG51bGxhYmxlPUZhbHNlKSwKICAgICAgICBzYS5Db2x1bW4oInN0b3JlZF9uYW1lIiwgc2EuU3RyaW5nKCksIG51bGxhYmxlPUZhbHNlKSwKICAgICAgICBzYS5Db2x1bW4oImZpbGVfdHlwZSIsIHNhLlN0cmluZygpLCBudWxsYWJsZT1UcnVlKSwKICAgICAgICBzYS5Db2x1bW4oImRldGVjdGVkX2Zvcm1hdCIsIHNhLlN0cmluZygpLCBudWxsYWJsZT1UcnVlKSwKICAgICAgICBzYS5Db2x1bW4oInNoZWV0cyIsIHNhLkpTT04oKSwgbnVsbGFibGU9VHJ1ZSksCiAgICAgICAgc2EuQ29sdW1uKCJzZWxlY3RlZF9zaGVldCIsIHNhLlN0cmluZygpLCBudWxsYWJsZT1UcnVlKSwKICAgICAgICBzYS5Db2x1bW4oImNvbHVtbl9tYXBwaW5nIiwgc2EuSlNPTigpLCBudWxsYWJsZT1UcnVlKSwKICAgICAgICBzYS5Db2x1bW4oInNhbXBsZV9ncm91cHMiLCBzYS5KU09OKCksIG51bGxhYmxlPVRydWUpLAogICAgICAgIHNhLkNvbHVtbigiZmlsZV9tZXRhZGF0YSIsIHNhLkpTT04oKSwgbnVsbGFibGU9VHJ1ZSksCiAgICAgICAgc2EuQ29sdW1uKCJzdGF0dXMiLCBzYS5TdHJpbmcoKSwgbnVsbGFibGU9VHJ1ZSksCiAgICAgICAgc2EuQ29sdW1uKCJjcmVhdGVkX2F0Iiwgc2EuRGF0ZVRpbWUodGltZXpvbmU9VHJ1ZSksIG51bGxhYmxlPVRydWUpLAogICAgICAgIHNhLkZvcmVpZ25LZXlDb25zdHJhaW50KFsicHJvamVjdF9pZCJdLCBbInByb2plY3RzLmlkIl0pLAogICAgICAgIHNhLlByaW1hcnlLZXlDb25zdHJhaW50KCJpZCIpLAogICAgKQogICAgb3AuY3JlYXRlX3RhYmxlKAogICAgICAgICJkYXRhc2V0cyIsCiAgICAgICAgc2EuQ29sdW1uKCJpZCIsIHNhLkludGVnZXIoKSwgbnVsbGFibGU9RmFsc2UpLAogICAgICAgIHNhLkNvbHVtbigicHJvamVjdF9pZCIsIHNhLkludGVnZXIoKSwgbnVsbGFibGU9RmFsc2UpLAogICAgICAgIHNhLkNvbHVtbigic291cmNlX2ZpbGVfaWQiLCBzYS5JbnRlZ2VyKCksIG51bGxhYmxlPVRydWUpLAogICAgICAgIHNhLkNvbHVtbigibmFtZSIsIHNhLlN0cmluZygpLCBudWxsYWJsZT1GYWxzZSksCiAgICAgICAgc2EuQ29sdW1uKCJmZWF0dXJlX3R5cGUiLCBzYS5TdHJpbmcoKSwgbnVsbGFibGU9RmFsc2UpLAogICAgICAgIHNhLkNvbHVtbigiZGF0YV9tYXRyaXgiLCBzYS5KU09OKCksIG51bGxhYmxlPVRydWUpLAogICAgICAgIHNhLkNvbHVtbigic2FtcGxlX21ldGFkYXRhIiwgc2EuSlNPTigpLCBudWxsYWJsZT1UcnVlKSwKICAgICAgICBzYS5Db2x1bW4oImZlYXR1cmVfbWV0YWRhdGEiLCBzYS5KU09OKCksIG51bGxhYmxlPVRydWUpLAogICAgICAgIHNhLkNvbHVtbigicHJvY2Vzc2luZ19oaXN0b3J5Iiwgc2EuSlNPTigpLCBudWxsYWJsZT1UcnVlKSwKICAgICAgICBzYS5Db2x1bW4oImNyZWF0ZWRfYXQiLCBzYS5EYXRlVGltZSh0aW1lem9uZT1UcnVlKSwgbnVsbGFibGU9VHJ1ZSksCiAgICAgICAgc2EuRm9yZWlnbktleUNvbnN0cmFpbnQoWyJwcm9qZWN0X2lkIl0sIFsicHJvamVjdHMuaWQiXSksCiAgICAgICAgc2EuRm9yZWlnbktleUNvbnN0cmFpbnQoWyJzb3VyY2VfZmlsZV9pZCJdLCBbInVwbG9hZGVkX2ZpbGVzLmlkIl0pLAogICAgICAgIHNhLlByaW1hcnlLZXlDb25zdHJhaW50KCJpZCIpLAogICAgKQogICAgb3AuY3JlYXRlX3RhYmxlKAogICAgICAgICJhbmFseXNlcyIsCiAgICAgICAgc2EuQ29sdW1uKCJpZCIsIHNhLkludGVnZXIoKSwgbnVsbGFibGU9RmFsc2UpLAogICAgICAgIHNhLkNvbHVtbigicHJvamVjdF9pZCIsIHNhLkludGVnZXIoKSwgbnVsbGFibGU9RmFsc2UpLAogICAgICAgIHNhLkNvbHVtbigiZGF0YXNldF9pZCIsIHNhLkludGVnZXIoKSwgbnVsbGFibGU9RmFsc2UpLAogICAgICAgIHNhLkNvbHVtbigibmFtZSIsIHNhLlN0cmluZygpLCBudWxsYWJsZT1GYWxzZSksCiAgICAgICAgc2EuQ29sdW1uKCJhbmFseXNpc190eXBlIiwgc2EuU3RyaW5nKCksIG51bGxhYmxlPUZhbHNlKSwKICAgICAgICBzYS5Db2x1bW4oInBhcmFtZXRlcnMiLCBzYS5KU09OKCksIG51bGxhYmxlPVRydWUpLAogICAgICAgIHNhLkNvbHVtbigicmVzdWx0cyIsIHNhLkpTT04oKSwgbnVsbGFibGU9VHJ1ZSksCiAgICAgICAgc2EuQ29sdW1uKCJwbG90cyIsIHNhLkpTT04oKSwgbnVsbGFibGU9VHJ1ZSksCiAgICAgICAgc2EuQ29sdW1uKCJjcmVhdGVkX2F0Iiwgc2EuRGF0ZVRpbWUodGltZXpvbmU9VHJ1ZSksIG51bGxhYmxlPVRydWUpLAogICAgICAgIHNhLkZvcmVpZ25LZXlDb25zdHJhaW50KFsicHJvamVjdF9pZCJdLCBbInByb2plY3RzLmlkIl0pLAogICAgICAgIHNhLkZvcmVpZ25LZXlDb25zdHJhaW50KFsiZGF0YXNldF9pZCJdLCBbImRhdGFzZXRzLmlkIl0pLAogICAgICAgIHNhLlByaW1hcnlLZXlDb25zdHJhaW50KCJpZCIpLAogICAgKQoKCmRlZiBkb3duZ3JhZGUoKSAtPiBOb25lOgogICAgb3AuZHJvcF90YWJsZSgiYW5hbHlzZXMiKQogICAgb3AuZHJvcF90YWJsZSgiZGF0YXNldHMiKQogICAgb3AuZHJvcF90YWJsZSgidXBsb2FkZWRfZmlsZXMiKQogICAgb3AuZHJvcF90YWJsZSgicHJvamVjdHMiKQogICAgb3AuZHJvcF9pbmRleCgiaXhfdXNlcnNfZW1haWwiLCB0YWJsZV9uYW1lPSJ1c2VycyIpCiAgICBvcC5kcm9wX3RhYmxlKCJ1c2VycyIpCg==
+"""initial
+
+Revision ID: 0001
+Revises: 
+Create Date: 2026-07-22
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = "0001"
+down_revision: Union[str, None] = None
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    op.create_table(
+        "users",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("email", sa.String(), nullable=False),
+        sa.Column("hashed_password", sa.String(), nullable=False),
+        sa.Column("is_active", sa.Boolean(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("email"),
+    )
+    op.create_index("ix_users_email", "users", ["email"], unique=True)
+    op.create_table(
+        "projects",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("owner_id", sa.Integer(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(["owner_id"], ["users.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
+        "uploaded_files",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("project_id", sa.Integer(), nullable=False),
+        sa.Column("original_name", sa.String(), nullable=False),
+        sa.Column("stored_name", sa.String(), nullable=False),
+        sa.Column("file_type", sa.String(), nullable=True),
+        sa.Column("detected_format", sa.String(), nullable=True),
+        sa.Column("sheets", sa.JSON(), nullable=True),
+        sa.Column("selected_sheet", sa.String(), nullable=True),
+        sa.Column("column_mapping", sa.JSON(), nullable=True),
+        sa.Column("sample_groups", sa.JSON(), nullable=True),
+        sa.Column("file_metadata", sa.JSON(), nullable=True),
+        sa.Column("status", sa.String(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
+        "datasets",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("project_id", sa.Integer(), nullable=False),
+        sa.Column("source_file_id", sa.Integer(), nullable=True),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("feature_type", sa.String(), nullable=False),
+        sa.Column("data_matrix", sa.JSON(), nullable=True),
+        sa.Column("sample_metadata", sa.JSON(), nullable=True),
+        sa.Column("feature_metadata", sa.JSON(), nullable=True),
+        sa.Column("processing_history", sa.JSON(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"]),
+        sa.ForeignKeyConstraint(["source_file_id"], ["uploaded_files.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
+        "analyses",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("project_id", sa.Integer(), nullable=False),
+        sa.Column("dataset_id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("analysis_type", sa.String(), nullable=False),
+        sa.Column("parameters", sa.JSON(), nullable=True),
+        sa.Column("results", sa.JSON(), nullable=True),
+        sa.Column("plots", sa.JSON(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"]),
+        sa.ForeignKeyConstraint(["dataset_id"], ["datasets.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+
+def downgrade() -> None:
+    op.drop_table("analyses")
+    op.drop_table("datasets")
+    op.drop_table("uploaded_files")
+    op.drop_table("projects")
+    op.drop_index("ix_users_email", table_name="users")
+    op.drop_table("users")

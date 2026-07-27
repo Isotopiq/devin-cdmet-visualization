@@ -1,1 +1,17 @@
-RlJPTSBweXRob246My4xMS1zbGltCgpXT1JLRElSIC9hcHAKClJVTiBhcHQtZ2V0IHVwZGF0ZSAmJiBhcHQtZ2V0IGluc3RhbGwgLXkgLS1uby1pbnN0YWxsLXJlY29tbWVuZHMgXAogICAgZ2NjIFwKICAgIGxpYnBxLWRldiBcCiAgICAmJiBybSAtcmYgL3Zhci9saWIvYXB0L2xpc3RzLyoKCkNPUFkgcHlwcm9qZWN0LnRvbWwgLgpSVU4gcGlwIGluc3RhbGwgLS1uby1jYWNoZS1kaXIgLWUgLgoKQ09QWSAuIC4KClJVTiBta2RpciAtcCAvYXBwL3VwbG9hZHMKCkVYUE9TRSA4MDAwCg==
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml .
+RUN pip install --no-cache-dir -e .
+
+COPY . .
+
+RUN mkdir -p /app/uploads
+
+EXPOSE 8000

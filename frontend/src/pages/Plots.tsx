@@ -1,1 +1,99 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgUGxvdCBmcm9tICdyZWFjdC1wbG90bHkuanMnCmltcG9ydCB7IGxpc3RQcm9qZWN0cywgbGlzdERhdGFzZXRzLCBnZW5lcmF0ZVBsb3QgfSBmcm9tICcuLi9hcGknCmltcG9ydCB7IFByb2plY3QsIERhdGFzZXQgfSBmcm9tICcuLi90eXBlcycKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFBsb3RzKCkgewogIGNvbnN0IFtwcm9qZWN0cywgc2V0UHJvamVjdHNdID0gdXNlU3RhdGU8UHJvamVjdFtdPihbXSkKICBjb25zdCBbcHJvamVjdElkLCBzZXRQcm9qZWN0SWRdID0gdXNlU3RhdGU8bnVtYmVyIHwgJyc+KCcnKQogIGNvbnN0IFtkYXRhc2V0cywgc2V0RGF0YXNldHNdID0gdXNlU3RhdGU8RGF0YXNldFtdPihbXSkKICBjb25zdCBbZGF0YXNldElkLCBzZXREYXRhc2V0SWRdID0gdXNlU3RhdGU8bnVtYmVyIHwgJyc+KCcnKQogIGNvbnN0IFtwbG90VHlwZSwgc2V0UGxvdFR5cGVdID0gdXNlU3RhdGUoJ2JhcicpCiAgY29uc3QgW2ZpZ3VyZSwgc2V0RmlndXJlXSA9IHVzZVN0YXRlPGFueT4obnVsbCkKCiAgdXNlRWZmZWN0KCgpID0+IHsgbGlzdFByb2plY3RzKCkudGhlbigocikgPT4gc2V0UHJvamVjdHMoci5kYXRhKSkgfSwgW10pCiAgdXNlRWZmZWN0KCgpID0+IHsgaWYgKHByb2plY3RJZCkgbGlzdERhdGFzZXRzKE51bWJlcihwcm9qZWN0SWQpKS50aGVuKChyKSA9PiBzZXREYXRhc2V0cyhyLmRhdGEpKSB9LCBbcHJvamVjdElkXSkKCiAgY29uc3QgZ2VuZXJhdGUgPSBhc3luYyAoKSA9PiB7CiAgICBpZiAoIXByb2plY3RJZCB8fCAhZGF0YXNldElkKSByZXR1cm4KICAgIGNvbnN0IHJlcyA9IGF3YWl0IGdlbmVyYXRlUGxvdChOdW1iZXIocHJvamVjdElkKSwgTnVtYmVyKGRhdGFzZXRJZCksIHsgcGxvdF90eXBlOiBwbG90VHlwZSwgcGFyYW1ldGVyczoge30gfSkKICAgIHNldEZpZ3VyZShyZXMuZGF0YSkKICB9CgogIHJldHVybiAoCiAgICA8ZGl2PgogICAgICA8aDEgY2xhc3NOYW1lPSJ0ZXh0LTJ4bCBmb250LWJvbGQgbWItNCB0ZXh0LWdyYXktOTAwIGRhcms6dGV4dC13aGl0ZSI+Q29tcG91bmQgUGxvdHM8L2gxPgogICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBnYXAtMiBtYi00Ij4KICAgICAgICA8c2VsZWN0IHZhbHVlPXtwcm9qZWN0SWR9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0UHJvamVjdElkKE51bWJlcihlLnRhcmdldC52YWx1ZSkpfSBjbGFzc05hbWU9ImJvcmRlciByb3VuZGVkLWxnIHAtMiI+PG9wdGlvbiB2YWx1ZT0iIj5Qcm9qZWN0PC9vcHRpb24+e3Byb2plY3RzLm1hcCgocCkgPT4gPG9wdGlvbiBrZXk9e3AuaWR9IHZhbHVlPXtwLmlkfT57cC5uYW1lfTwvb3B0aW9uPil9PC9zZWxlY3Q+CiAgICAgICAgPHNlbGVjdCB2YWx1ZT17ZGF0YXNldElkfSBvbkNoYW5nZT17KGUpID0+IHNldERhdGFzZXRJZChOdW1iZXIoZS50YXJnZXQudmFsdWUpKX0gY2xhc3NOYW1lPSJib3JkZXIgcm91bmRlZC1sZyBwLTIiPjxvcHRpb24gdmFsdWU9IiI+RGF0YXNldDwvb3B0aW9uPntkYXRhc2V0cy5tYXAoKGQpID0+IDxvcHRpb24ga2V5PXtkLmlkfSB2YWx1ZT17ZC5pZH0+e2QubmFtZX08L29wdGlvbj4pfTwvc2VsZWN0PgogICAgICAgIDxzZWxlY3QgdmFsdWU9e3Bsb3RUeXBlfSBvbkNoYW5nZT17KGUpID0+IHNldFBsb3RUeXBlKGUudGFyZ2V0LnZhbHVlKX0gY2xhc3NOYW1lPSJib3JkZXIgcm91bmRlZC1sZyBwLTIiPgogICAgICAgICAgPG9wdGlvbiB2YWx1ZT0iYmFyIj5CYXIgUGxvdDwvb3B0aW9uPgogICAgICAgICAgPG9wdGlvbiB2YWx1ZT0iYm94Ij5Cb3ggUGxvdDwvb3B0aW9uPgogICAgICAgICAgPG9wdGlvbiB2YWx1ZT0icnRfbXoiPlJUIHZzIG0vejwvb3B0aW9uPgogICAgICAgIDwvc2VsZWN0PgogICAgICAgIDxidXR0b24gb25DbGljaz17Z2VuZXJhdGV9IGNsYXNzTmFtZT0iYmctYmx1ZS02MDAgdGV4dC13aGl0ZSByb3VuZGVkLWxnIHB4LTQgcHktMiBob3ZlcjpiZy1ibHVlLTcwMCI+R2VuZXJhdGU8L2J1dHRvbj4KICAgICAgPC9kaXY+CiAgICAgIHtmaWd1cmUgJiYgPGRpdiBjbGFzc05hbWU9ImJnLXdoaXRlIGRhcms6YmctZ3JheS04MDAgcm91bmRlZC1sZyBzaGFkb3cgcC00Ij48UGxvdCBkYXRhPXtmaWd1cmUuZGF0YX0gbGF5b3V0PXtmaWd1cmUubGF5b3V0fSBzdHlsZT17eyB3aWR0aDogJzEwMCUnLCBoZWlnaHQ6ICc1MDBweCcgfX0gY29uZmlnPXt7IHJlc3BvbnNpdmU6IHRydWUgfX0gLz48L2Rpdj59CiAgICA8L2Rpdj4KICApCn0K
+import { useEffect, useMemo, useState } from 'react'
+import Plot from 'react-plotly.js'
+import { useWorkspace } from '../context/WorkspaceContext'
+import DatasetPicker from '../components/DatasetPicker'
+import { generatePlot } from '../api'
+import { LuBarChart3, LuRefreshCw, LuDownload } from 'react-icons/lu'
+
+export default function Plots() {
+  const { selectedDataset, projectId, datasetId } = useWorkspace()
+  const [plotType, setPlotType] = useState('bar')
+  const [feature, setFeature] = useState(0)
+  const [search, setSearch] = useState('')
+  const [groupOrder, setGroupOrder] = useState('')
+  const [figure, setFigure] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  const features = useMemo(() => (selectedDataset?.feature_metadata || []).map((f: any) => f.feature_id), [selectedDataset])
+  const filteredFeatures = useMemo(() => features.map((f, i) => ({ name: f, index: i })).filter((f) => f.name.toLowerCase().includes(search.toLowerCase())), [features, search])
+
+  const generate = async () => {
+    if (!projectId || !datasetId) return
+    setLoading(true)
+    const order = groupOrder.split(',').map((s) => s.trim()).filter(Boolean)
+    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: plotType, parameters: { feature, group_order: order } })
+    setFigure(res.data)
+    setLoading(false)
+  }
+
+  const exportPng = () => {
+    if (!figure) return
+    const blob = new Blob([JSON.stringify(figure)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `plot_${plotType}.json`
+    a.click()
+  }
+
+  useEffect(() => { setFigure(null) }, [plotType, selectedDataset])
+
+  const plotTypes = [
+    { value: 'bar', label: 'Bar Plot' },
+    { value: 'box', label: 'Box Plot' },
+    { value: 'violin', label: 'Violin Plot' },
+    { value: 'dot', label: 'Dot Plot' },
+    { value: 'rt_mz', label: 'RT vs m/z' },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">Compound Plots</h1>
+        <p className="page-subtitle">Per-feature and global visualizations with group ordering.</p>
+      </div>
+
+      <DatasetPicker />
+
+      {!selectedDataset && <div className="card p-8 text-center text-slate-500 dark:text-slate-400">Select a dataset to generate plots.</div>}
+
+      {selectedDataset && (
+        <>
+          <div className="card p-5">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuBarChart3 /> Plot Options</h3>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Plot type</label>
+                <select value={plotType} onChange={(e) => setPlotType(e.target.value)} className="input">
+                  {plotTypes.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Feature</label>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search feature..." className="input mb-2" />
+                <select value={feature} onChange={(e) => setFeature(Number(e.target.value))} className="input" disabled={plotType === 'rt_mz'}>
+                  {filteredFeatures.slice(0, 50).map((f) => <option key={f.index} value={f.index}>{f.name}</option>)}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Group order</label>
+                <input value={groupOrder} onChange={(e) => setGroupOrder(e.target.value)} placeholder="e.g. Ctrl, KO, Treat" className="input" />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Comma-separated group names to reorder samples.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> {loading ? 'Generating...' : 'Generate'}</button>
+              <button onClick={exportPng} disabled={!figure} className="btn-secondary"><LuDownload /> Export JSON</button>
+            </div>
+          </div>
+
+          {figure && (
+            <div className="card p-5">
+              <Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '500px' }} config={{ responsive: true, toImageButtonOptions: { format: 'png' } }} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

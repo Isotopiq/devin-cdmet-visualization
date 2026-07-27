@@ -1,1 +1,14 @@
-RlJPTSBub2RlOjIwLWFscGluZSBBUyBidWlsZGVyCgpXT1JLRElSIC9hcHAKQ09QWSBwYWNrYWdlLmpzb24gLgpSVU4gbnBtIGluc3RhbGwKCkNPUFkgLiAuClJVTiBucG0gcnVuIGJ1aWxkCgpGUk9NIG5naW54OmFscGluZQpDT1BZIC0tZnJvbT1idWlsZGVyIC9hcHAvZGlzdCAvdXNyL3NoYXJlL25naW54L2h0bWwKQ09QWSBuZ2lueC5jb25mIC9ldGMvbmdpbngvY29uZi5kL2RlZmF1bHQuY29uZgoKRVhQT1NFIDgwCg==
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+COPY package.json .
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80

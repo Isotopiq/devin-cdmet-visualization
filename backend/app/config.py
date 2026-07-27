@@ -1,1 +1,14 @@
-ZnJvbSBweWRhbnRpY19zZXR0aW5ncyBpbXBvcnQgQmFzZVNldHRpbmdzCmZyb20gcHlkYW50aWMgaW1wb3J0IENvbmZpZ0RpY3QKCgpjbGFzcyBTZXR0aW5ncyhCYXNlU2V0dGluZ3MpOgogICAgbW9kZWxfY29uZmlnID0gQ29uZmlnRGljdChlbnZfZmlsZT0iLmVudiIpCiAgICBEQVRBQkFTRV9VUkw6IHN0ciA9ICJwb3N0Z3Jlc3FsK2FzeW5jcGc6Ly9wb3N0Z3Jlczpwb3N0Z3Jlc0Bsb2NhbGhvc3Q6NTQzMi9tZXRhYm9sb21pY3MiCiAgICBTRUNSRVRfS0VZOiBzdHIgPSAiY2hhbmdlLW1lLWluLXByb2R1Y3Rpb24iCiAgICBBTEdPUklUSE06IHN0ciA9ICJIUzI1NiIKICAgIEFDQ0VTU19UT0tFTl9FWFBJUkVfTUlOVVRFUzogaW50ID0gNjAKICAgIFVQTE9BRF9ESVI6IHN0ciA9ICJ1cGxvYWRzIgoKCnNldHRpbmdzID0gU2V0dGluZ3MoKQo=
+from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = ConfigDict(env_file=".env")
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/metabolomics"
+    SECRET_KEY: str = "change-me-in-production"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    UPLOAD_DIR: str = "uploads"
+
+
+settings = Settings()

@@ -1,1 +1,47 @@
-aW1wb3J0IGF4aW9zIGZyb20gJ2F4aW9zJwoKY29uc3QgQVBJID0gYXhpb3MuY3JlYXRlKHsKICBiYXNlVVJMOiAnL2FwaScsCn0pCgpBUEkuaW50ZXJjZXB0b3JzLnJlcXVlc3QudXNlKChjb25maWcpID0+IHsKICBjb25zdCB0b2tlbiA9IGxvY2FsU3RvcmFnZS5nZXRJdGVtKCd0b2tlbicpCiAgaWYgKHRva2VuKSB7CiAgICBjb25maWcuaGVhZGVycy5BdXRob3JpemF0aW9uID0gYEJlYXJlciAke3Rva2VufWAKICB9CiAgcmV0dXJuIGNvbmZpZwp9KQoKZXhwb3J0IGRlZmF1bHQgQVBJCgpleHBvcnQgY29uc3QgaGVhbHRoID0gKCkgPT4gQVBJLmdldCgnL2hlYWx0aCcpCmV4cG9ydCBjb25zdCByZWdpc3RlciA9IChkYXRhOiB7IGVtYWlsOiBzdHJpbmc7IHBhc3N3b3JkOiBzdHJpbmcgfSkgPT4gQVBJLnBvc3QoJy9hdXRoL3JlZ2lzdGVyJywgZGF0YSkKZXhwb3J0IGNvbnN0IGxvZ2luID0gKGRhdGE6IHsgdXNlcm5hbWU6IHN0cmluZzsgcGFzc3dvcmQ6IHN0cmluZyB9KSA9PiBBUEkucG9zdCgnL2F1dGgvdG9rZW4nLCBkYXRhLCB7IGhlYWRlcnM6IHsgJ0NvbnRlbnQtVHlwZSc6ICdhcHBsaWNhdGlvbi94LXd3dy1mb3JtLXVybGVuY29kZWQnIH0gfSkKZXhwb3J0IGNvbnN0IG1lID0gKCkgPT4gQVBJLmdldCgnL2F1dGgvbWUnKQoKZXhwb3J0IGNvbnN0IGxpc3RQcm9qZWN0cyA9ICgpID0+IEFQSS5nZXQoJy9wcm9qZWN0cy8nKQpleHBvcnQgY29uc3QgY3JlYXRlUHJvamVjdCA9IChkYXRhOiB7IG5hbWU6IHN0cmluZzsgZGVzY3JpcHRpb24/OiBzdHJpbmcgfSkgPT4gQVBJLnBvc3QoJy9wcm9qZWN0cy8nLCBkYXRhKQpleHBvcnQgY29uc3QgZGVsZXRlUHJvamVjdCA9IChpZDogbnVtYmVyKSA9PiBBUEkuZGVsZXRlKGAvcHJvamVjdHMvJHtpZH1gKQoKZXhwb3J0IGNvbnN0IGxpc3RGaWxlcyA9IChwcm9qZWN0SWQ6IG51bWJlcikgPT4gQVBJLmdldChgL2ZpbGVzLyR7cHJvamVjdElkfWApCmV4cG9ydCBjb25zdCB1cGxvYWRGaWxlID0gKHByb2plY3RJZDogbnVtYmVyLCBmaWxlOiBGaWxlKSA9PiB7CiAgY29uc3QgZm9ybSA9IG5ldyBGb3JtRGF0YSgpCiAgZm9ybS5hcHBlbmQoJ2ZpbGUnLCBmaWxlKQogIHJldHVybiBBUEkucG9zdChgL2ZpbGVzLyR7cHJvamVjdElkfS91cGxvYWRgLCBmb3JtKQp9CmV4cG9ydCBjb25zdCBkZWxldGVGaWxlID0gKGlkOiBudW1iZXIpID0+IEFQSS5kZWxldGUoYC9maWxlcy8ke2lkfWApCgpleHBvcnQgY29uc3QgcHJldmlld0ltcG9ydCA9IChmaWxlSWQ6IG51bWJlciwgc2hlZXQ/OiBzdHJpbmcpID0+IEFQSS5nZXQoYC9pbXBvcnQvJHtmaWxlSWR9L3ByZXZpZXdgLCB7IHBhcmFtczogeyBzaGVldCB9IH0pCmV4cG9ydCBjb25zdCBpbXBvcnREYXRhc2V0ID0gKGZpbGVJZDogbnVtYmVyLCBmZWF0dXJlVHlwZTogc3RyaW5nKSA9PiBBUEkucG9zdChgL2ltcG9ydC8ke2ZpbGVJZH0vaW1wb3J0YCwgbnVsbCwgeyBwYXJhbXM6IHsgZmVhdHVyZV90eXBlOiBmZWF0dXJlVHlwZSB9IH0pCgpleHBvcnQgY29uc3QgbGlzdERhdGFzZXRzID0gKHByb2plY3RJZDogbnVtYmVyKSA9PiBBUEkuZ2V0KGAvYW5hbHlzaXMvJHtwcm9qZWN0SWR9L2RhdGFzZXRzYCkKZXhwb3J0IGNvbnN0IHByZXByb2Nlc3MgPSAocHJvamVjdElkOiBudW1iZXIsIGRhdGFzZXRJZDogbnVtYmVyLCBwYXJhbXM6IGFueSkgPT4gQVBJLnBvc3QoYC9hbmFseXNpcy8ke3Byb2plY3RJZH0vZGF0YXNldC8ke2RhdGFzZXRJZH0vcHJlcHJvY2Vzc2AsIHBhcmFtcykKCmV4cG9ydCBjb25zdCBydW5TdGF0cyA9IChwcm9qZWN0SWQ6IG51bWJlciwgZGF0YXNldElkOiBudW1iZXIsIHBhcmFtczogYW55KSA9PiBBUEkucG9zdChgL3N0YXRzLyR7cHJvamVjdElkfS9kYXRhc2V0LyR7ZGF0YXNldElkfS9zdGF0c2AsIHBhcmFtcykKZXhwb3J0IGNvbnN0IGdlbmVyYXRlUGxvdCA9IChwcm9qZWN0SWQ6IG51bWJlciwgZGF0YXNldElkOiBudW1iZXIsIHBhcmFtczogYW55KSA9PiBBUEkucG9zdChgL3Bsb3RzLyR7cHJvamVjdElkfS9kYXRhc2V0LyR7ZGF0YXNldElkfS9wbG90YCwgcGFyYW1zKQoKZXhwb3J0IGNvbnN0IHJ1bklzb3RvcGUgPSAocHJvamVjdElkOiBudW1iZXIsIGRhdGFzZXRJZDogbnVtYmVyLCBwYXJhbXM6IGFueSkgPT4gQVBJLnBvc3QoYC9pc290b3BlLyR7cHJvamVjdElkfS9kYXRhc2V0LyR7ZGF0YXNldElkfS9pc290b3BlYCwgcGFyYW1zKQpleHBvcnQgY29uc3QgYnVpbGRQYXRod2F5ID0gKHByb2plY3RJZDogbnVtYmVyLCBkYXRhc2V0SWQ6IG51bWJlciwgcGFyYW1zOiBhbnkpID0+IEFQSS5wb3N0KGAvcGF0aHdheXMvJHtwcm9qZWN0SWR9L2RhdGFzZXQvJHtkYXRhc2V0SWR9L3BhdGh3YXlgLCBwYXJhbXMpCg==
+import axios from 'axios'
+
+const API = axios.create({
+  baseURL: '/api',
+})
+
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+export default API
+
+export const health = () => API.get('/health')
+export const register = (data: { email: string; password: string }) => API.post('/auth/register', data)
+export const login = (data: { username: string; password: string }) => API.post('/auth/token', data, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
+export const me = () => API.get('/auth/me')
+
+export const listProjects = () => API.get('/projects/')
+export const createProject = (data: { name: string; description?: string }) => API.post('/projects/', data)
+export const deleteProject = (id: number) => API.delete(`/projects/${id}`)
+
+export const listFiles = (projectId: number) => API.get(`/files/${projectId}`)
+export const uploadFile = (projectId: number, file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return API.post(`/files/${projectId}/upload`, form)
+}
+export const deleteFile = (id: number) => API.delete(`/files/${id}`)
+
+export const previewImport = (fileId: number, sheet?: string, alignmentFileId?: number) => API.get(`/import/${fileId}/preview`, { params: { sheet, alignment_file_id: alignmentFileId } })
+export const importDataset = (fileId: number, featureType: string, alignmentFileId?: number, sheet?: string) => API.post(`/import/${fileId}/import`, null, { params: { feature_type: featureType, alignment_file_id: alignmentFileId, sheet } })
+
+export const listDatasets = (projectId: number) => API.get(`/analysis/${projectId}/datasets`)
+export const getDataset = (projectId: number, datasetId: number) => API.get(`/analysis/${projectId}/dataset/${datasetId}`)
+export const preprocess = (projectId: number, datasetId: number, params: any) => API.post(`/analysis/${projectId}/dataset/${datasetId}/preprocess`, params)
+
+export const listAnalyses = (projectId: number) => API.get(`/analysis/${projectId}/analyses`)
+
+export const runStats = (projectId: number, datasetId: number, params: any) => API.post(`/stats/${projectId}/dataset/${datasetId}/stats`, params)
+export const generatePlot = (projectId: number, datasetId: number, params: any) => API.post(`/plots/${projectId}/dataset/${datasetId}/plot`, params)
+
+export const runIsotope = (projectId: number, datasetId: number, params: any) => API.post(`/isotope/${projectId}/dataset/${datasetId}/isotope`, params)
+export const buildPathway = (projectId: number, datasetId: number, params: any) => API.post(`/pathways/${projectId}/dataset/${datasetId}/pathway`, params)

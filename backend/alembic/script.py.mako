@@ -1,1 +1,26 @@
-IiIiJHttZXNzYWdlfQoKUmV2aXNpb24gSUQ6ICR7dXBfcmV2aXNpb259ClJldmlzZXM6ICR7ZG93bl9yZXZpc2lvbiB8IGNvbW1hLG59CkNyZWF0ZSBEYXRlOiAke2NyZWF0ZV9kYXRlfQoKIiIiCmZyb20gdHlwaW5nIGltcG9ydCBTZXF1ZW5jZSwgVW5pb24KCmZyb20gYWxlbWJpYyBpbXBvcnQgb3AKaW1wb3J0IHNxbGFsY2hlbXkgYXMgc2EKJHtpbXBvcnRzIGlmIGltcG9ydHMgZWxzZSAiIn0KCiMgcmV2aXNpb24gaWRlbnRpZmllcnMsIHVzZWQgYnkgQWxlbWJpYy4KcmV2aXNpb246IHN0ciA9ICR7cmVwcih1cF9yZXZpc2lvbil9CmRvd25fcmV2aXNpb246IFVuaW9uW3N0ciwgTm9uZV0gPSAke3JlcHIoZG93bl9yZXZpc2lvbil9CmJyYW5jaF9sYWJlbHM6IFVuaW9uW3N0ciwgU2VxdWVuY2Vbc3RyXSwgTm9uZV0gPSAke3JlcHIoYnJhbmNoX2xhYmVscyl9CmRlcGVuZHNfb246IFVuaW9uW3N0ciwgU2VxdWVuY2Vbc3RyXSwgTm9uZV0gPSAke3JlcHIoZGVwZW5kc19vbil9CgoKZGVmIHVwZ3JhZGUoKSAtPiBOb25lOgogICAgJHt1cGdyYWRlcyBpZiB1cGdyYWRlcyBlbHNlICJwYXNzIn0KCgpkZWYgZG93bmdyYWRlKCkgLT4gTm9uZToKICAgICR7ZG93bmdyYWRlcyBpZiBkb3duZ3JhZGVzIGVsc2UgInBhc3MifQo=
+"""${message}
+
+Revision ID: ${up_revision}
+Revises: ${down_revision | comma,n}
+Create Date: ${create_date}
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+${imports if imports else ""}
+
+# revision identifiers, used by Alembic.
+revision: str = ${repr(up_revision)}
+down_revision: Union[str, None] = ${repr(down_revision)}
+branch_labels: Union[str, Sequence[str], None] = ${repr(branch_labels)}
+depends_on: Union[str, Sequence[str], None] = ${repr(depends_on)}
+
+
+def upgrade() -> None:
+    ${upgrades if upgrades else "pass"}
+
+
+def downgrade() -> None:
+    ${downgrades if downgrades else "pass"}

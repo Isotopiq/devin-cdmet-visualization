@@ -1,1 +1,100 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgUGxvdCBmcm9tICdyZWFjdC1wbG90bHkuanMnCmltcG9ydCB7IGxpc3RQcm9qZWN0cywgbGlzdERhdGFzZXRzLCBydW5TdGF0cywgZ2VuZXJhdGVQbG90IH0gZnJvbSAnLi4vYXBpJwppbXBvcnQgeyBQcm9qZWN0LCBEYXRhc2V0IH0gZnJvbSAnLi4vdHlwZXMnCgpleHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBWb2xjYW5vKCkgewogIGNvbnN0IFtwcm9qZWN0cywgc2V0UHJvamVjdHNdID0gdXNlU3RhdGU8UHJvamVjdFtdPihbXSkKICBjb25zdCBbZGF0YXNldHMsIHNldERhdGFzZXRzXSA9IHVzZVN0YXRlPERhdGFzZXRbXT4oW10pCiAgY29uc3QgW3Byb2plY3RJZCwgc2V0UHJvamVjdElkXSA9IHVzZVN0YXRlPG51bWJlciB8ICcnPignJykKICBjb25zdCBbZGF0YXNldElkLCBzZXREYXRhc2V0SWRdID0gdXNlU3RhdGU8bnVtYmVyIHwgJyc+KCcnKQogIGNvbnN0IFtmaWd1cmUsIHNldEZpZ3VyZV0gPSB1c2VTdGF0ZTxhbnk+KG51bGwpCgogIHVzZUVmZmVjdCgoKSA9PiB7IGxpc3RQcm9qZWN0cygpLnRoZW4oKHIpID0+IHNldFByb2plY3RzKHIuZGF0YSkpIH0sIFtdKQogIHVzZUVmZmVjdCgoKSA9PiB7IGlmIChwcm9qZWN0SWQpIGxpc3REYXRhc2V0cyhOdW1iZXIocHJvamVjdElkKSkudGhlbigocikgPT4gc2V0RGF0YXNldHMoci5kYXRhKSkgfSwgW3Byb2plY3RJZF0pCgogIGNvbnN0IGdlbmVyYXRlID0gYXN5bmMgKCkgPT4gewogICAgaWYgKCFwcm9qZWN0SWQgfHwgIWRhdGFzZXRJZCkgcmV0dXJuCiAgICBjb25zdCBzdGF0c1JlcyA9IGF3YWl0IHJ1blN0YXRzKE51bWJlcihwcm9qZWN0SWQpLCBOdW1iZXIoZGF0YXNldElkKSwgeyB0ZXN0OiAndF90ZXN0JywgZ3JvdXBfYTogJ2NvbnRyb2wnLCBncm91cF9iOiAndHJlYXRtZW50JywgcGFpcmVkOiBmYWxzZSwgbXVsdGlwbGVfdGVzdGluZzogJ2Zkcl9iaCcsIGFscGhhOiAwLjA1IH0pCiAgICBjb25zdCByZXMgPSBhd2FpdCBnZW5lcmF0ZVBsb3QoTnVtYmVyKHByb2plY3RJZCksIE51bWJlcihkYXRhc2V0SWQpLCB7IHBsb3RfdHlwZTogJ3ZvbGNhbm8nLCBwYXJhbWV0ZXJzOiB7IHN0YXRzOiBzdGF0c1Jlcy5kYXRhLnJlc3VsdHMgfSB9KQogICAgc2V0RmlndXJlKHJlcy5kYXRhKQogIH0KCiAgcmV0dXJuICgKICAgIDxkaXY+CiAgICAgIDxoMSBjbGFzc05hbWU9InRleHQtMnhsIGZvbnQtYm9sZCBtYi00IHRleHQtZ3JheS05MDAgZGFyazp0ZXh0LXdoaXRlIj5Wb2xjYW5vIFBsb3Q8L2gxPgogICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBnYXAtMiBtYi00Ij4KICAgICAgICA8c2VsZWN0IHZhbHVlPXtwcm9qZWN0SWR9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0UHJvamVjdElkKE51bWJlcihlLnRhcmdldC52YWx1ZSkpfSBjbGFzc05hbWU9ImJvcmRlciByb3VuZGVkLWxnIHAtMiI+PG9wdGlvbiB2YWx1ZT0iIj5Qcm9qZWN0PC9vcHRpb24+e3Byb2plY3RzLm1hcCgocCkgPT4gPG9wdGlvbiBrZXk9e3AuaWR9IHZhbHVlPXtwLmlkfT57cC5uYW1lfTwvb3B0aW9uPil9PC9zZWxlY3Q+CiAgICAgICAgPHNlbGVjdCB2YWx1ZT17ZGF0YXNldElkfSBvbkNoYW5nZT17KGUpID0+IHNldERhdGFzZXRJZChOdW1iZXIoZS50YXJnZXQudmFsdWUpKX0gY2xhc3NOYW1lPSJib3JkZXIgcm91bmRlZC1sZyBwLTIiPjxvcHRpb24gdmFsdWU9IiI+RGF0YXNldDwvb3B0aW9uPntkYXRhc2V0cy5tYXAoKGQpID0+IDxvcHRpb24ga2V5PXtkLmlkfSB2YWx1ZT17ZC5pZH0+e2QubmFtZX08L29wdGlvbj4pfTwvc2VsZWN0PgogICAgICAgIDxidXR0b24gb25DbGljaz17Z2VuZXJhdGV9IGNsYXNzTmFtZT0iYmctYmx1ZS02MDAgdGV4dC13aGl0ZSByb3VuZGVkLWxnIHB4LTQgcHktMiBob3ZlcjpiZy1ibHVlLTcwMCI+R2VuZXJhdGU8L2J1dHRvbj4KICAgICAgPC9kaXY+CiAgICAgIHtmaWd1cmUgJiYgPGRpdiBjbGFzc05hbWU9ImJnLXdoaXRlIGRhcms6YmctZ3JheS04MDAgcm91bmRlZC1sZyBzaGFkb3cgcC00Ij48UGxvdCBkYXRhPXtmaWd1cmUuZGF0YX0gbGF5b3V0PXtmaWd1cmUubGF5b3V0fSBzdHlsZT17eyB3aWR0aDogJzEwMCUnLCBoZWlnaHQ6ICc1MDBweCcgfX0gY29uZmlnPXt7IHJlc3BvbnNpdmU6IHRydWUgfX0gLz48L2Rpdj59CiAgICA8L2Rpdj4KICApCn0K
+import { useEffect, useMemo, useState } from 'react'
+import Plot from 'react-plotly.js'
+import { useWorkspace } from '../context/WorkspaceContext'
+import DatasetPicker from '../components/DatasetPicker'
+import { runStats, generatePlot } from '../api'
+import { LuMicroscope, LuRefreshCw, LuDownload } from 'react-icons/lu'
+
+export default function Volcano() {
+  const { selectedDataset, projectId, datasetId } = useWorkspace()
+  const [groupA, setGroupA] = useState('')
+  const [groupB, setGroupB] = useState('')
+  const [fcThreshold, setFcThreshold] = useState(0.5)
+  const [pThreshold, setPThreshold] = useState(0.05)
+  const [figure, setFigure] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  const groups = useMemo(() => {
+    const meta = selectedDataset?.sample_metadata || {}
+    const set = new Set<string>()
+    Object.values(meta).forEach((g) => set.add(g))
+    return Array.from(set)
+  }, [selectedDataset])
+
+  useEffect(() => {
+    setGroupA(groups[0] || '')
+    setGroupB(groups[1] || '')
+  }, [groups])
+
+  const generate = async () => {
+    if (!projectId || !datasetId) return
+    setLoading(true)
+    const statsRes = await runStats(Number(projectId), Number(datasetId), { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
+    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold } })
+    setFigure(res.data)
+    setLoading(false)
+  }
+
+  const exportJson = () => {
+    if (!figure) return
+    const blob = new Blob([JSON.stringify(figure)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `volcano_${groupA}_vs_${groupB}.json`
+    a.click()
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">Volcano Plot</h1>
+        <p className="page-subtitle">Visualize fold change and statistical significance.</p>
+      </div>
+
+      <DatasetPicker />
+
+      {!selectedDataset && <div className="card p-8 text-center text-slate-500 dark:text-slate-400">Select a dataset for a volcano plot.</div>}
+
+      {selectedDataset && (
+        <>
+          <div className="card p-5">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuMicroscope /> Comparison</h3>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Group A</label>
+                <select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">
+                  {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Group B</label>
+                <select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">
+                  {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">log2FC threshold</label>
+                <input type="number" step="0.1" min="0" value={fcThreshold} onChange={(e) => setFcThreshold(Number(e.target.value))} className="input" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">p-value threshold</label>
+                <input type="number" step="0.01" min="0" max="1" value={pThreshold} onChange={(e) => setPThreshold(Number(e.target.value))} className="input" />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+                <button onClick={exportJson} disabled={!figure} className="btn-secondary"><LuDownload /> Export</button>
+              </div>
+            </div>
+          </div>
+
+          {figure && (
+            <div className="card p-5">
+              <Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '550px' }} config={{ responsive: true }} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

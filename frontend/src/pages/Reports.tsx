@@ -1,1 +1,48 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgeyBsaXN0UHJvamVjdHMgfSBmcm9tICcuLi9hcGknCmltcG9ydCB7IFByb2plY3QgfSBmcm9tICcuLi90eXBlcycKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFJlcG9ydHMoKSB7CiAgY29uc3QgW3Byb2plY3RzLCBzZXRQcm9qZWN0c10gPSB1c2VTdGF0ZTxQcm9qZWN0W10+KFtdKQoKICB1c2VFZmZlY3QoKCkgPT4geyBsaXN0UHJvamVjdHMoKS50aGVuKChyKSA9PiBzZXRQcm9qZWN0cyhyLmRhdGEpKSB9LCBbXSkKCiAgcmV0dXJuICgKICAgIDxkaXY+CiAgICAgIDxoMSBjbGFzc05hbWU9InRleHQtMnhsIGZvbnQtYm9sZCBtYi00IHRleHQtZ3JheS05MDAgZGFyazp0ZXh0LXdoaXRlIj5SZXBvcnRzPC9oMT4KICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LWdyYXktNjAwIGRhcms6dGV4dC1ncmF5LTMwMCBtYi00Ij5Qcm9qZWN0LWxldmVsIHJlcG9ydHMgY29tYmluaW5nIGltcG9ydCBzdW1tYXJ5LCBwcm9jZXNzaW5nIGhpc3RvcnksIHN0YXRpc3RpY2FsIHJlc3VsdHMsIGFuZCBleHBvcnRlZCBwbG90cyB3aWxsIGJlIGdlbmVyYXRlZCBoZXJlLjwvcD4KICAgICAgPGRpdiBjbGFzc05hbWU9ImJnLXdoaXRlIGRhcms6YmctZ3JheS04MDAgcm91bmRlZC1sZyBzaGFkb3cgcC00Ij4KICAgICAgICA8aDMgY2xhc3NOYW1lPSJmb250LXNlbWlib2xkIG1iLTIgdGV4dC1ncmF5LTkwMCBkYXJrOnRleHQtd2hpdGUiPkF2YWlsYWJsZSBQcm9qZWN0czwvaDM+CiAgICAgICAge3Byb2plY3RzLm1hcCgocCkgPT4gPGRpdiBrZXk9e3AuaWR9IGNsYXNzTmFtZT0icHktMiBib3JkZXItYiBsYXN0OmJvcmRlci0wIHRleHQtZ3JheS04MDAgZGFyazp0ZXh0LWdyYXktMjAwIj57cC5uYW1lfTwvZGl2Pil9CiAgICAgIDwvZGl2PgogICAgPC9kaXY+CiAgKQp9Cg==
+import { useEffect, useState } from 'react'
+import { useWorkspace } from '../context/WorkspaceContext'
+import { listAnalyses } from '../api'
+import { LuFileText, LuDownload, LuClock } from 'react-icons/lu'
+
+export default function Reports() {
+  const { projectId, selectedDataset } = useWorkspace()
+  const [analyses, setAnalyses] = useState<any[]>([])
+
+  useEffect(() => {
+    if (projectId) {
+      listAnalyses(Number(projectId)).then((r) => setAnalyses(r.data)).catch(() => setAnalyses([]))
+    } else {
+      setAnalyses([])
+    }
+  }, [projectId, selectedDataset])
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">Reports & History</h1>
+        <p className="page-subtitle">Project-level analysis history and downloadable summaries.</p>
+      </div>
+
+      <div className="card p-5">
+        <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuFileText /> Analyses</h3>
+        {analyses.length === 0 ? (
+          <div className="text-sm text-slate-500 dark:text-slate-400">No saved analyses yet. Run statistics, plots, or preprocessing to build a history.</div>
+        ) : (
+          <div className="space-y-3">
+            {analyses.map((a, i) => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <LuClock className="text-slate-400" />
+                  <div>
+                    <div className="text-sm font-medium text-slate-900 dark:text-white capitalize">{a.type}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{new Date(a.created_at).toLocaleString()}</div>
+                  </div>
+                </div>
+                <button className="btn-secondary text-xs"><LuDownload /> Export</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

@@ -1,1 +1,173 @@
-aW1wb3J0IGpzb24KaW1wb3J0IG51bXB5IGFzIG5wCmltcG9ydCBwYW5kYXMgYXMgcGQKaW1wb3J0IHBsb3RseS5leHByZXNzIGFzIHB4CmltcG9ydCBwbG90bHkuZ3JhcGhfb2JqZWN0cyBhcyBnbwpmcm9tIHNrbGVhcm4uZGVjb21wb3NpdGlvbiBpbXBvcnQgUENBCmZyb20gc2tsZWFybi5wcmVwcm9jZXNzaW5nIGltcG9ydCBTdGFuZGFyZFNjYWxlcgpmcm9tIGFwcCBpbXBvcnQgbW9kZWxzLCBzY2hlbWFzCmZyb20gYXBwLnNlcnZpY2VzLnByZXByb2Nlc3NpbmcgaW1wb3J0IHRvX2RhdGFmcmFtZQoKCmRlZiBnZW5lcmF0ZV9wbG90KGRhdGFzZXQ6IG1vZGVscy5EYXRhc2V0LCByZXE6IHNjaGVtYXMuUGxvdFJlcXVlc3QpOgogICAgZGYgPSB0b19kYXRhZnJhbWUoZGF0YXNldCkKICAgIHNhbXBsZV9tZXRhID0gZGF0YXNldC5zYW1wbGVfbWV0YWRhdGEKICAgIHBsb3RfdHlwZSA9IHJlcS5wbG90X3R5cGUKCiAgICBpZiBwbG90X3R5cGUgPT0gImJveCI6CiAgICAgICAgZmlnID0gZ28uRmlndXJlKCkKICAgICAgICBmb3Igc2FtcGxlLCBncm91cCBpbiBzYW1wbGVfbWV0YS5pdGVtcygpOgogICAgICAgICAgICBpZiBzYW1wbGUgaW4gZGYuY29sdW1uczoKICAgICAgICAgICAgICAgIGZpZy5hZGRfdHJhY2UoZ28uQm94KHk9ZGZbc2FtcGxlXS52YWx1ZXMsIG5hbWU9ZiJ7Z3JvdXB9OntzYW1wbGV9IikpCiAgICAgICAgZmlnLnVwZGF0ZV9sYXlvdXQodGl0bGU9IlNhbXBsZSBCb3ggUGxvdCIsIHhheGlzX3RpdGxlPSJTYW1wbGUiLCB5YXhpc190aXRsZT0iQWJ1bmRhbmNlIikKCiAgICBlbGlmIHBsb3RfdHlwZSA9PSAiaGVhdG1hcCI6CiAgICAgICAgY29yciA9IGRmLmNvcnIoKQogICAgICAgIGZpZyA9IHB4Lmltc2hvdyhjb3JyLCB0ZXh0X2F1dG89VHJ1ZSwgYXNwZWN0PSJhdXRvIiwgdGl0bGU9IkNvcnJlbGF0aW9uIEhlYXRtYXAiKQoKICAgIGVsaWYgcGxvdF90eXBlID09ICJwY2EiOgogICAgICAgIFggPSBkZi5kcm9wbmEoKS5UCiAgICAgICAgWCA9IFguZmlsbG5hKFgubWluKCkubWluKCkgLyAyKQogICAgICAgIHNjYWxlciA9IFN0YW5kYXJkU2NhbGVyKCkKICAgICAgICBYcyA9IHNjYWxlci5maXRfdHJhbnNmb3JtKFgpCiAgICAgICAgcGNhID0gUENBKG5fY29tcG9uZW50cz1taW4oMywgbGVuKFgpKSkKICAgICAgICBzY29yZXMgPSBwY2EuZml0X3RyYW5zZm9ybShYcykKICAgICAgICBsYWJlbHMgPSBbc2FtcGxlX21ldGEuZ2V0KGMsIGMpIGZvciBjIGluIGRmLmNvbHVtbnNdCiAgICAgICAgZmlnID0gcHguc2NhdHRlcih4PXNjb3Jlc1s6LCAwXSwgeT1zY29yZXNbOiwgMV0sIGNvbG9yPWxhYmVscywKICAgICAgICAgICAgICAgICAgICAgICAgIGxhYmVscz17IngiOiBmIlBDMSAoe3BjYS5leHBsYWluZWRfdmFyaWFuY2VfcmF0aW9fWzBdKjEwMDouMWZ9JSkiLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAieSI6IGYiUEMyICh7cGNhLmV4cGxhaW5lZF92YXJpYW5jZV9yYXRpb19bMV0qMTAwOi4xZn0lKSJ9LAogICAgICAgICAgICAgICAgICAgICAgICAgdGl0bGU9IlBDQSBTY29yZSBQbG90IikKCiAgICBlbGlmIHBsb3RfdHlwZSA9PSAidm9sY2FubyI6CiAgICAgICAgc3RhdHMgPSByZXEucGFyYW1ldGVycy5nZXQoInN0YXRzIiwgW10pCiAgICAgICAgZmMgPSBbc1sibG9nMmZjIl0gZm9yIHMgaW4gc3RhdHMgaWYgcy5nZXQoImxvZzJmYyIpIGlzIG5vdCBOb25lXQogICAgICAgIHAgPSBbLW5wLmxvZzEwKHNbInBhZGoiXSkgZm9yIHMgaW4gc3RhdHMgaWYgcy5nZXQoInBhZGoiKSBpcyBub3QgTm9uZV0KICAgICAgICBuYW1lcyA9IFtzWyJmZWF0dXJlX2lkIl0gZm9yIHMgaW4gc3RhdHNdCiAgICAgICAgZmlnID0gcHguc2NhdHRlcih4PWZjLCB5PXAsIGhvdmVyX25hbWU9bmFtZXMsCiAgICAgICAgICAgICAgICAgICAgICAgICBsYWJlbHM9eyJ4IjogImxvZzIgRm9sZCBDaGFuZ2UiLCAieSI6ICItbG9nMTAgYWRqdXN0ZWQgcC12YWx1ZSJ9LAogICAgICAgICAgICAgICAgICAgICAgICAgdGl0bGU9IlZvbGNhbm8gUGxvdCIpCgogICAgZWxpZiBwbG90X3R5cGUgPT0gImJhciI6CiAgICAgICAgZmVhdHVyZSA9IHJlcS5wYXJhbWV0ZXJzLmdldCgiZmVhdHVyZSIsIDApCiAgICAgICAgdmFsdWVzID0gZGYuaWxvY1tmZWF0dXJlXS52YWx1ZXMKICAgICAgICBzYW1wbGVzID0gZGYuY29sdW1ucwogICAgICAgIGdyb3VwcyA9IFtzYW1wbGVfbWV0YS5nZXQoYywgInVua25vd24iKSBmb3IgYyBpbiBzYW1wbGVzXQogICAgICAgIGZpZyA9IHB4LmJhcih4PXNhbXBsZXMsIHk9dmFsdWVzLCBjb2xvcj1ncm91cHMsCiAgICAgICAgICAgICAgICAgICAgIGxhYmVscz17IngiOiAiU2FtcGxlIiwgInkiOiAiQWJ1bmRhbmNlIn0sCiAgICAgICAgICAgICAgICAgICAgIHRpdGxlPWYiQWJ1bmRhbmNlOiB7ZGF0YXNldC5mZWF0dXJlX21ldGFkYXRhW2ZlYXR1cmVdLmdldCgnZmVhdHVyZV9pZCcsIGZlYXR1cmUpfSIpCgogICAgZWxpZiBwbG90X3R5cGUgPT0gInJ0X216IjoKICAgICAgICBteiA9IFtmbG9hdChmLmdldCgibXoiLCAwKSBvciAwKSBmb3IgZiBpbiBkYXRhc2V0LmZlYXR1cmVfbWV0YWRhdGFdCiAgICAgICAgcnQgPSBbZmxvYXQoZi5nZXQoInJ0IiwgMCkgb3IgMCkgZm9yIGYgaW4gZGF0YXNldC5mZWF0dXJlX21ldGFkYXRhXQogICAgICAgIGdyYWRlcyA9IFtmLmdldCgiZ3JhZGUiLCAidW5rbm93biIpIGZvciBmIGluIGRhdGFzZXQuZmVhdHVyZV9tZXRhZGF0YV0KICAgICAgICBmaWcgPSBweC5zY2F0dGVyKHg9bXosIHk9cnQsIGNvbG9yPWdyYWRlcywKICAgICAgICAgICAgICAgICAgICAgICAgIGxhYmVscz17IngiOiAibS96IiwgInkiOiAiUmV0ZW50aW9uIFRpbWUifSwKICAgICAgICAgICAgICAgICAgICAgICAgIHRpdGxlPSJSZXRlbnRpb24gVGltZSB2cyBtL3oiKQoKICAgIGVsc2U6CiAgICAgICAgZmlnID0gZ28uRmlndXJlKCkKICAgICAgICBmaWcudXBkYXRlX2xheW91dCh0aXRsZT0iVW5zdXBwb3J0ZWQgcGxvdCB0eXBlIikKCiAgICByZXR1cm4ganNvbi5sb2FkcyhmaWcudG9fanNvbigpKQo=
+import json
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from scipy.cluster.hierarchy import linkage, leaves_list
+from scipy.spatial.distance import pdist
+from sklearn.decomposition import PCA as PCA_SKL
+from sklearn.preprocessing import StandardScaler
+from app import models, schemas
+from app.services.preprocessing import to_dataframe
+
+
+def _get_feature_index(dataset, feature_arg):
+    if feature_arg is None:
+        return 0
+    if isinstance(feature_arg, int):
+        return feature_arg
+    for i, meta in enumerate(dataset.feature_metadata):
+        if meta.get("feature_id") == feature_arg or meta.get("name") == feature_arg:
+            return i
+    return 0
+
+
+def _reorder_columns(df, sample_meta, group_order):
+    if not group_order:
+        return df
+    order = []
+    for g in group_order:
+        for col in df.columns:
+            if sample_meta.get(col) == g:
+                order.append(col)
+    order += [c for c in df.columns if c not in order]
+    return df[order]
+
+
+def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
+    df = to_dataframe(dataset)
+    sample_meta = dataset.sample_metadata
+    plot_type = req.plot_type
+    params = req.parameters or {}
+
+    if plot_type in ("bar", "box", "violin", "dot"):
+        feature = _get_feature_index(dataset, params.get("feature"))
+        values = df.iloc[feature].values
+        samples = df.columns.tolist()
+        groups = [sample_meta.get(c, "unknown") for c in samples]
+        group_order = params.get("group_order", [])
+        ordered_df = _reorder_columns(df, sample_meta, group_order)
+        ordered_samples = ordered_df.columns.tolist()
+        ordered_values = ordered_df.iloc[feature].values
+        ordered_groups = [sample_meta.get(c, "unknown") for c in ordered_samples]
+        title = f"{dataset.feature_metadata[feature].get('feature_id', feature)}"
+
+        if plot_type == "bar":
+            fig = px.bar(x=ordered_samples, y=ordered_values, color=ordered_groups,
+                         labels={"x": "Sample", "y": "Abundance"},
+                         title=f"Abundance: {title}")
+        elif plot_type == "box":
+            fig = go.Figure()
+            for sample, group in zip(ordered_samples, ordered_groups):
+                fig.add_trace(go.Box(y=[ordered_values[ordered_samples.index(sample)]], name=f"{group}:{sample}", boxpoints="all"))
+            fig.update_layout(title=f"Box Plot: {title}", xaxis_title="Sample", yaxis_title="Abundance")
+        elif plot_type == "violin":
+            fig = go.Figure()
+            group_vals = {}
+            for s, g in zip(ordered_samples, ordered_groups):
+                group_vals.setdefault(g, []).append(float(ordered_values[ordered_samples.index(s)]))
+            for g, vals in group_vals.items():
+                fig.add_trace(go.Violin(y=vals, name=g, box_visible=True, meanline_visible=True))
+            fig.update_layout(title=f"Violin Plot: {title}", yaxis_title="Abundance")
+        else:  # dot
+            fig = px.scatter(x=ordered_samples, y=ordered_values, color=ordered_groups,
+                             labels={"x": "Sample", "y": "Abundance"},
+                             title=f"Dot Plot: {title}")
+
+    elif plot_type == "heatmap":
+        cluster = params.get("cluster", "both")
+        if cluster in ("row", "both") and len(df.columns) > 2:
+            try:
+                dist = pdist(df.T.values)
+                link = linkage(dist, method="average")
+                order = leaves_list(link)
+                df = df.iloc[:, order]
+            except Exception:
+                pass
+        corr = df.corr()
+        fig = px.imshow(corr, text_auto=True, aspect="auto", title="Correlation Heatmap")
+
+    elif plot_type == "pca":
+        ptype = params.get("plot", "score")
+        components = max(2, min(int(params.get("components", 3)), len(df.columns), len(df)))
+        do_scale = bool(params.get("scale", True))
+        X = df.dropna().T
+        if X.empty or X.shape[1] < 2:
+            fig = go.Figure()
+            fig.update_layout(title="Not enough data for PCA")
+            return json.loads(fig.to_json())
+        X = X.fillna(X.min().min() / 2)
+        Xs = StandardScaler().fit_transform(X) if do_scale else X.values
+        pca = PCA_SKL(n_components=components)
+        scores = pca.fit_transform(Xs)
+        labels = [sample_meta.get(c, c) for c in X.index]
+
+        if ptype == "scree":
+            fig = px.bar(x=[f"PC{i+1}" for i in range(len(pca.explained_variance_ratio_))],
+                         y=pca.explained_variance_ratio_ * 100,
+                         labels={"x": "Principal Component", "y": "Variance Explained (%)"},
+                         title="PCA Scree Plot")
+        elif ptype == "loading":
+            loadings = pca.components_[0]
+            feat_ids = [m.get("feature_id", i) for i, m in enumerate(dataset.feature_metadata)]
+            top_idx = np.argsort(np.abs(loadings))[-50:]
+            fig = px.bar(x=[feat_ids[i] for i in top_idx], y=[loadings[i] for i in top_idx],
+                         labels={"x": "Feature", "y": "PC1 Loading"},
+                         title="PCA Top Loadings (PC1)")
+        elif ptype == "biplot":
+            fig = px.scatter(x=scores[:, 0], y=scores[:, 1], color=labels,
+                             labels={"x": f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)",
+                                     "y": f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)"},
+                             title="PCA Biplot")
+            loadings = pca.components_[:2]
+            feat_ids = [m.get("feature_id", i) for i, m in enumerate(dataset.feature_metadata)]
+            for i in range(min(20, len(loadings[0]))):
+                fig.add_trace(go.Scatter(x=[0, loadings[0, i]*max(scores[:,0])], y=[0, loadings[1, i]*max(scores[:,1])],
+                                         mode="lines+text", text=["", feat_ids[i]], textposition="top center",
+                                         line=dict(color="gray"), showlegend=False))
+        else:
+            fig = px.scatter(x=scores[:, 0], y=scores[:, 1], color=labels,
+                             labels={"x": f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)",
+                                     "y": f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)"},
+                             title="PCA Score Plot")
+
+    elif plot_type == "volcano":
+        stats = params.get("stats", [])
+        fc_thresh = float(params.get("fc_threshold", 0.5))
+        p_thresh = float(params.get("p_threshold", 0.05))
+        fc = []
+        neglogp = []
+        names = []
+        colors = []
+        for s in stats:
+            if s.get("log2fc") is None or s.get("padj") is None or s["padj"] <= 0:
+                continue
+            lfc = float(s["log2fc"])
+            p = -np.log10(float(s["padj"]))
+            fc.append(lfc)
+            neglogp.append(p)
+            names.append(s.get("feature_id", ""))
+            up = lfc > fc_thresh and s["padj"] < p_thresh
+            down = lfc < -fc_thresh and s["padj"] < p_thresh
+            colors.append("Up" if up else ("Down" if down else "Not significant"))
+        fig = px.scatter(x=fc, y=neglogp, hover_name=names, color=colors,
+                         color_discrete_map={"Up": "red", "Down": "blue", "Not significant": "gray"},
+                         labels={"x": "log2 Fold Change", "y": "-log10 adjusted p-value"},
+                         title="Volcano Plot")
+        fig.add_hline(y=-np.log10(p_thresh), line_dash="dash", line_color="black")
+        fig.add_vline(x=fc_thresh, line_dash="dash", line_color="black")
+        fig.add_vline(x=-fc_thresh, line_dash="dash", line_color="black")
+
+    elif plot_type == "rt_mz":
+        mz = [float(f.get("mz", 0) or 0) for f in dataset.feature_metadata]
+        rt = [float(f.get("rt", 0) or 0) for f in dataset.feature_metadata]
+        grades = [str(f.get("grade", "unknown")) for f in dataset.feature_metadata]
+        fig = px.scatter(x=mz, y=rt, color=grades,
+                         labels={"x": "m/z", "y": "Retention Time"},
+                         title="Retention Time vs m/z")
+
+    else:
+        fig = go.Figure()
+        fig.update_layout(title="Unsupported plot type")
+
+    return json.loads(fig.to_json())

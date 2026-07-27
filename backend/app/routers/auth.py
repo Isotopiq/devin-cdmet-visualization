@@ -1,1 +1,37 @@
-ZnJvbSBmYXN0YXBpIGltcG9ydCBBUElSb3V0ZXIsIERlcGVuZHMsIEhUVFBFeGNlcHRpb24sIHN0YXR1cwpmcm9tIGZhc3RhcGkuc2VjdXJpdHkgaW1wb3J0IE9BdXRoMlBhc3N3b3JkUmVxdWVzdEZvcm0KZnJvbSBzcWxhbGNoZW15LmV4dC5hc3luY2lvIGltcG9ydCBBc3luY1Nlc3Npb24KZnJvbSBzcWxhbGNoZW15IGltcG9ydCBzZWxlY3QKZnJvbSBhcHAuZGF0YWJhc2UgaW1wb3J0IGdldF9kYgpmcm9tIGFwcCBpbXBvcnQgc2NoZW1hcywgbW9kZWxzCmZyb20gYXBwLmF1dGggaW1wb3J0IHZlcmlmeV9wYXNzd29yZCwgZ2V0X3Bhc3N3b3JkX2hhc2gsIGNyZWF0ZV9hY2Nlc3NfdG9rZW4sIGdldF9jdXJyZW50X2FjdGl2ZV91c2VyCgpyb3V0ZXIgPSBBUElSb3V0ZXIoKQoKCkByb3V0ZXIucG9zdCgiL3JlZ2lzdGVyIiwgcmVzcG9uc2VfbW9kZWw9c2NoZW1hcy5Vc2VyT3V0KQphc3luYyBkZWYgcmVnaXN0ZXIodXNlcl9pbjogc2NoZW1hcy5Vc2VyQ3JlYXRlLCBkYjogQXN5bmNTZXNzaW9uID0gRGVwZW5kcyhnZXRfZGIpKToKICAgIHJlc3VsdCA9IGF3YWl0IGRiLmV4ZWN1dGUoc2VsZWN0KG1vZGVscy5Vc2VyKS53aGVyZShtb2RlbHMuVXNlci5lbWFpbCA9PSB1c2VyX2luLmVtYWlsKSkKICAgIGV4aXN0aW5nID0gcmVzdWx0LnNjYWxhcl9vbmVfb3Jfbm9uZSgpCiAgICBpZiBleGlzdGluZzoKICAgICAgICByYWlzZSBIVFRQRXhjZXB0aW9uKHN0YXR1c19jb2RlPTQwMCwgZGV0YWlsPSJFbWFpbCBhbHJlYWR5IHJlZ2lzdGVyZWQiKQogICAgdXNlciA9IG1vZGVscy5Vc2VyKGVtYWlsPXVzZXJfaW4uZW1haWwsIGhhc2hlZF9wYXNzd29yZD1nZXRfcGFzc3dvcmRfaGFzaCh1c2VyX2luLnBhc3N3b3JkKSkKICAgIGRiLmFkZCh1c2VyKQogICAgYXdhaXQgZGIuY29tbWl0KCkKICAgIGF3YWl0IGRiLnJlZnJlc2godXNlcikKICAgIHJldHVybiB1c2VyCgoKQHJvdXRlci5wb3N0KCIvdG9rZW4iKQphc3luYyBkZWYgbG9naW4oZm9ybV9kYXRhOiBPQXV0aDJQYXNzd29yZFJlcXVlc3RGb3JtID0gRGVwZW5kcygpLCBkYjogQXN5bmNTZXNzaW9uID0gRGVwZW5kcyhnZXRfZGIpKToKICAgIHJlc3VsdCA9IGF3YWl0IGRiLmV4ZWN1dGUoc2VsZWN0KG1vZGVscy5Vc2VyKS53aGVyZShtb2RlbHMuVXNlci5lbWFpbCA9PSBmb3JtX2RhdGEudXNlcm5hbWUpKQogICAgdXNlciA9IHJlc3VsdC5zY2FsYXJfb25lX29yX25vbmUoKQogICAgaWYgbm90IHVzZXIgb3Igbm90IHZlcmlmeV9wYXNzd29yZChmb3JtX2RhdGEucGFzc3dvcmQsIHVzZXIuaGFzaGVkX3Bhc3N3b3JkKToKICAgICAgICByYWlzZSBIVFRQRXhjZXB0aW9uKHN0YXR1c19jb2RlPTQwMCwgZGV0YWlsPSJJbmNvcnJlY3QgZW1haWwgb3IgcGFzc3dvcmQiKQogICAgdG9rZW4gPSBjcmVhdGVfYWNjZXNzX3Rva2VuKHsic3ViIjogc3RyKHVzZXIuaWQpfSkKICAgIHJldHVybiB7ImFjY2Vzc190b2tlbiI6IHRva2VuLCAidG9rZW5fdHlwZSI6ICJiZWFyZXIifQoKCkByb3V0ZXIuZ2V0KCIvbWUiLCByZXNwb25zZV9tb2RlbD1zY2hlbWFzLlVzZXJPdXQpCmFzeW5jIGRlZiBtZShjdXJyZW50X3VzZXI6IG1vZGVscy5Vc2VyID0gRGVwZW5kcyhnZXRfY3VycmVudF9hY3RpdmVfdXNlcikpOgogICAgcmV0dXJuIGN1cnJlbnRfdXNlcgo=
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.database import get_db
+from app import schemas, models
+from app.auth import verify_password, get_password_hash, create_access_token, get_current_active_user
+
+router = APIRouter()
+
+
+@router.post("/register", response_model=schemas.UserOut)
+async def register(user_in: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.User).where(models.User.email == user_in.email))
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    user = models.User(email=user_in.email, hashed_password=get_password_hash(user_in.password))
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.post("/token")
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.User).where(models.User.email == form_data.username))
+    user = result.scalar_one_or_none()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    token = create_access_token({"sub": str(user.id)})
+    return {"access_token": token, "token_type": "bearer"}
+
+
+@router.get("/me", response_model=schemas.UserOut)
+async def me(current_user: models.User = Depends(get_current_active_user)):
+    return current_user

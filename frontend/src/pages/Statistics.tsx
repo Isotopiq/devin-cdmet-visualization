@@ -1,1 +1,190 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgeyBsaXN0UHJvamVjdHMsIGxpc3REYXRhc2V0cywgcnVuU3RhdHMgfSBmcm9tICcuLi9hcGknCmltcG9ydCB7IFByb2plY3QsIERhdGFzZXQgfSBmcm9tICcuLi90eXBlcycKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFN0YXRpc3RpY3MoKSB7CiAgY29uc3QgW3Byb2plY3RzLCBzZXRQcm9qZWN0c10gPSB1c2VTdGF0ZTxQcm9qZWN0W10+KFtdKQogIGNvbnN0IFtwcm9qZWN0SWQsIHNldFByb2plY3RJZF0gPSB1c2VTdGF0ZTxudW1iZXIgfCAnJz4oJycpCiAgY29uc3QgW2RhdGFzZXRzLCBzZXREYXRhc2V0c10gPSB1c2VTdGF0ZTxEYXRhc2V0W10+KFtdKQogIGNvbnN0IFtkYXRhc2V0SWQsIHNldERhdGFzZXRJZF0gPSB1c2VTdGF0ZTxudW1iZXIgfCAnJz4oJycpCiAgY29uc3QgW3Rlc3QsIHNldFRlc3RdID0gdXNlU3RhdGUoJ3RfdGVzdCcpCiAgY29uc3QgW2dyb3VwQSwgc2V0R3JvdXBBXSA9IHVzZVN0YXRlKCcnKQogIGNvbnN0IFtncm91cEIsIHNldEdyb3VwQl0gPSB1c2VTdGF0ZSgnJykKICBjb25zdCBbcmVzdWx0cywgc2V0UmVzdWx0c10gPSB1c2VTdGF0ZTxhbnk+KG51bGwpCgogIHVzZUVmZmVjdCgoKSA9PiB7IGxpc3RQcm9qZWN0cygpLnRoZW4oKHIpID0+IHNldFByb2plY3RzKHIuZGF0YSkpIH0sIFtdKQogIHVzZUVmZmVjdCgoKSA9PiB7IGlmIChwcm9qZWN0SWQpIGxpc3REYXRhc2V0cyhOdW1iZXIocHJvamVjdElkKSkudGhlbigocikgPT4gc2V0RGF0YXNldHMoci5kYXRhKSkgfSwgW3Byb2plY3RJZF0pCgogIGNvbnN0IHJ1biA9IGFzeW5jICgpID0+IHsKICAgIGlmICghcHJvamVjdElkIHx8ICFkYXRhc2V0SWQpIHJldHVybgogICAgY29uc3QgcmVzID0gYXdhaXQgcnVuU3RhdHMoTnVtYmVyKHByb2plY3RJZCksIE51bWJlcihkYXRhc2V0SWQpLCB7IHRlc3QsIGdyb3VwX2E6IGdyb3VwQSwgZ3JvdXBfYjogZ3JvdXBCLCBwYWlyZWQ6IGZhbHNlLCBtdWx0aXBsZV90ZXN0aW5nOiAnZmRyX2JoJywgYWxwaGE6IDAuMDUgfSkKICAgIHNldFJlc3VsdHMocmVzLmRhdGEpCiAgfQoKICByZXR1cm4gKAogICAgPGRpdj4KICAgICAgPGgxIGNsYXNzTmFtZT0idGV4dC0yeGwgZm9udC1ib2xkIG1iLTQgdGV4dC1ncmF5LTkwMCBkYXJrOnRleHQtd2hpdGUiPlN0YXRpc3RpY3M8L2gxPgogICAgICA8ZGl2IGNsYXNzTmFtZT0iZ3JpZCBncmlkLWNvbHMtMSBtZDpncmlkLWNvbHMtNCBnYXAtNCBtYi00Ij4KICAgICAgICA8c2VsZWN0IHZhbHVlPXtwcm9qZWN0SWR9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0UHJvamVjdElkKE51bWJlcihlLnRhcmdldC52YWx1ZSkpfSBjbGFzc05hbWU9ImJvcmRlciByb3VuZGVkLWxnIHAtMiI+CiAgICAgICAgICA8b3B0aW9uIHZhbHVlPSIiPlByb2plY3Q8L29wdGlvbj4KICAgICAgICAgIHtwcm9qZWN0cy5tYXAoKHApID0+IDxvcHRpb24ga2V5PXtwLmlkfSB2YWx1ZT17cC5pZH0+e3AubmFtZX08L29wdGlvbj4pfQogICAgICAgIDwvc2VsZWN0PgogICAgICAgIDxzZWxlY3QgdmFsdWU9e2RhdGFzZXRJZH0gb25DaGFuZ2U9eyhlKSA9PiBzZXREYXRhc2V0SWQoTnVtYmVyKGUudGFyZ2V0LnZhbHVlKSl9IGNsYXNzTmFtZT0iYm9yZGVyIHJvdW5kZWQtbGcgcC0yIj4KICAgICAgICAgIDxvcHRpb24gdmFsdWU9IiI+RGF0YXNldDwvb3B0aW9uPgogICAgICAgICAge2RhdGFzZXRzLm1hcCgoZCkgPT4gPG9wdGlvbiBrZXk9e2QuaWR9IHZhbHVlPXtkLmlkfT57ZC5uYW1lfTwvb3B0aW9uPil9CiAgICAgICAgPC9zZWxlY3Q+CiAgICAgICAgPHNlbGVjdCB2YWx1ZT17dGVzdH0gb25DaGFuZ2U9eyhlKSA9PiBzZXRUZXN0KGUudGFyZ2V0LnZhbHVlKX0gY2xhc3NOYW1lPSJib3JkZXIgcm91bmRlZC1sZyBwLTIiPgogICAgICAgICAgPG9wdGlvbiB2YWx1ZT0idF90ZXN0Ij5TdHVkZW50IHQtdGVzdDwvb3B0aW9uPgogICAgICAgICAgPG9wdGlvbiB2YWx1ZT0id2VsY2giPldlbGNoIHQtdGVzdDwvb3B0aW9uPgogICAgICAgICAgPG9wdGlvbiB2YWx1ZT0ibWFubndoaXRuZXkiPk1hbm4tV2hpdG5leTwvb3B0aW9uPgogICAgICAgICAgPG9wdGlvbiB2YWx1ZT0icGFpcmVkIj5QYWlyZWQgdC10ZXN0PC9vcHRpb24+CiAgICAgICAgICA8b3B0aW9uIHZhbHVlPSJ3aWxjb3hvbiI+V2lsY294b248L29wdGlvbj4KICAgICAgICAgIDxvcHRpb24gdmFsdWU9ImFub3ZhIj5PbmUtd2F5IEFOT1ZBPC9vcHRpb24+CiAgICAgICAgICA8b3B0aW9uIHZhbHVlPSJrcnVza2FsIj5LcnVza2FsLVdhbGxpczwvb3B0aW9uPgogICAgICAgIDwvc2VsZWN0PgogICAgICAgIDxidXR0b24gb25DbGljaz17cnVufSBjbGFzc05hbWU9ImJnLWJsdWUtNjAwIHRleHQtd2hpdGUgcm91bmRlZC1sZyBwLTIgaG92ZXI6YmctYmx1ZS03MDAiPlJ1bjwvYnV0dG9uPgogICAgICA8L2Rpdj4KCiAgICAgIDxkaXYgY2xhc3NOYW1lPSJncmlkIGdyaWQtY29scy0yIGdhcC00IG1iLTQiPgogICAgICAgIDxpbnB1dCBwbGFjZWhvbGRlcj0iR3JvdXAgQSIgdmFsdWU9e2dyb3VwQX0gb25DaGFuZ2U9eyhlKSA9PiBzZXRHcm91cEEoZS50YXJnZXQudmFsdWUpfSBjbGFzc05hbWU9ImJvcmRlciByb3VuZGVkLWxnIHAtMiIgLz4KICAgICAgICA8aW5wdXQgcGxhY2Vob2xkZXI9Ikdyb3VwIEIiIHZhbHVlPXtncm91cEJ9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0R3JvdXBCKGUudGFyZ2V0LnZhbHVlKX0gY2xhc3NOYW1lPSJib3JkZXIgcm91bmRlZC1sZyBwLTIiIC8+CiAgICAgIDwvZGl2PgoKICAgICAge3Jlc3VsdHMgJiYgKAogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJiZy13aGl0ZSBkYXJrOmJnLWdyYXktODAwIHJvdW5kZWQtbGcgc2hhZG93IHAtNCI+CiAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtc20gdGV4dC1ncmF5LTYwMCBkYXJrOnRleHQtZ3JheS0zMDAgbWItMiI+VGVzdDoge3Jlc3VsdHMudGVzdH0sIEZlYXR1cmVzOiB7cmVzdWx0cy5uX2ZlYXR1cmVzfTwvcD4KICAgICAgICAgIDx0YWJsZSBjbGFzc05hbWU9Im1pbi13LWZ1bGwgdGV4dC1zbSI+CiAgICAgICAgICAgIDx0aGVhZD48dHIgY2xhc3NOYW1lPSJib3JkZXItYiI+PHRoIGNsYXNzTmFtZT0idGV4dC1sZWZ0IHAtMiI+RmVhdHVyZTwvdGg+PHRoIGNsYXNzTmFtZT0idGV4dC1sZWZ0IHAtMiI+bG9nMkZDPC90aD48dGggY2xhc3NOYW1lPSJ0ZXh0LWxlZnQgcC0yIj5wLXZhbHVlPC90aD48dGggY2xhc3NOYW1lPSJ0ZXh0LWxlZnQgcC0yIj5hZGouIHA8L3RoPjwvdHI+PC90aGVhZD4KICAgICAgICAgICAgPHRib2R5PgogICAgICAgICAgICAgIHsocmVzdWx0cy5yZXN1bHRzIHx8IFtdKS5zbGljZSgwLCA1MCkubWFwKChyOiBhbnksIGk6IG51bWJlcikgPT4gKAogICAgICAgICAgICAgICAgPHRyIGtleT17aX0gY2xhc3NOYW1lPSJib3JkZXItYiI+PHRkIGNsYXNzTmFtZT0icC0yIj57ci5mZWF0dXJlX2lkfTwvdGQ+PHRkIGNsYXNzTmFtZT0icC0yIj57ci5sb2cyZmM/LnRvRml4ZWQoMykgfHwgJy0nfTwvdGQ+PHRkIGNsYXNzTmFtZT0icC0yIj57ci5wdmFsdWU/LnRvRXhwb25lbnRpYWwoMil9PC90ZD48dGQgY2xhc3NOYW1lPSJwLTIiPntyLnBhZGo/LnRvRXhwb25lbnRpYWwoMil9PC90ZD48L3RyPgogICAgICAgICAgICAgICkpfQogICAgICAgICAgICA8L3Rib2R5PgogICAgICAgICAgPC90YWJsZT4KICAgICAgICA8L2Rpdj4KICAgICAgKX0KICAgIDwvZGl2PgogICkKfQo=
+import { useEffect, useMemo, useState } from 'react'
+import Plot from 'react-plotly.js'
+import { useWorkspace } from '../context/WorkspaceContext'
+import DatasetPicker from '../components/DatasetPicker'
+import { runStats, generatePlot } from '../api'
+import { LuPlay, LuDownload, LuAlertCircle } from 'react-icons/lu'
+
+export default function Statistics() {
+  const { selectedDataset, projectId, datasetId } = useWorkspace()
+  const [test, setTest] = useState('t_test')
+  const [groupA, setGroupA] = useState('')
+  const [groupB, setGroupB] = useState('')
+  const [paired, setPaired] = useState(false)
+  const [multipleTesting, setMultipleTesting] = useState('fdr_bh')
+  const [alpha, setAlpha] = useState(0.05)
+  const [fcThreshold, setFcThreshold] = useState(0)
+  const [results, setResults] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [volcano, setVolcano] = useState<any>(null)
+
+  const groups = useMemo(() => {
+    const meta = selectedDataset?.sample_metadata || {}
+    const set = new Set<string>()
+    Object.values(meta).forEach((g) => set.add(g))
+    return Array.from(set)
+  }, [selectedDataset])
+
+  useEffect(() => {
+    setGroupA(groups[0] || '')
+    setGroupB(groups[1] || '')
+  }, [groups])
+
+  const run = async () => {
+    if (!projectId || !datasetId) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await runStats(Number(projectId), Number(datasetId), { test, group_a: groupA, group_b: groupB, paired, multiple_testing: multipleTesting, alpha })
+      const data = res.data
+      if (fcThreshold > 0) {
+        data.results = data.results.filter((r: any) => Math.abs(r.log2fc || 0) >= fcThreshold)
+        data.n_features = data.results.length
+      }
+      data.results.sort((a: any, b: any) => (a.pvalue || 1) - (b.pvalue || 1))
+      setResults(data)
+      const vres = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: data.results } })
+      setVolcano(vres.data)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Statistics failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const downloadCsv = () => {
+    if (!results) return
+    const headers = ['feature_id', 'mean_a', 'mean_b', 'log2fc', 'statistic', 'pvalue', 'padj']
+    const rows = results.results.map((r: any) => headers.map((h) => r[h] ?? '').join(','))
+    const csv = [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `stats_${test}_${groupA}_vs_${groupB}.csv`
+    a.click()
+  }
+
+  const testOptions = [
+    { value: 't_test', label: 'Student t-test' },
+    { value: 'welch', label: 'Welch t-test' },
+    { value: 'mannwhitney', label: 'Mann-Whitney U' },
+    { value: 'paired', label: 'Paired t-test' },
+    { value: 'wilcoxon', label: 'Wilcoxon signed-rank' },
+    { value: 'anova', label: 'One-way ANOVA' },
+    { value: 'kruskal', label: 'Kruskal-Wallis' },
+  ]
+
+  const mtOptions = [
+    { value: 'fdr_bh', label: 'Benjamini-Hochberg (FDR)' },
+    { value: 'bonferroni', label: 'Bonferroni' },
+    { value: 'holm', label: 'Holm' },
+    { value: 'none', label: 'None' },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">Statistics</h1>
+        <p className="page-subtitle">Univariate tests, fold change, and multiple-testing correction.</p>
+      </div>
+
+      <DatasetPicker />
+
+      {!selectedDataset && <div className="card p-8 text-center text-slate-500 dark:text-slate-400">Select a dataset to run statistical tests.</div>}
+
+      {selectedDataset && (
+        <>
+          <div className="card p-5">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Test Parameters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <label className="label-like">Test</label>
+                <select value={test} onChange={(e) => setTest(e.target.value)} className="input">
+                  {testOptions.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label-like">Group A</label>
+                <select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">
+                  {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label-like">Group B</label>
+                <select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">
+                  {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label-like">Multiple testing</label>
+                <select value={multipleTesting} onChange={(e) => setMultipleTesting(e.target.value)} className="input">
+                  {mtOptions.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label-like">Alpha</label>
+                <input type="number" step="0.01" min="0" max="1" value={alpha} onChange={(e) => setAlpha(Number(e.target.value))} className="input" />
+              </div>
+              <div>
+                <label className="label-like">|log2FC| threshold</label>
+                <input type="number" step="0.1" min="0" value={fcThreshold} onChange={(e) => setFcThreshold(Number(e.target.value))} className="input" />
+              </div>
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
+                  <input type="checkbox" checked={paired} onChange={(e) => setPaired(e.target.checked)} className="rounded border-slate-300" />
+                  Paired test
+                </label>
+              </div>
+              <div className="flex items-end">
+                <button onClick={run} disabled={loading || !groupA || !groupB} className="btn-primary"><LuPlay /> {loading ? 'Running...' : 'Run Test'}</button>
+              </div>
+            </div>
+            {error && <div className="p-3 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 flex items-center gap-2 text-sm"><LuAlertCircle /> {error}</div>}
+          </div>
+
+          {results && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="card p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Results <span className="text-sm font-normal text-slate-500">({results.n_features} features, {test})</span></h3>
+                  <button onClick={downloadCsv} className="btn-secondary"><LuDownload /> CSV</button>
+                </div>
+                <div className="overflow-x-auto max-h-[32rem]">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-300 uppercase text-xs sticky top-0">
+                      <tr>
+                        <th className="text-left p-2">Feature</th>
+                        <th className="text-left p-2">log2FC</th>
+                        <th className="text-left p-2">p-value</th>
+                        <th className="text-left p-2">adj. p</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                      {(results.results || []).map((r: any, i: number) => (
+                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                          <td className="p-2 font-medium text-slate-900 dark:text-white">{r.feature_id}</td>
+                          <td className="p-2">{r.log2fc?.toFixed(3) || '-'}</td>
+                          <td className="p-2">{r.pvalue?.toExponential(2)}</td>
+                          <td className="p-2">{r.padj?.toExponential(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {volcano && (
+                <div className="card p-5">
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Volcano Plot</h3>
+                  <Plot data={volcano.data} layout={volcano.layout} style={{ width: '100%', height: '500px' }} config={{ responsive: true }} />
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

@@ -1,1 +1,59 @@
-aW1wb3J0IHsgUm91dGVzLCBSb3V0ZSwgTmF2aWdhdGUgfSBmcm9tICdyZWFjdC1yb3V0ZXItZG9tJwppbXBvcnQgeyB1c2VFZmZlY3QsIHVzZVN0YXRlIH0gZnJvbSAncmVhY3QnCmltcG9ydCBMYXlvdXQgZnJvbSAnLi9jb21wb25lbnRzL0xheW91dCcKaW1wb3J0IExvZ2luIGZyb20gJy4vcGFnZXMvTG9naW4nCmltcG9ydCBQcm9qZWN0cyBmcm9tICcuL3BhZ2VzL1Byb2plY3RzJwppbXBvcnQgSW1wb3J0IGZyb20gJy4vcGFnZXMvSW1wb3J0JwppbXBvcnQgRGF0YVRhYmxlIGZyb20gJy4vcGFnZXMvRGF0YVRhYmxlJwppbXBvcnQgU3RhdGlzdGljcyBmcm9tICcuL3BhZ2VzL1N0YXRpc3RpY3MnCmltcG9ydCBQbG90cyBmcm9tICcuL3BhZ2VzL1Bsb3RzJwppbXBvcnQgSGVhdE1hcCBmcm9tICcuL3BhZ2VzL0hlYXRNYXAnCmltcG9ydCBQQ0EgZnJvbSAnLi9wYWdlcy9QQ0EnCmltcG9ydCBWb2xjYW5vIGZyb20gJy4vcGFnZXMvVm9sY2FubycKaW1wb3J0IElzb3RvcGUgZnJvbSAnLi9wYWdlcy9Jc290b3BlJwppbXBvcnQgUGF0aHdheSBmcm9tICcuL3BhZ2VzL1BhdGh3YXknCmltcG9ydCBSZXBvcnRzIGZyb20gJy4vcGFnZXMvUmVwb3J0cycKaW1wb3J0IFNldHRpbmdzIGZyb20gJy4vcGFnZXMvU2V0dGluZ3MnCgpmdW5jdGlvbiBBcHAoKSB7CiAgY29uc3QgW3Rva2VuLCBzZXRUb2tlbl0gPSB1c2VTdGF0ZTxzdHJpbmcgfCBudWxsPihsb2NhbFN0b3JhZ2UuZ2V0SXRlbSgndG9rZW4nKSkKCiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIGNvbnN0IG9uU3RvcmFnZSA9ICgpID0+IHNldFRva2VuKGxvY2FsU3RvcmFnZS5nZXRJdGVtKCd0b2tlbicpKQogICAgd2luZG93LmFkZEV2ZW50TGlzdGVuZXIoJ3N0b3JhZ2UnLCBvblN0b3JhZ2UpCiAgICByZXR1cm4gKCkgPT4gd2luZG93LnJlbW92ZUV2ZW50TGlzdGVuZXIoJ3N0b3JhZ2UnLCBvblN0b3JhZ2UpCiAgfSwgW10pCgogIGlmICghdG9rZW4pIHsKICAgIHJldHVybiA8TG9naW4gb25Mb2dpbj17KHQpID0+IHsgbG9jYWxTdG9yYWdlLnNldEl0ZW0oJ3Rva2VuJywgdCk7IHNldFRva2VuKHQpIH19IC8+CiAgfQoKICByZXR1cm4gKAogICAgPFJvdXRlcz4KICAgICAgPFJvdXRlIHBhdGg9Ii8iIGVsZW1lbnQ9ezxMYXlvdXQgLz59PgogICAgICAgIDxSb3V0ZSBpbmRleCBlbGVtZW50PXs8TmF2aWdhdGUgdG89Ii9wcm9qZWN0cyIgLz59IC8+CiAgICAgICAgPFJvdXRlIHBhdGg9InByb2plY3RzIiBlbGVtZW50PXs8UHJvamVjdHMgLz59IC8+CiAgICAgICAgPFJvdXRlIHBhdGg9ImltcG9ydCIgZWxlbWVudD17PEltcG9ydCAvPn0gLz4KICAgICAgICA8Um91dGUgcGF0aD0iZGF0YSIgZWxlbWVudD17PERhdGFUYWJsZSAvPn0gLz4KICAgICAgICA8Um91dGUgcGF0aD0ic3RhdHMiIGVsZW1lbnQ9ezxTdGF0aXN0aWNzIC8+fSAvPgogICAgICAgIDxSb3V0ZSBwYXRoPSJjb21wb3VuZC1wbG90cyIgZWxlbWVudD17PFBsb3RzIC8+fSAvPgogICAgICAgIDxSb3V0ZSBwYXRoPSJoZWF0bWFwIiBlbGVtZW50PXs8SGVhdE1hcCAvPn0gLz4KICAgICAgICA8Um91dGUgcGF0aD0icGNhIiBlbGVtZW50PXs8UENBIC8+fSAvPgogICAgICAgIDxSb3V0ZSBwYXRoPSJ2b2xjYW5vIiBlbGVtZW50PXs8Vm9sY2FubyAvPn0gLz4KICAgICAgICA8Um91dGUgcGF0aD0iaXNvdG9wZSIgZWxlbWVudD17PElzb3RvcGUgLz59IC8+CiAgICAgICAgPFJvdXRlIHBhdGg9InBhdGh3YXkiIGVsZW1lbnQ9ezxQYXRod2F5IC8+fSAvPgogICAgICAgIDxSb3V0ZSBwYXRoPSJyZXBvcnRzIiBlbGVtZW50PXs8UmVwb3J0cyAvPn0gLz4KICAgICAgICA8Um91dGUgcGF0aD0ic2V0dGluZ3MiIGVsZW1lbnQ9ezxTZXR0aW5ncyAvPn0gLz4KICAgICAgPC9Sb3V0ZT4KICAgIDwvUm91dGVzPgogICkKfQoKZXhwb3J0IGRlZmF1bHQgQXBwCg==
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { WorkspaceProvider } from './context/WorkspaceContext'
+import Layout from './components/Layout'
+import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
+import Projects from './pages/Projects'
+import Import from './pages/Import'
+import DataTable from './pages/DataTable'
+import Statistics from './pages/Statistics'
+import Plots from './pages/Plots'
+import HeatMap from './pages/HeatMap'
+import PCA from './pages/PCA'
+import Volcano from './pages/Volcano'
+import Isotope from './pages/Isotope'
+import Pathway from './pages/Pathway'
+import Reports from './pages/Reports'
+import Settings from './pages/Settings'
+import Preprocessing from './pages/Preprocessing'
+
+function App() {
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
+
+  useEffect(() => {
+    const onStorage = () => setToken(localStorage.getItem('token'))
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  if (!token) {
+    return <Login onLogin={(t) => { localStorage.setItem('token', t); setToken(t) }} />
+  }
+
+  return (
+    <WorkspaceProvider>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="projects" element={<Projects />} />
+          <Route path="import" element={<Import />} />
+          <Route path="data" element={<DataTable />} />
+          <Route path="stats" element={<Statistics />} />
+          <Route path="compound-plots" element={<Plots />} />
+          <Route path="heatmap" element={<HeatMap />} />
+          <Route path="pca" element={<PCA />} />
+          <Route path="volcano" element={<Volcano />} />
+          <Route path="isotope" element={<Isotope />} />
+          <Route path="pathway" element={<Pathway />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="preprocessing" element={<Preprocessing />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Route>
+      </Routes>
+    </WorkspaceProvider>
+  )
+}
+
+export default App

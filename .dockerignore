@@ -1,1 +1,9 @@
-ZnJvbnRlbmQvbm9kZV9tb2R1bGVzCmZyb250ZW5kL2Rpc3QKX19weWNhY2hlX18KKi5weWMKLnB5dGVzdF9jYWNoZQoudmVudgouZ2l0Ci5naXRpZ25vcmUKdXBsb2Fkcwo=
+frontend/node_modules
+frontend/dist
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+.git
+.gitignore
+uploads

@@ -1,1 +1,89 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgUGxvdCBmcm9tICdyZWFjdC1wbG90bHkuanMnCmltcG9ydCB7IGxpc3RQcm9qZWN0cywgbGlzdERhdGFzZXRzLCBnZW5lcmF0ZVBsb3QgfSBmcm9tICcuLi9hcGknCmltcG9ydCB7IFByb2plY3QsIERhdGFzZXQgfSBmcm9tICcuLi90eXBlcycKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFBDQSgpIHsKICBjb25zdCBbcHJvamVjdHMsIHNldFByb2plY3RzXSA9IHVzZVN0YXRlPFByb2plY3RbXT4oW10pCiAgY29uc3QgW2RhdGFzZXRzLCBzZXREYXRhc2V0c10gPSB1c2VTdGF0ZTxEYXRhc2V0W10+KFtdKQogIGNvbnN0IFtwcm9qZWN0SWQsIHNldFByb2plY3RJZF0gPSB1c2VTdGF0ZTxudW1iZXIgfCAnJz4oJycpCiAgY29uc3QgW2RhdGFzZXRJZCwgc2V0RGF0YXNldElkXSA9IHVzZVN0YXRlPG51bWJlciB8ICcnPignJykKICBjb25zdCBbcGxvdCwgc2V0UGxvdF0gPSB1c2VTdGF0ZTxzdHJpbmc+KCdzY29yZScpCiAgY29uc3QgW2ZpZ3VyZSwgc2V0RmlndXJlXSA9IHVzZVN0YXRlPGFueT4obnVsbCkKCiAgdXNlRWZmZWN0KCgpID0+IHsgbGlzdFByb2plY3RzKCkudGhlbigocikgPT4gc2V0UHJvamVjdHMoci5kYXRhKSkgfSwgW10pCiAgdXNlRWZmZWN0KCgpID0+IHsgaWYgKHByb2plY3RJZCkgbGlzdERhdGFzZXRzKE51bWJlcihwcm9qZWN0SWQpKS50aGVuKChyKSA9PiBzZXREYXRhc2V0cyhyLmRhdGEpKSB9LCBbcHJvamVjdElkXSkKCiAgY29uc3QgZ2VuZXJhdGUgPSBhc3luYyAoKSA9PiB7CiAgICBpZiAoIXByb2plY3RJZCB8fCAhZGF0YXNldElkKSByZXR1cm4KICAgIGNvbnN0IHJlcyA9IGF3YWl0IGdlbmVyYXRlUGxvdChOdW1iZXIocHJvamVjdElkKSwgTnVtYmVyKGRhdGFzZXRJZCksIHsgcGxvdF90eXBlOiAncGNhJywgcGFyYW1ldGVyczogeyBwbG90IH0gfSkKICAgIHNldEZpZ3VyZShyZXMuZGF0YSkKICB9CgogIHJldHVybiAoCiAgICA8ZGl2PgogICAgICA8aDEgY2xhc3NOYW1lPSJ0ZXh0LTJ4bCBmb250LWJvbGQgbWItNCB0ZXh0LWdyYXktOTAwIGRhcms6dGV4dC13aGl0ZSI+UENBPC9oMT4KICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggZ2FwLTIgbWItNCI+CiAgICAgICAgPHNlbGVjdCB2YWx1ZT17cHJvamVjdElkfSBvbkNoYW5nZT17KGUpID0+IHNldFByb2plY3RJZChOdW1iZXIoZS50YXJnZXQudmFsdWUpKX0gY2xhc3NOYW1lPSJib3JkZXIgcm91bmRlZC1sZyBwLTIiPjxvcHRpb24gdmFsdWU9IiI+UHJvamVjdDwvb3B0aW9uPntwcm9qZWN0cy5tYXAoKHApID0+IDxvcHRpb24ga2V5PXtwLmlkfSB2YWx1ZT17cC5pZH0+e3AubmFtZX08L29wdGlvbj4pfTwvc2VsZWN0PgogICAgICAgIDxzZWxlY3QgdmFsdWU9e2RhdGFzZXRJZH0gb25DaGFuZ2U9eyhlKSA9PiBzZXREYXRhc2V0SWQoTnVtYmVyKGUudGFyZ2V0LnZhbHVlKSl9IGNsYXNzTmFtZT0iYm9yZGVyIHJvdW5kZWQtbGcgcC0yIj48b3B0aW9uIHZhbHVlPSIiPkRhdGFzZXQ8L29wdGlvbj57ZGF0YXNldHMubWFwKChkKSA9PiA8b3B0aW9uIGtleT17ZC5pZH0gdmFsdWU9e2QuaWR9PntkLm5hbWV9PC9vcHRpb24+KX08L3NlbGVjdD4KICAgICAgICA8c2VsZWN0IHZhbHVlPXtwbG90fSBvbkNoYW5nZT17KGUpID0+IHNldFBsb3QoZS50YXJnZXQudmFsdWUpfSBjbGFzc05hbWU9ImJvcmRlciByb3VuZGVkLWxnIHAtMiI+PG9wdGlvbiB2YWx1ZT0ic2NvcmUiPlNjb3JlIFBsb3Q8L29wdGlvbj48b3B0aW9uIHZhbHVlPSJsb2FkaW5nIj5Mb2FkaW5nIFBsb3Q8L29wdGlvbj48b3B0aW9uIHZhbHVlPSJzY3JlZSI+U2NyZWUgUGxvdDwvb3B0aW9uPjwvc2VsZWN0PgogICAgICAgIDxidXR0b24gb25DbGljaz17Z2VuZXJhdGV9IGNsYXNzTmFtZT0iYmctYmx1ZS02MDAgdGV4dC13aGl0ZSByb3VuZGVkLWxnIHB4LTQgcHktMiBob3ZlcjpiZy1ibHVlLTcwMCI+R2VuZXJhdGU8L2J1dHRvbj4KICAgICAgPC9kaXY+CiAgICAgIHtmaWd1cmUgJiYgPGRpdiBjbGFzc05hbWU9ImJnLXdoaXRlIGRhcms6YmctZ3JheS04MDAgcm91bmRlZC1sZyBzaGFkb3cgcC00Ij48UGxvdCBkYXRhPXtmaWd1cmUuZGF0YX0gbGF5b3V0PXtmaWd1cmUubGF5b3V0fSBzdHlsZT17eyB3aWR0aDogJzEwMCUnLCBoZWlnaHQ6ICc1MDBweCcgfX0gY29uZmlnPXt7IHJlc3BvbnNpdmU6IHRydWUgfX0gLz48L2Rpdj59CiAgICA8L2Rpdj4KICApCn0K
+import { useEffect, useMemo, useState } from 'react'
+import Plot from 'react-plotly.js'
+import { useWorkspace } from '../context/WorkspaceContext'
+import DatasetPicker from '../components/DatasetPicker'
+import { generatePlot } from '../api'
+import { LuLayers, LuRefreshCw, LuDownload } from 'react-icons/lu'
+
+export default function PCA() {
+  const { projectId, datasetId, selectedDataset } = useWorkspace()
+  const [plot, setPlot] = useState('score')
+  const [components, setComponents] = useState(3)
+  const [scale, setScale] = useState(true)
+  const [figure, setFigure] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  const plotOptions = [
+    { value: 'score', label: 'Score Plot' },
+    { value: 'loading', label: 'Loading Plot' },
+    { value: 'scree', label: 'Scree Plot' },
+    { value: 'biplot', label: 'Biplot' },
+  ]
+
+  const generate = async () => {
+    if (!projectId || !datasetId) return
+    setLoading(true)
+    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'pca', parameters: { plot, components, scale } })
+    setFigure(res.data)
+    setLoading(false)
+  }
+
+  const exportJson = () => {
+    if (!figure) return
+    const blob = new Blob([JSON.stringify(figure)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pca_${plot}.json`
+    a.click()
+  }
+
+  useEffect(() => { setFigure(null) }, [selectedDataset])
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">PCA / PLS-DA</h1>
+        <p className="page-subtitle">Explore variance, sample separation, and key loadings.</p>
+      </div>
+
+      <DatasetPicker />
+
+      {!selectedDataset && <div className="card p-8 text-center text-slate-500 dark:text-slate-400">Select a dataset for PCA.</div>}
+
+      {selectedDataset && (
+        <>
+          <div className="card p-5">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuLayers /> PCA Options</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Plot type</label>
+                <select value={plot} onChange={(e) => setPlot(e.target.value)} className="input">
+                  {plotOptions.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Components</label>
+                <input type="number" min={2} max={10} value={components} onChange={(e) => setComponents(Number(e.target.value))} className="input" />
+              </div>
+              <div className="flex items-center gap-2 pb-2">
+                <input type="checkbox" id="scale" checked={scale} onChange={(e) => setScale(e.target.checked)} className="rounded border-slate-300" />
+                <label htmlFor="scale" className="text-sm text-slate-700 dark:text-slate-200">Scale variables</label>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+                <button onClick={exportJson} disabled={!figure} className="btn-secondary"><LuDownload /> Export</button>
+              </div>
+            </div>
+          </div>
+
+          {figure && (
+            <div className="card p-5">
+              <Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '500px' }} config={{ responsive: true }} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

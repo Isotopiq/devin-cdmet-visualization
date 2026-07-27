@@ -1,1 +1,19 @@
-ZGVjbGFyZSBtb2R1bGUgJ3JlYWN0LXBsb3RseS5qcycgewogIGltcG9ydCAqIGFzIFJlYWN0IGZyb20gJ3JlYWN0JwogIGltcG9ydCB7IExheW91dCwgQ29uZmlnLCBEYXRhIH0gZnJvbSAncGxvdGx5LmpzJwoKICBleHBvcnQgaW50ZXJmYWNlIFBsb3RQYXJhbXMgewogICAgZGF0YTogRGF0YVtdCiAgICBsYXlvdXQ/OiBQYXJ0aWFsPExheW91dD4KICAgIGNvbmZpZz86IFBhcnRpYWw8Q29uZmlnPgogICAgc3R5bGU/OiBSZWFjdC5DU1NQcm9wZXJ0aWVzCiAgICBjbGFzc05hbWU/OiBzdHJpbmcKICAgIHVzZVJlc2l6ZUhhbmRsZXI/OiBib29sZWFuCiAgICBvbkluaXRpYWxpemVkPzogKGZpZ3VyZTogYW55LCBncmFwaERpdjogYW55KSA9PiB2b2lkCiAgICBvblVwZGF0ZT86IChmaWd1cmU6IGFueSwgZ3JhcGhEaXY6IGFueSkgPT4gdm9pZAogICAgb25QdXJnZT86IChmaWd1cmU6IGFueSwgZ3JhcGhEaXY6IGFueSkgPT4gdm9pZAogICAgb25FcnJvcj86IChlcnI6IEVycm9yKSA9PiB2b2lkCiAgfQoKICBleHBvcnQgZGVmYXVsdCBjbGFzcyBQbG90IGV4dGVuZHMgUmVhY3QuQ29tcG9uZW50PFBsb3RQYXJhbXM+IHt9Cn0K
+declare module 'react-plotly.js' {
+  import * as React from 'react'
+  import { Layout, Config, Data } from 'plotly.js'
+
+  export interface PlotParams {
+    data: Data[]
+    layout?: Partial<Layout>
+    config?: Partial<Config>
+    style?: React.CSSProperties
+    className?: string
+    useResizeHandler?: boolean
+    onInitialized?: (figure: any, graphDiv: any) => void
+    onUpdate?: (figure: any, graphDiv: any) => void
+    onPurge?: (figure: any, graphDiv: any) => void
+    onError?: (err: Error) => void
+  }
+
+  export default class Plot extends React.Component<PlotParams> {}
+}

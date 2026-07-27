@@ -1,1 +1,39 @@
-aW1wb3J0IGFzeW5jaW8KaW1wb3J0IHB5dGVzdF9hc3luY2lvCmZyb20gaHR0cHggaW1wb3J0IEFzeW5jQ2xpZW50LCBBU0dJVHJhbnNwb3J0CmZyb20gc3FsYWxjaGVteS5leHQuYXN5bmNpbyBpbXBvcnQgY3JlYXRlX2FzeW5jX2VuZ2luZSwgYXN5bmNfc2Vzc2lvbm1ha2VyLCBBc3luY1Nlc3Npb24KaW1wb3J0IGFwcC5kYXRhYmFzZSBhcyBkYl9tb2R1bGUKZnJvbSBhcHAubWFpbiBpbXBvcnQgYXBwCmZyb20gYXBwLmRhdGFiYXNlIGltcG9ydCBCYXNlCgoKVEVTVF9EQl9VUkwgPSAic3FsaXRlK2Fpb3NxbGl0ZTovLy86bWVtb3J5OiIKCgpAcHl0ZXN0X2FzeW5jaW8uZml4dHVyZShzY29wZT0ic2Vzc2lvbiIpCmRlZiBldmVudF9sb29wKCk6CiAgICBsb29wID0gYXN5bmNpby5nZXRfZXZlbnRfbG9vcF9wb2xpY3koKS5uZXdfZXZlbnRfbG9vcCgpCiAgICB5aWVsZCBsb29wCiAgICBsb29wLmNsb3NlKCkKCgpAcHl0ZXN0X2FzeW5jaW8uZml4dHVyZShzY29wZT0ic2Vzc2lvbiIpCmFzeW5jIGRlZiBzZXR1cF9kYigpOgogICAgZW5naW5lID0gY3JlYXRlX2FzeW5jX2VuZ2luZShURVNUX0RCX1VSTCwgZWNobz1GYWxzZSwgZnV0dXJlPVRydWUpCiAgICBBc3luY1Nlc3Npb25Mb2NhbCA9IGFzeW5jX3Nlc3Npb25tYWtlcihlbmdpbmUsIGNsYXNzXz1Bc3luY1Nlc3Npb24sIGV4cGlyZV9vbl9jb21taXQ9RmFsc2UpCgogICAgZGJfbW9kdWxlLmVuZ2luZSA9IGVuZ2luZQogICAgZGJfbW9kdWxlLkFzeW5jU2Vzc2lvbkxvY2FsID0gQXN5bmNTZXNzaW9uTG9jYWwKCiAgICBhc3luYyB3aXRoIGVuZ2luZS5iZWdpbigpIGFzIGNvbm46CiAgICAgICAgYXdhaXQgY29ubi5ydW5fc3luYyhCYXNlLm1ldGFkYXRhLmNyZWF0ZV9hbGwpCiAgICB5aWVsZAogICAgYXN5bmMgd2l0aCBlbmdpbmUuYmVnaW4oKSBhcyBjb25uOgogICAgICAgIGF3YWl0IGNvbm4ucnVuX3N5bmMoQmFzZS5tZXRhZGF0YS5kcm9wX2FsbCkKICAgIGF3YWl0IGVuZ2luZS5kaXNwb3NlKCkKCgpAcHl0ZXN0X2FzeW5jaW8uZml4dHVyZQphc3luYyBkZWYgY2xpZW50KHNldHVwX2RiKToKICAgIGFzeW5jIHdpdGggQXN5bmNDbGllbnQodHJhbnNwb3J0PUFTR0lUcmFuc3BvcnQoYXBwPWFwcCksIGJhc2VfdXJsPSJodHRwOi8vdGVzdCIpIGFzIGFjOgogICAgICAgIHlpZWxkIGFjCg==
+import asyncio
+import pytest_asyncio
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+import app.database as db_module
+from app.main import app
+from app.database import Base
+
+
+TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
+
+
+@pytest_asyncio.fixture(scope="session")
+def event_loop():
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture(scope="session")
+async def setup_db():
+    engine = create_async_engine(TEST_DB_URL, echo=False, future=True)
+    AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    db_module.engine = engine
+    db_module.AsyncSessionLocal = AsyncSessionLocal
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def client(setup_db):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        yield ac

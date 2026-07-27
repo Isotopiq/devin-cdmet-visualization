@@ -1,1 +1,63 @@
-aW1wb3J0IGFzeW5jaW8KZnJvbSBsb2dnaW5nLmNvbmZpZyBpbXBvcnQgZmlsZUNvbmZpZwoKZnJvbSBzcWxhbGNoZW15IGltcG9ydCBwb29sCmZyb20gc3FsYWxjaGVteS5lbmdpbmUgaW1wb3J0IENvbm5lY3Rpb24KZnJvbSBzcWxhbGNoZW15LmV4dC5hc3luY2lvIGltcG9ydCBhc3luY19lbmdpbmVfZnJvbV9jb25maWcKCmZyb20gYWxlbWJpYyBpbXBvcnQgY29udGV4dApmcm9tIGFwcC5jb25maWcgaW1wb3J0IHNldHRpbmdzCmZyb20gYXBwLmRhdGFiYXNlIGltcG9ydCBCYXNlCmZyb20gYXBwIGltcG9ydCBtb2RlbHMKCmNvbmZpZyA9IGNvbnRleHQuY29uZmlnCgppZiBjb25maWcuY29uZmlnX2ZpbGVfbmFtZSBpcyBub3QgTm9uZToKICAgIGZpbGVDb25maWcoY29uZmlnLmNvbmZpZ19maWxlX25hbWUpCgp0YXJnZXRfbWV0YWRhdGEgPSBCYXNlLm1ldGFkYXRhCgpjb25maWcuc2V0X21haW5fb3B0aW9uKCJzcWxhbGNoZW15LnVybCIsIHNldHRpbmdzLkRBVEFCQVNFX1VSTCkKCgpkZWYgcnVuX21pZ3JhdGlvbnNfb2ZmbGluZSgpIC0+IE5vbmU6CiAgICB1cmwgPSBjb25maWcuZ2V0X21haW5fb3B0aW9uKCJzcWxhbGNoZW15LnVybCIpCiAgICBjb250ZXh0LmNvbmZpZ3VyZSgKICAgICAgICB1cmw9dXJsLAogICAgICAgIHRhcmdldF9tZXRhZGF0YT10YXJnZXRfbWV0YWRhdGEsCiAgICAgICAgbGl0ZXJhbF9iaW5kcz1UcnVlLAogICAgICAgIGRpYWxlY3Rfb3B0cz17InBhcmFtc3R5bGUiOiAibmFtZWQifSwKICAgICkKCiAgICB3aXRoIGNvbnRleHQuYmVnaW5fdHJhbnNhY3Rpb24oKToKICAgICAgICBjb250ZXh0LnJ1bl9taWdyYXRpb25zKCkKCgpkZWYgZG9fcnVuX21pZ3JhdGlvbnMoY29ubmVjdGlvbjogQ29ubmVjdGlvbikgLT4gTm9uZToKICAgIGNvbnRleHQuY29uZmlndXJlKGNvbm5lY3Rpb249Y29ubmVjdGlvbiwgdGFyZ2V0X21ldGFkYXRhPXRhcmdldF9tZXRhZGF0YSkKCiAgICB3aXRoIGNvbnRleHQuYmVnaW5fdHJhbnNhY3Rpb24oKToKICAgICAgICBjb250ZXh0LnJ1bl9taWdyYXRpb25zKCkKCgphc3luYyBkZWYgcnVuX2FzeW5jX21pZ3JhdGlvbnMoKSAtPiBOb25lOgogICAgY29ubmVjdGFibGUgPSBhc3luY19lbmdpbmVfZnJvbV9jb25maWcoCiAgICAgICAgY29uZmlnLmdldF9zZWN0aW9uKGNvbmZpZy5jb25maWdfaW5pX3NlY3Rpb24sIHt9KSwKICAgICAgICBwcmVmaXg9InNxbGFsY2hlbXkuIiwKICAgICAgICBwb29sY2xhc3M9cG9vbC5OdWxsUG9vbCwKICAgICkKCiAgICBhc3luYyB3aXRoIGNvbm5lY3RhYmxlLmNvbm5lY3QoKSBhcyBjb25uZWN0aW9uOgogICAgICAgIGF3YWl0IGNvbm5lY3Rpb24ucnVuX3N5bmMoZG9fcnVuX21pZ3JhdGlvbnMpCgogICAgYXdhaXQgY29ubmVjdGFibGUuZGlzcG9zZSgpCgoKZGVmIHJ1bl9taWdyYXRpb25zX29ubGluZSgpIC0+IE5vbmU6CiAgICBhc3luY2lvLnJ1bihydW5fYXN5bmNfbWlncmF0aW9ucygpKQoKCmlmIGNvbnRleHQuaXNfb2ZmbGluZV9tb2RlKCk6CiAgICBydW5fbWlncmF0aW9uc19vZmZsaW5lKCkKZWxzZToKICAgIHJ1bl9taWdyYXRpb25zX29ubGluZSgpCg==
+import asyncio
+from logging.config import fileConfig
+
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
+
+from alembic import context
+from app.config import settings
+from app.database import Base
+from app import models
+
+config = context.config
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = Base.metadata
+
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+
+def run_migrations_offline() -> None:
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def do_run_migrations(connection: Connection) -> None:
+    context.configure(connection=connection, target_metadata=target_metadata)
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+async def run_async_migrations() -> None:
+    connectable = async_engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+
+    await connectable.dispose()
+
+
+def run_migrations_online() -> None:
+    asyncio.run(run_async_migrations())
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()

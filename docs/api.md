@@ -1,1 +1,26 @@
-IyBBUEkgT3ZlcnZpZXcKCkFsbCBlbmRwb2ludHMgYXJlIHByZWZpeGVkIHdpdGggYC9hcGlgLgoKfCBFbmRwb2ludCB8IE1ldGhvZCB8IERlc2NyaXB0aW9uIHwKfC0tLS0tLS0tLS18LS0tLS0tLS18LS0tLS0tLS0tLS0tLXwKfCBgL2F1dGgvcmVnaXN0ZXJgIHwgUE9TVCB8IFJlZ2lzdGVyIGEgbmV3IHVzZXIgfAp8IGAvYXV0aC90b2tlbmAgfCBQT1NUIHwgTG9naW4gYW5kIHJlY2VpdmUgSldUIHwKfCBgL2F1dGgvbWVgIHwgR0VUIHwgQ3VycmVudCB1c2VyIHByb2ZpbGUgfAp8IGAvcHJvamVjdHMvYCB8IEdFVC9QT1NUIHwgTGlzdC9jcmVhdGUgcHJvamVjdHMgfAp8IGAvcHJvamVjdHMve2lkfWAgfCBHRVQvREVMRVRFIHwgR2V0L2RlbGV0ZSBwcm9qZWN0IHwKfCBgL2ZpbGVzL3twcm9qZWN0X2lkfWAgfCBHRVQgfCBMaXN0IHVwbG9hZGVkIGZpbGVzIHwKfCBgL2ZpbGVzL3twcm9qZWN0X2lkfS91cGxvYWRgIHwgUE9TVCB8IFVwbG9hZCBhIGZpbGUgfAp8IGAvZmlsZXMve2ZpbGVfaWR9YCB8IERFTEVURSB8IERlbGV0ZSBhIGZpbGUgfAp8IGAvaW1wb3J0L3tmaWxlX2lkfS9wcmV2aWV3YCB8IEdFVCB8IFByZXZpZXcgYSBmaWxlL3NoZWV0IHwKfCBgL2ltcG9ydC97ZmlsZV9pZH0vbWFwYCB8IFBPU1QgfCBTYXZlIGNvbHVtbiBtYXBwaW5nIHwKfCBgL2ltcG9ydC97ZmlsZV9pZH0vaW1wb3J0YCB8IFBPU1QgfCBJbXBvcnQgYXMgZGF0YXNldCB8CnwgYC9hbmFseXNpcy97cHJvamVjdF9pZH0vZGF0YXNldHNgIHwgR0VUIHwgTGlzdCBkYXRhc2V0cyB8CnwgYC9hbmFseXNpcy97cHJvamVjdF9pZH0vZGF0YXNldC97aWR9YCB8IEdFVCB8IEdldCBkYXRhc2V0IHwKfCBgL2FuYWx5c2lzL3twcm9qZWN0X2lkfS9kYXRhc2V0L3tpZH0vcHJlcHJvY2Vzc2AgfCBQT1NUIHwgUHJlcHJvY2VzcyBkYXRhc2V0IHwKfCBgL3N0YXRzL3twcm9qZWN0X2lkfS9kYXRhc2V0L3tpZH0vc3RhdHNgIHwgUE9TVCB8IFJ1biBzdGF0aXN0aWNhbCB0ZXN0IHwKfCBgL3Bsb3RzL3twcm9qZWN0X2lkfS9kYXRhc2V0L3tpZH0vcGxvdGAgfCBQT1NUIHwgR2VuZXJhdGUgUGxvdGx5IGZpZ3VyZSB8CnwgYC9pc290b3BlL3twcm9qZWN0X2lkfS9kYXRhc2V0L3tpZH0vaXNvdG9wZWAgfCBQT1NUIHwgUnVuIGlzb3RvcGUgYW5hbHlzaXMgfAp8IGAvcGF0aHdheXMve3Byb2plY3RfaWR9L2RhdGFzZXQve2lkfS9wYXRod2F5YCB8IFBPU1QgfCBCdWlsZCBwYXRod2F5IGZpZ3VyZSB8CgpTZWUgYC9kb2NzYCBvbiBhIHJ1bm5pbmcgYmFja2VuZCBmb3IgZnVsbCBPcGVuQVBJIGRvY3VtZW50YXRpb24uCg==
+# API Overview
+
+All endpoints are prefixed with `/api`.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/auth/register` | POST | Register a new user |
+| `/auth/token` | POST | Login and receive JWT |
+| `/auth/me` | GET | Current user profile |
+| `/projects/` | GET/POST | List/create projects |
+| `/projects/{id}` | GET/DELETE | Get/delete project |
+| `/files/{project_id}` | GET | List uploaded files |
+| `/files/{project_id}/upload` | POST | Upload a file |
+| `/files/{file_id}` | DELETE | Delete a file |
+| `/import/{file_id}/preview` | GET | Preview a file/sheet |
+| `/import/{file_id}/map` | POST | Save column mapping |
+| `/import/{file_id}/import` | POST | Import as dataset |
+| `/analysis/{project_id}/datasets` | GET | List datasets |
+| `/analysis/{project_id}/dataset/{id}` | GET | Get dataset |
+| `/analysis/{project_id}/dataset/{id}/preprocess` | POST | Preprocess dataset |
+| `/stats/{project_id}/dataset/{id}/stats` | POST | Run statistical test |
+| `/plots/{project_id}/dataset/{id}/plot` | POST | Generate Plotly figure |
+| `/isotope/{project_id}/dataset/{id}/isotope` | POST | Run isotope analysis |
+| `/pathways/{project_id}/dataset/{id}/pathway` | POST | Build pathway figure |
+
+See `/docs` on a running backend for full OpenAPI documentation.

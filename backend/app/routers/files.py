@@ -1,1 +1,68 @@
-aW1wb3J0IG9zCmltcG9ydCBzaHV0aWwKaW1wb3J0IHV1aWQKZnJvbSB0eXBpbmcgaW1wb3J0IExpc3QKZnJvbSBmYXN0YXBpIGltcG9ydCBBUElSb3V0ZXIsIERlcGVuZHMsIEhUVFBFeGNlcHRpb24sIFVwbG9hZEZpbGUsIEZpbGUKZnJvbSBzcWxhbGNoZW15LmV4dC5hc3luY2lvIGltcG9ydCBBc3luY1Nlc3Npb24KZnJvbSBzcWxhbGNoZW15IGltcG9ydCBzZWxlY3QKZnJvbSBhcHAuY29uZmlnIGltcG9ydCBzZXR0aW5ncwpmcm9tIGFwcC5kYXRhYmFzZSBpbXBvcnQgZ2V0X2RiCmZyb20gYXBwLmF1dGggaW1wb3J0IGdldF9jdXJyZW50X2FjdGl2ZV91c2VyCmZyb20gYXBwIGltcG9ydCBtb2RlbHMsIHNjaGVtYXMKZnJvbSBhcHAuc2VydmljZXMuZGV0ZWN0aW9uIGltcG9ydCBkZXRlY3RfZmlsZV9mb3JtYXQKCnJvdXRlciA9IEFQSVJvdXRlcigpCgoKQHJvdXRlci5wb3N0KCIve3Byb2plY3RfaWR9L3VwbG9hZCIsIHJlc3BvbnNlX21vZGVsPXNjaGVtYXMuVXBsb2FkZWRGaWxlT3V0KQphc3luYyBkZWYgdXBsb2FkX2ZpbGUocHJvamVjdF9pZDogaW50LCBmaWxlOiBVcGxvYWRGaWxlID0gRmlsZSguLi4pLCBkYjogQXN5bmNTZXNzaW9uID0gRGVwZW5kcyhnZXRfZGIpLAogICAgICAgICAgICAgICAgICAgICAgY3VycmVudF91c2VyOiBtb2RlbHMuVXNlciA9IERlcGVuZHMoZ2V0X2N1cnJlbnRfYWN0aXZlX3VzZXIpKToKICAgIHJlc3VsdCA9IGF3YWl0IGRiLmV4ZWN1dGUoc2VsZWN0KG1vZGVscy5Qcm9qZWN0KS53aGVyZShtb2RlbHMuUHJvamVjdC5pZCA9PSBwcm9qZWN0X2lkLCBtb2RlbHMuUHJvamVjdC5vd25lcl9pZCA9PSBjdXJyZW50X3VzZXIuaWQpKQogICAgcHJvamVjdCA9IHJlc3VsdC5zY2FsYXJfb25lX29yX25vbmUoKQogICAgaWYgbm90IHByb2plY3Q6CiAgICAgICAgcmFpc2UgSFRUUEV4Y2VwdGlvbihzdGF0dXNfY29kZT00MDQsIGRldGFpbD0iUHJvamVjdCBub3QgZm91bmQiKQoKICAgIGV4dCA9IG9zLnBhdGguc3BsaXRleHQoZmlsZS5maWxlbmFtZSlbMV0ubG93ZXIoKQogICAgc3RvcmVkX25hbWUgPSBmInt1dWlkLnV1aWQ0KCkuaGV4fXtleHR9IgogICAgcGF0aCA9IG9zLnBhdGguam9pbihzZXR0aW5ncy5VUExPQURfRElSLCBzdG9yZWRfbmFtZSkKICAgIHdpdGggb3BlbihwYXRoLCAid2IiKSBhcyBidWZmZXI6CiAgICAgICAgc2h1dGlsLmNvcHlmaWxlb2JqKGZpbGUuZmlsZSwgYnVmZmVyKQoKICAgIGRldGVjdGlvbiA9IGRldGVjdF9maWxlX2Zvcm1hdChwYXRoLCBleHQpCiAgICB1cGxvYWRlZCA9IG1vZGVscy5VcGxvYWRlZEZpbGUoCiAgICAgICAgcHJvamVjdF9pZD1wcm9qZWN0X2lkLAogICAgICAgIG9yaWdpbmFsX25hbWU9ZmlsZS5maWxlbmFtZSwKICAgICAgICBzdG9yZWRfbmFtZT1zdG9yZWRfbmFtZSwKICAgICAgICBmaWxlX3R5cGU9ZXh0LmxzdHJpcCgiLiIpLAogICAgICAgIGRldGVjdGVkX2Zvcm1hdD1kZXRlY3Rpb24uZ2V0KCJmb3JtYXQiKSwKICAgICAgICBzaGVldHM9ZGV0ZWN0aW9uLmdldCgic2hlZXRzIiwgW10pLAogICAgICAgIHN0YXR1cz0idXBsb2FkZWQiLAogICAgKQogICAgZGIuYWRkKHVwbG9hZGVkKQogICAgYXdhaXQgZGIuY29tbWl0KCkKICAgIGF3YWl0IGRiLnJlZnJlc2godXBsb2FkZWQpCiAgICByZXR1cm4gdXBsb2FkZWQKCgpAcm91dGVyLmdldCgiL3twcm9qZWN0X2lkfSIsIHJlc3BvbnNlX21vZGVsPUxpc3Rbc2NoZW1hcy5VcGxvYWRlZEZpbGVPdXRdKQphc3luYyBkZWYgbGlzdF9maWxlcyhwcm9qZWN0X2lkOiBpbnQsIGRiOiBBc3luY1Nlc3Npb24gPSBEZXBlbmRzKGdldF9kYiksCiAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnRfdXNlcjogbW9kZWxzLlVzZXIgPSBEZXBlbmRzKGdldF9jdXJyZW50X2FjdGl2ZV91c2VyKSk6CiAgICByZXN1bHQgPSBhd2FpdCBkYi5leGVjdXRlKHNlbGVjdChtb2RlbHMuVXBsb2FkZWRGaWxlKS5qb2luKG1vZGVscy5Qcm9qZWN0KS53aGVyZSgKICAgICAgICBtb2RlbHMuVXBsb2FkZWRGaWxlLnByb2plY3RfaWQgPT0gcHJvamVjdF9pZCwgbW9kZWxzLlByb2plY3Qub3duZXJfaWQgPT0gY3VycmVudF91c2VyLmlkKSkKICAgIHJldHVybiByZXN1bHQuc2NhbGFycygpLmFsbCgpCgoKQHJvdXRlci5kZWxldGUoIi97ZmlsZV9pZH0iKQphc3luYyBkZWYgZGVsZXRlX2ZpbGUoZmlsZV9pZDogaW50LCBkYjogQXN5bmNTZXNzaW9uID0gRGVwZW5kcyhnZXRfZGIpLAogICAgICAgICAgICAgICAgICAgIGN1cnJlbnRfdXNlcjogbW9kZWxzLlVzZXIgPSBEZXBlbmRzKGdldF9jdXJyZW50X2FjdGl2ZV91c2VyKSk6CiAgICByZXN1bHQgPSBhd2FpdCBkYi5leGVjdXRlKHNlbGVjdChtb2RlbHMuVXBsb2FkZWRGaWxlKS5qb2luKG1vZGVscy5Qcm9qZWN0KS53aGVyZSgKICAgICAgICBtb2RlbHMuVXBsb2FkZWRGaWxlLmlkID09IGZpbGVfaWQsIG1vZGVscy5Qcm9qZWN0Lm93bmVyX2lkID09IGN1cnJlbnRfdXNlci5pZCkpCiAgICB1cGxvYWRlZCA9IHJlc3VsdC5zY2FsYXJfb25lX29yX25vbmUoKQogICAgaWYgbm90IHVwbG9hZGVkOgogICAgICAgIHJhaXNlIEhUVFBFeGNlcHRpb24oc3RhdHVzX2NvZGU9NDA0LCBkZXRhaWw9IkZpbGUgbm90IGZvdW5kIikKICAgIHBhdGggPSBvcy5wYXRoLmpvaW4oc2V0dGluZ3MuVVBMT0FEX0RJUiwgdXBsb2FkZWQuc3RvcmVkX25hbWUpCiAgICBpZiBvcy5wYXRoLmV4aXN0cyhwYXRoKToKICAgICAgICBvcy5yZW1vdmUocGF0aCkKICAgIGF3YWl0IGRiLmRlbGV0ZSh1cGxvYWRlZCkKICAgIGF3YWl0IGRiLmNvbW1pdCgpCiAgICByZXR1cm4geyJvayI6IFRydWV9Cg==
+import os
+import shutil
+import uuid
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.config import settings
+from app.database import get_db
+from app.auth import get_current_active_user
+from app import models, schemas
+from app.services.detection import detect_file_format
+
+router = APIRouter()
+
+
+@router.post("/{project_id}/upload", response_model=schemas.UploadedFileOut)
+async def upload_file(project_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db),
+                      current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Project).where(models.Project.id == project_id, models.Project.owner_id == current_user.id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    stored_name = f"{uuid.uuid4().hex}{ext}"
+    path = os.path.join(settings.UPLOAD_DIR, stored_name)
+    with open(path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    detection = detect_file_format(path, ext)
+    uploaded = models.UploadedFile(
+        project_id=project_id,
+        original_name=file.filename,
+        stored_name=stored_name,
+        file_type=ext.lstrip("."),
+        detected_format=detection.get("format"),
+        sheets=detection.get("sheets", []),
+        status="uploaded",
+    )
+    db.add(uploaded)
+    await db.commit()
+    await db.refresh(uploaded)
+    return uploaded
+
+
+@router.get("/{project_id}", response_model=List[schemas.UploadedFileOut])
+async def list_files(project_id: int, db: AsyncSession = Depends(get_db),
+                     current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.UploadedFile).join(models.Project).where(
+        models.UploadedFile.project_id == project_id, models.Project.owner_id == current_user.id))
+    return result.scalars().all()
+
+
+@router.delete("/{file_id}")
+async def delete_file(file_id: int, db: AsyncSession = Depends(get_db),
+                    current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.UploadedFile).join(models.Project).where(
+        models.UploadedFile.id == file_id, models.Project.owner_id == current_user.id))
+    uploaded = result.scalar_one_or_none()
+    if not uploaded:
+        raise HTTPException(status_code=404, detail="File not found")
+    path = os.path.join(settings.UPLOAD_DIR, uploaded.stored_name)
+    if os.path.exists(path):
+        os.remove(path)
+    await db.delete(uploaded)
+    await db.commit()
+    return {"ok": True}

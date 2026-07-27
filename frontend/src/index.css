@@ -1,1 +1,66 @@
-QHRhaWx3aW5kIGJhc2U7CkB0YWlsd2luZCBjb21wb25lbnRzOwpAdGFpbHdpbmQgdXRpbGl0aWVzOwo=
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 79 70 229; /* indigo-600 */
+    --color-primary-hover: 67 56 202; /* indigo-700 */
+    --color-accent: 16 185 129; /* emerald-500 */
+    --color-bg: 248 250 252; /* slate-50 */
+    --color-surface: 255 255 255;
+    --color-text: 15 23 42; /* slate-900 */
+    --color-muted: 100 116 139; /* slate-500 */
+    --color-border: 226 232 240; /* slate-200 */
+  }
+
+  html.dark {
+    --color-bg: 15 23 42;
+    --color-surface: 30 41 59;
+    --color-text: 241 245 249;
+    --color-muted: 148 163 184;
+    --color-border: 51 65 85;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply btn bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600;
+  }
+
+  .input {
+    @apply block w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500;
+  }
+
+  .select {
+    @apply input;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold text-slate-900 dark:text-white;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-slate-500 dark:text-slate-400;
+  }
+
+  .label-like {
+    @apply block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1;
+  }
+}

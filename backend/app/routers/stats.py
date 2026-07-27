@@ -1,1 +1,34 @@
-ZnJvbSB0eXBpbmcgaW1wb3J0IEFueSwgRGljdApmcm9tIGZhc3RhcGkgaW1wb3J0IEFQSVJvdXRlciwgRGVwZW5kcywgSFRUUEV4Y2VwdGlvbgpmcm9tIHNxbGFsY2hlbXkuZXh0LmFzeW5jaW8gaW1wb3J0IEFzeW5jU2Vzc2lvbgpmcm9tIHNxbGFsY2hlbXkgaW1wb3J0IHNlbGVjdApmcm9tIGFwcC5kYXRhYmFzZSBpbXBvcnQgZ2V0X2RiCmZyb20gYXBwLmF1dGggaW1wb3J0IGdldF9jdXJyZW50X2FjdGl2ZV91c2VyCmZyb20gYXBwIGltcG9ydCBtb2RlbHMsIHNjaGVtYXMKZnJvbSBhcHAuc2VydmljZXMuc3RhdHMgaW1wb3J0IHJ1bl9zdGF0aXN0aWNhbF90ZXN0Cgpyb3V0ZXIgPSBBUElSb3V0ZXIoKQoKCkByb3V0ZXIucG9zdCgiL3twcm9qZWN0X2lkfS9kYXRhc2V0L3tkYXRhc2V0X2lkfS9zdGF0cyIsIHJlc3BvbnNlX21vZGVsPURpY3Rbc3RyLCBBbnldKQphc3luYyBkZWYgc3RhdHMocHJvamVjdF9pZDogaW50LCBkYXRhc2V0X2lkOiBpbnQsIHJlcTogc2NoZW1hcy5TdGF0c1JlcXVlc3QsCiAgICAgICAgICAgICAgICBkYjogQXN5bmNTZXNzaW9uID0gRGVwZW5kcyhnZXRfZGIpLCBjdXJyZW50X3VzZXI6IG1vZGVscy5Vc2VyID0gRGVwZW5kcyhnZXRfY3VycmVudF9hY3RpdmVfdXNlcikpOgogICAgcmVzdWx0ID0gYXdhaXQgZGIuZXhlY3V0ZShzZWxlY3QobW9kZWxzLkRhdGFzZXQpLmpvaW4obW9kZWxzLlByb2plY3QpLndoZXJlKAogICAgICAgIG1vZGVscy5EYXRhc2V0LmlkID09IGRhdGFzZXRfaWQsIG1vZGVscy5EYXRhc2V0LnByb2plY3RfaWQgPT0gcHJvamVjdF9pZCwgbW9kZWxzLlByb2plY3Qub3duZXJfaWQgPT0gY3VycmVudF91c2VyLmlkKSkKICAgIGRhdGFzZXQgPSByZXN1bHQuc2NhbGFyX29uZV9vcl9ub25lKCkKICAgIGlmIG5vdCBkYXRhc2V0OgogICAgICAgIHJhaXNlIEhUVFBFeGNlcHRpb24oc3RhdHVzX2NvZGU9NDA0LCBkZXRhaWw9IkRhdGFzZXQgbm90IGZvdW5kIikKCiAgICByZXN1bHRzID0gcnVuX3N0YXRpc3RpY2FsX3Rlc3QoZGF0YXNldCwgcmVxKQogICAgYW5hbHlzaXMgPSBtb2RlbHMuQW5hbHlzaXMoCiAgICAgICAgcHJvamVjdF9pZD1wcm9qZWN0X2lkLAogICAgICAgIGRhdGFzZXRfaWQ9ZGF0YXNldF9pZCwKICAgICAgICBuYW1lPWYie3JlcS50ZXN0fV97cmVxLmdyb3VwX2F9X3tyZXEuZ3JvdXBfYn0iLAogICAgICAgIGFuYWx5c2lzX3R5cGU9InN0YXRzIiwKICAgICAgICBwYXJhbWV0ZXJzPXJlcS5tb2RlbF9kdW1wKCksCiAgICAgICAgcmVzdWx0cz1yZXN1bHRzLAogICAgKQogICAgZGIuYWRkKGFuYWx5c2lzKQogICAgYXdhaXQgZGIuY29tbWl0KCkKICAgIGF3YWl0IGRiLnJlZnJlc2goYW5hbHlzaXMpCiAgICByZXR1cm4gcmVzdWx0cwo=
+from typing import Any, Dict
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.database import get_db
+from app.auth import get_current_active_user
+from app import models, schemas
+from app.services.stats import run_statistical_test
+
+router = APIRouter()
+
+
+@router.post("/{project_id}/dataset/{dataset_id}/stats", response_model=Dict[str, Any])
+async def stats(project_id: int, dataset_id: int, req: schemas.StatsRequest,
+                db: AsyncSession = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Dataset.id == dataset_id, models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
+    dataset = result.scalar_one_or_none()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    results = run_statistical_test(dataset, req)
+    analysis = models.Analysis(
+        project_id=project_id,
+        dataset_id=dataset_id,
+        name=f"{req.test}_{req.group_a}_{req.group_b}",
+        analysis_type="stats",
+        parameters=req.model_dump(),
+        results=results,
+    )
+    db.add(analysis)
+    await db.commit()
+    await db.refresh(analysis)
+    return results

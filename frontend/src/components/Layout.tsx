@@ -1,1 +1,149 @@
-aW1wb3J0IHsgTmF2TGluaywgT3V0bGV0LCB1c2VOYXZpZ2F0ZSB9IGZyb20gJ3JlYWN0LXJvdXRlci1kb20nCgpjb25zdCBsaW5rcyA9IFsKICB7IHRvOiAnL3Byb2plY3RzJywgbGFiZWw6ICdQcm9qZWN0cycgfSwKICB7IHRvOiAnL2ltcG9ydCcsIGxhYmVsOiAnSW1wb3J0JyB9LAogIHsgdG86ICcvZGF0YScsIGxhYmVsOiAnRGF0YSBUYWJsZScgfSwKICB7IHRvOiAnL3N0YXRzJywgbGFiZWw6ICdTdGF0aXN0aWNzJyB9LAogIHsgdG86ICcvY29tcG91bmQtcGxvdHMnLCBsYWJlbDogJ0NvbXBvdW5kIFBsb3RzJyB9LAogIHsgdG86ICcvaGVhdG1hcCcsIGxhYmVsOiAnSGVhdCBNYXAnIH0sCiAgeyB0bzogJy9wY2EnLCBsYWJlbDogJ1BDQScgfSwKICB7IHRvOiAnL3ZvbGNhbm8nLCBsYWJlbDogJ1ZvbGNhbm8gUGxvdCcgfSwKICB7IHRvOiAnL2lzb3RvcGUnLCBsYWJlbDogJ0lzb3RvcGUgVHJhY2luZycgfSwKICB7IHRvOiAnL3BhdGh3YXknLCBsYWJlbDogJ1BhdGh3YXkgTWFwcGluZycgfSwKICB7IHRvOiAnL3JlcG9ydHMnLCBsYWJlbDogJ1JlcG9ydHMnIH0sCiAgeyB0bzogJy9zZXR0aW5ncycsIGxhYmVsOiAnU2V0dGluZ3MnIH0sCl0KCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIExheW91dCgpIHsKICBjb25zdCBuYXZpZ2F0ZSA9IHVzZU5hdmlnYXRlKCkKCiAgY29uc3QgbG9nb3V0ID0gKCkgPT4gewogICAgbG9jYWxTdG9yYWdlLnJlbW92ZUl0ZW0oJ3Rva2VuJykKICAgIG5hdmlnYXRlKCcvJykKICAgIHdpbmRvdy5sb2NhdGlvbi5yZWxvYWQoKQogIH0KCiAgcmV0dXJuICgKICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGgtc2NyZWVuIGJnLWdyYXktNTAgZGFyazpiZy1ncmF5LTkwMCI+CiAgICAgIDxhc2lkZSBjbGFzc05hbWU9InctNjQgYmctd2hpdGUgZGFyazpiZy1ncmF5LTgwMCBib3JkZXItciBib3JkZXItZ3JheS0yMDAgZGFyazpib3JkZXItZ3JheS03MDAgZmxleCBmbGV4LWNvbCI+CiAgICAgICAgPGRpdiBjbGFzc05hbWU9InAtNCBmb250LWJvbGQgdGV4dC14bCB0ZXh0LWJsdWUtNzAwIGRhcms6dGV4dC1ibHVlLTQwMCI+TWV0YWJvU2NvcGU8L2Rpdj4KICAgICAgICA8bmF2IGNsYXNzTmFtZT0iZmxleC0xIG92ZXJmbG93LXktYXV0byBweC0yIHNwYWNlLXktMSI+CiAgICAgICAgICB7bGlua3MubWFwKChsKSA9PiAoCiAgICAgICAgICAgIDxOYXZMaW5rCiAgICAgICAgICAgICAga2V5PXtsLnRvfQogICAgICAgICAgICAgIHRvPXtsLnRvfQogICAgICAgICAgICAgIGNsYXNzTmFtZT17KHsgaXNBY3RpdmUgfSkgPT4KICAgICAgICAgICAgICAgIGBibG9jayBweC00IHB5LTIgcm91bmRlZC1sZyB0ZXh0LXNtIGZvbnQtbWVkaXVtICR7CiAgICAgICAgICAgICAgICAgIGlzQWN0aXZlID8gJ2JnLWJsdWUtMTAwIHRleHQtYmx1ZS03MDAgZGFyazpiZy1ibHVlLTkwMCBkYXJrOnRleHQtYmx1ZS0zMDAnIDogJ3RleHQtZ3JheS03MDAgaG92ZXI6YmctZ3JheS0xMDAgZGFyazp0ZXh0LWdyYXktMzAwIGRhcms6aG92ZXI6YmctZ3JheS03MDAnCiAgICAgICAgICAgICAgICB9YAogICAgICAgICAgICAgIH0KICAgICAgICAgICAgPgogICAgICAgICAgICAgIHtsLmxhYmVsfQogICAgICAgICAgICA8L05hdkxpbms+CiAgICAgICAgICApKX0KICAgICAgICA8L25hdj4KICAgICAgICA8YnV0dG9uIG9uQ2xpY2s9e2xvZ291dH0gY2xhc3NOYW1lPSJtLTQgcHgtNCBweS0yIHRleHQtc20gdGV4dC13aGl0ZSBiZy1yZWQtNjAwIHJvdW5kZWQtbGcgaG92ZXI6YmctcmVkLTcwMCI+TG9nb3V0PC9idXR0b24+CiAgICAgIDwvYXNpZGU+CiAgICAgIDxtYWluIGNsYXNzTmFtZT0iZmxleC0xIG92ZXJmbG93LXktYXV0byBwLTYiPgogICAgICAgIDxPdXRsZXQgLz4KICAgICAgPC9tYWluPgogICAgPC9kaXY+CiAgKQp9Cg==
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import {
+  LuLayoutDashboard, LuFolderOpen, LuUploadCloud, LuTable,
+  LuSlidersHorizontal, LuCalculator, LuBarChart3, LuPieChart, LuLayers, LuDna,
+  LuGitMerge, LuFileText, LuSettings, LuSun, LuMoon,
+  LuLogOut, LuMenu, LuChevronLeft, LuMicroscope
+} from 'react-icons/lu'
+import { useWorkspace } from '../context/WorkspaceContext'
+
+interface NavItem {
+  to: string
+  label: string
+  icon: React.ReactNode
+  section?: string
+}
+
+const navItems: NavItem[] = [
+  { to: '/', label: 'Dashboard', icon: <LuLayoutDashboard /> },
+  { to: '/projects', label: 'Projects', icon: <LuFolderOpen /> },
+  { to: '/import', label: 'Import Data', icon: <LuUploadCloud /> },
+  { to: '/data', label: 'Data Table', icon: <LuTable /> },
+  { section: 'Analysis', to: '/preprocessing', label: 'Preprocessing', icon: <LuSlidersHorizontal /> },
+  { to: '/stats', label: 'Statistics', icon: <LuCalculator /> },
+  { to: '/compound-plots', label: 'Compound Plots', icon: <LuBarChart3 /> },
+  { to: '/heatmap', label: 'Heat Map', icon: <LuPieChart /> },
+  { to: '/pca', label: 'PCA / PLS-DA', icon: <LuLayers /> },
+  { to: '/volcano', label: 'Volcano Plot', icon: <LuMicroscope /> },
+  { section: 'Specialized', to: '/isotope', label: 'Isotope Tracing', icon: <LuDna /> },
+  { to: '/pathway', label: 'Pathway Mapping', icon: <LuGitMerge /> },
+  { section: 'Output', to: '/reports', label: 'Reports', icon: <LuFileText /> },
+  { to: '/settings', label: 'Settings', icon: <LuSettings /> },
+]
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme')
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isDark = saved ? saved === 'dark' : prefersDark
+    setDark(isDark)
+    if (isDark) document.documentElement.classList.add('dark')
+    else document.documentElement.classList.remove('dark')
+  }, [])
+
+  const toggle = () => {
+    const next = !dark
+    setDark(next)
+    localStorage.setItem('theme', next ? 'dark' : 'light')
+    if (next) document.documentElement.classList.add('dark')
+    else document.documentElement.classList.remove('dark')
+  }
+
+  return (
+    <button onClick={toggle} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700" title="Toggle theme">
+      {dark ? <LuSun /> : <LuMoon />}
+    </button>
+  )
+}
+
+function WorkspaceBadge() {
+  const { projectId, selectedDataset, projects } = useWorkspace()
+  const project = projects.find((p) => p.id === projectId)
+  if (!project) return <span className="text-sm text-slate-500">No project selected</span>
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="px-2 py-1 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200 font-medium truncate max-w-[12rem]">{project.name}</span>
+      {selectedDataset && <span className="text-slate-400">/</span>}
+      {selectedDataset && <span className="px-2 py-1 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200 font-medium truncate max-w-[14rem]">{selectedDataset.name}</span>}
+    </div>
+  )
+}
+
+export default function Layout() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [collapsed, setCollapsed] = useState(false)
+
+  const logout = () => {
+    localStorage.removeItem('token')
+    navigate('/')
+    window.location.reload()
+  }
+
+  return (
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+      <aside className={`${collapsed ? 'w-16' : 'w-64'} flex-shrink-0 bg-slate-900 text-slate-200 transition-all duration-300 flex flex-col`}>
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-700">
+          <div className={`flex items-center ${collapsed ? 'justify-center w-full' : ''}`}>
+            <img src="/logo.png" alt="isotopiq" className={`object-contain ${collapsed ? 'h-7 max-w-[2.5rem]' : 'h-8 max-w-[11rem]'}`} />
+          </div>
+          <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-md hover:bg-slate-700 text-slate-300 flex-shrink-0">
+            {collapsed ? <LuMenu /> : <LuChevronLeft />}
+          </button>
+        </div>
+        <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+          {navItems.map((item, idx) => (
+            <div key={item.to}>
+              {item.section && !collapsed && (idx === 0 || navItems[idx - 1].section !== item.section) && (
+                <div className="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">{item.section}</div>
+              )}
+              <NavLink
+                to={item.to}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  } ${collapsed ? 'justify-center' : ''}`
+                }
+                title={collapsed ? item.label : undefined}
+              >
+                <span className="text-lg">{item.icon}</span>
+                {!collapsed && <span>{item.label}</span>}
+              </NavLink>
+            </div>
+          ))}
+        </nav>
+        <div className="p-3 border-t border-slate-700">
+          <button onClick={logout} className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-red-400 hover:bg-slate-800 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''}`} title={collapsed ? 'Logout' : undefined}>
+            <LuLogOut />
+            {!collapsed && <span>Logout</span>}
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 shadow-sm">
+          <div className="flex items-center gap-4 min-w-0">
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-white truncate">
+              {navItems.find((n) => n.to === location.pathname)?.label || 'MetaboScope'}
+            </h1>
+            <div className="hidden md:block h-6 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="hidden md:flex items-center gap-2 min-w-0">
+              <WorkspaceBadge />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+          </div>
+        </header>
+        <main className="flex-1 overflow-y-auto p-6">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  )
+}

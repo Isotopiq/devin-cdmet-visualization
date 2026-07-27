@@ -1,1 +1,320 @@
-aW1wb3J0IG9zCmltcG9ydCByZQpmcm9tIHR5cGluZyBpbXBvcnQgQW55LCBEaWN0LCBMaXN0CmltcG9ydCBwYW5kYXMgYXMgcGQKCgpLTk9XTl9GT1JNQVRTID0gewogICAgImNvbXBvdW5kX2Rpc2NvdmVyZXIiOiBbIk5hbWUiLCAiRm9ybXVsYSIsICJtL3oiLCAiUmV0ZW50aW9uIFRpbWUiLCAiQXJlYSJdLAogICAgImxpcGlkc2VhcmNoIjogWyJMaXBpZElvbiIsICJDbGFzcyIsICJGQSIsICJHcmFkZSIsICJSdCIsICJBcmVhIl0sCn0KClNBTVBMRV9SRUdFWCA9IHJlLmNvbXBpbGUociJhcmVhfGludGVuc2l0eXxhYnVuZGFuY2V8c2FtcGxlfGN0cmx8Y29udHJvbHx0cmVhdHxyZXB8cmVwbGljYXRlfF9bMC05XSskIiwgcmUuSSkKR1JPVVBfUkVHRVggPSByZS5jb21waWxlKHIiXig/UDxncm91cD4uKz8pXyg/UDxpZHg+WzAtOV0rKSQiKQoKCmRlZiByZWFkX2ZpbGVfdG9fZGYocGF0aDogc3RyLCBzaGVldDogc3RyID0gTm9uZSkgLT4gcGQuRGF0YUZyYW1lOgogICAgZXh0ID0gb3MucGF0aC5zcGxpdGV4dChwYXRoKVsxXS5sb3dlcigpCiAgICBpZiBleHQgaW4gWyIueGxzeCIsICIueGxzIl06CiAgICAgICAgaWYgc2hlZXQ6CiAgICAgICAgICAgIHJldHVybiBwZC5yZWFkX2V4Y2VsKHBhdGgsIHNoZWV0X25hbWU9c2hlZXQsIGVuZ2luZT0ib3BlbnB5eGwiKQogICAgICAgIHJldHVybiBwZC5yZWFkX2V4Y2VsKHBhdGgsIGVuZ2luZT0ib3BlbnB5eGwiKQogICAgaWYgZXh0ID09ICIuY3N2IjoKICAgICAgICByZXR1cm4gcGQucmVhZF9jc3YocGF0aCwgbG93X21lbW9yeT1GYWxzZSkKICAgIGlmIGV4dCBpbiBbIi50c3YiLCAiLnR4dCJdOgogICAgICAgIHJldHVybiBwZC5yZWFkX2NzdihwYXRoLCBzZXA9Ilx0IiwgbG93X21lbW9yeT1GYWxzZSkKICAgIHJhaXNlIFZhbHVlRXJyb3IoZiJVbnN1cHBvcnRlZCBmaWxlIGV4dGVuc2lvbjoge2V4dH0iKQoKCmRlZiBsaXN0X3NoZWV0cyhwYXRoOiBzdHIpIC0+IExpc3Rbc3RyXToKICAgIGV4dCA9IG9zLnBhdGguc3BsaXRleHQocGF0aClbMV0ubG93ZXIoKQogICAgaWYgZXh0IGluIFsiLnhsc3giLCAiLnhscyJdOgogICAgICAgIHhsID0gcGQuRXhjZWxGaWxlKHBhdGgsIGVuZ2luZT0ib3BlbnB5eGwiKQogICAgICAgIHJldHVybiB4bC5zaGVldF9uYW1lcwogICAgcmV0dXJuIFtdCgoKZGVmIGRldGVjdF9maWxlX2Zvcm1hdChwYXRoOiBzdHIsIGV4dDogc3RyID0gTm9uZSkgLT4gRGljdFtzdHIsIEFueV06CiAgICBleHQgPSBleHQgb3Igb3MucGF0aC5zcGxpdGV4dChwYXRoKVsxXS5sb3dlcigpCiAgICB0cnk6CiAgICAgICAgc2hlZXRzID0gbGlzdF9zaGVldHMocGF0aCkKICAgICAgICBpZiBzaGVldHM6CiAgICAgICAgICAgIGRmID0gcGQucmVhZF9leGNlbChwYXRoLCBzaGVldF9uYW1lPXNoZWV0c1swXSwgZW5naW5lPSJvcGVucHl4bCIsIG5yb3dzPTUpCiAgICAgICAgZWxzZToKICAgICAgICAgICAgaWYgZXh0ID09ICIuY3N2IjoKICAgICAgICAgICAgICAgIGRmID0gcGQucmVhZF9jc3YocGF0aCwgbnJvd3M9NSwgbG93X21lbW9yeT1GYWxzZSkKICAgICAgICAgICAgZWxzZToKICAgICAgICAgICAgICAgIGRmID0gcGQucmVhZF9jc3YocGF0aCwgc2VwPSJcdCIsIG5yb3dzPTUsIGxvd19tZW1vcnk9RmFsc2UpCiAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICAgICAgcmV0dXJuIHsiZm9ybWF0IjogTm9uZSwgImVycm9yIjogc3RyKGUpLCAic2hlZXRzIjogW119CgogICAgY29sdW1ucyA9IFtzdHIoYykgZm9yIGMgaW4gZGYuY29sdW1uc10KICAgIHNjb3JlcyA9IHt9CiAgICBmb3IgZm10LCBtYXJrZXJzIGluIEtOT1dOX0ZPUk1BVFMuaXRlbXMoKToKICAgICAgICBzY29yZXNbZm10XSA9IHN1bSgxIGZvciBtIGluIG1hcmtlcnMgaWYgYW55KG0ubG93ZXIoKSBpbiBjLmxvd2VyKCkgZm9yIGMgaW4gY29sdW1ucykpCiAgICBiZXN0ID0gbWF4KHNjb3Jlcywga2V5PXNjb3Jlcy5nZXQpIGlmIHNjb3JlcyBhbmQgbWF4KHNjb3Jlcy52YWx1ZXMoKSkgPiAwIGVsc2UgTm9uZQogICAgcmV0dXJuIHsiZm9ybWF0IjogYmVzdCwgInNjb3JlcyI6IHNjb3JlcywgInNoZWV0cyI6IHNoZWV0cywgImNvbHVtbnMiOiBjb2x1bW5zfQoKCmRlZiBkZXRlY3RfY29sdW1ucyhkZjogcGQuRGF0YUZyYW1lKSAtPiBEaWN0W3N0ciwgQW55XToKICAgIGNvbHVtbnMgPSBbc3RyKGMpIGZvciBjIGluIGRmLmNvbHVtbnNdCgogICAgZmVhdHVyZV9tYXJrZXJzID0gewogICAgICAgICJmZWF0dXJlX2lkIjogWyJuYW1lIiwgImNvbXBvdW5kIiwgImxpcGlkaW9uIiwgImxpcGlkIGlvbiIsICJtZXRhYm9saXRlIl0sCiAgICAgICAgImZvcm11bGEiOiBbImZvcm11bGEiLCAibW9sZWN1bGFyIGZvcm11bGEiXSwKICAgICAgICAibXoiOiBbIm0veiIsICJwcmVjdXJzb3IgbXoiLCAicHJlY3Vyc29yX216Il0sCiAgICAgICAgInJ0IjogWyJyZXRlbnRpb24gdGltZSIsICJyZXRlbnRpb250aW1lIiwgInJ0IChtaW4pIiwgInJ0Il0sCiAgICAgICAgImFkZHVjdCI6IFsiYWRkdWN0IiwgImlvbiB0eXBlIiwgImlvbl90eXBlIl0sCiAgICAgICAgImxpcGlkX2NsYXNzIjogWyJsaXBpZCBjbGFzcyIsICJsaXBpZF9jbGFzcyIsICJjbGFzcyJdLAogICAgICAgICJncmFkZSI6IFsiZ3JhZGUiLCAic2NvcmUiXSwKICAgICAgICAiZmEiOiBbImZhIiwgImZhdHR5IGFjeWwiLCAiZmF0dHlhY2lkIiwgImZhIGNvbXBvc2l0aW9uIl0sCiAgICB9CiAgICBzdWdnZXN0ZWQgPSB7fQogICAgYWxyZWFkeSA9IHNldCgpCiAgICBmb3Iga2V5LCBtYXJrZXJzIGluIGZlYXR1cmVfbWFya2Vycy5pdGVtcygpOgogICAgICAgIGZvciBjb2wgaW4gY29sdW1uczoKICAgICAgICAgICAgY29sX2xvd2VyID0gY29sLmxvd2VyKCkKICAgICAgICAgICAgaWYgYW55KGNvbF9sb3dlciA9PSBtIG9yIGNvbF9sb3dlci5zdGFydHN3aXRoKG0gKyAiICIpIG9yIGNvbF9sb3dlci5lbmRzd2l0aCgiICIgKyBtKSBmb3IgbSBpbiBtYXJrZXJzKToKICAgICAgICAgICAgICAgIGlmIGNvbCBub3QgaW4gYWxyZWFkeToKICAgICAgICAgICAgICAgICAgICBzdWdnZXN0ZWRba2V5XSA9IGNvbAogICAgICAgICAgICAgICAgICAgIGFscmVhZHkuYWRkKGNvbCkKICAgICAgICAgICAgICAgICAgICBicmVhawoKICAgIHNhbXBsZV9jb2x1bW5zID0gW2MgZm9yIGMgaW4gY29sdW1ucyBpZiBTQU1QTEVfUkVHRVguc2VhcmNoKHN0cihjKSkgYW5kIGMgbm90IGluIGFscmVhZHldCiAgICBpZiBub3Qgc2FtcGxlX2NvbHVtbnM6CiAgICAgICAgc2FtcGxlX2NvbHVtbnMgPSBbYyBmb3IgYyBpbiBjb2x1bW5zIGlmIHJlLnNlYXJjaChyIl9bMC05XSskIiwgc3RyKGMpKV0KCiAgICBzYW1wbGVfZ3JvdXBzID0ge30KICAgIGZvciBjb2wgaW4gc2FtcGxlX2NvbHVtbnM6CiAgICAgICAgbWF0Y2ggPSBHUk9VUF9SRUdFWC5tYXRjaChzdHIoY29sKSkKICAgICAgICBpZiBtYXRjaDoKICAgICAgICAgICAgc2FtcGxlX2dyb3Vwc1tjb2xdID0gbWF0Y2guZ3JvdXAoImdyb3VwIikKICAgICAgICBlbHNlOgogICAgICAgICAgICBzYW1wbGVfZ3JvdXBzW2NvbF0gPSAidW5rbm93biIKCiAgICBmZWF0dXJlX2NvbHVtbnMgPSBbYyBmb3IgYyBpbiBjb2x1bW5zIGlmIGMgbm90IGluIHNhbXBsZV9jb2x1bW5zIGFuZCBjIG5vdCBpbiBhbHJlYWR5XQogICAgcmV0dXJuIHsKICAgICAgICAic3VnZ2VzdGVkX21hcHBpbmciOiBzdWdnZXN0ZWQsCiAgICAgICAgInNhbXBsZV9jb2x1bW5zIjogc2FtcGxlX2NvbHVtbnMsCiAgICAgICAgImZlYXR1cmVfY29sdW1ucyI6IGZlYXR1cmVfY29sdW1ucywKICAgICAgICAic2FtcGxlX2dyb3VwcyI6IHNhbXBsZV9ncm91cHMsCiAgICB9CgoKZGVmIHByZXZpZXdfZmlsZSh1cGxvYWRlZCwgc2hlZXQ6IHN0ciA9IE5vbmUpIC0+IERpY3Rbc3RyLCBBbnldOgogICAgcGF0aCA9IG9zLnBhdGguam9pbigidXBsb2FkcyIsIHVwbG9hZGVkLnN0b3JlZF9uYW1lKQogICAgZGYgPSByZWFkX2ZpbGVfdG9fZGYocGF0aCwgc2hlZXQpCiAgICBtYXBwaW5nID0gZGV0ZWN0X2NvbHVtbnMoZGYpCiAgICByZXR1cm4gewogICAgICAgICJkZXRlY3RlZF9mb3JtYXQiOiB1cGxvYWRlZC5kZXRlY3RlZF9mb3JtYXQsCiAgICAgICAgInNoZWV0cyI6IGxpc3Rfc2hlZXRzKHBhdGgpLAogICAgICAgICJjb2x1bW5zIjogW3N0cihjKSBmb3IgYyBpbiBkZi5jb2x1bW5zXSwKICAgICAgICAic2FtcGxlX2NvbHVtbnMiOiBtYXBwaW5nWyJzYW1wbGVfY29sdW1ucyJdLAogICAgICAgICJmZWF0dXJlX2NvbHVtbnMiOiBtYXBwaW5nWyJmZWF0dXJlX2NvbHVtbnMiXSwKICAgICAgICAicm93X2NvdW50IjogbGVuKGRmKSwKICAgICAgICAic3VnZ2VzdGVkX21hcHBpbmciOiBtYXBwaW5nWyJzdWdnZXN0ZWRfbWFwcGluZyJdLAogICAgICAgICJzYW1wbGVfZ3JvdXBzIjogbWFwcGluZ1sic2FtcGxlX2dyb3VwcyJdLAogICAgfQo=
+import os
+import re
+from typing import Any, Dict, List, Tuple
+import pandas as pd
+
+
+KNOWN_FORMATS = {
+    "compound_discoverer": ["Name", "Formula", "m/z", "RT", "Area"],
+    "lipidsearch": ["LipidMolec", "ClassKey", "FAKey", "CalcMass", "BaseRt", "TotalGrade", "Area"],
+}
+
+SAMPLE_REGEX = re.compile(r"area|intensity|abundance|sample|ctrl|control|treat|rep|replicate|_[0-9]+$", re.I)
+GROUP_REGEX = re.compile(r"^(?P<group>.+?)_(?P<idx>[0-9]+)$")
+
+# LipidSearch 5.x bracketed area columns, e.g. OrgMeanArea[s01], NormArea[s01-1]
+LIPIDSEARCH_AREA_RE = re.compile(
+    r"^(?P<type>OrgMeanArea|NormArea|OriginalArea|NormHeight|OriginalHeight|Conc)"
+    r"\[(?P<sample>s?\d+(?:-\d+)?)\]$",
+    re.I,
+)
+
+# Compound Discoverer area columns, e.g. "Area: EL-008.raw (F26)"
+COMPOUND_DISCOVERER_AREA_RE = re.compile(
+    r"^Area:\s*(?P<raw>.+?)\s*\((?P<filecode>F\d+)\)\s*$",
+    re.I,
+)
+
+
+def _normalize_lipidsearch_sample_id(sample_id: str) -> str:
+    """Convert 's01-1' -> 's1-1' to match alignment file sample ids."""
+    if not sample_id:
+        return sample_id
+    return re.sub(r"(?<![0-9])0+(?=[0-9])", "", sample_id.lower())
+
+
+def _base_raw_name(raw: str) -> str:
+    """Strip common raw-file extensions from a Compound Discoverer raw name."""
+    name = str(raw).strip()
+    for ext in [".raw", "_raw"]:
+        if name.lower().endswith(ext):
+            name = name[: -len(ext)]
+    return name
+
+
+def _detect_lipidsearch_samples(columns: List[str]) -> Tuple[List[str], Dict[str, str], Dict[str, List[str]]]:
+    """Return preferred sample columns, sample groups, and all candidate intensity sets for LipidSearch exports."""
+    candidates: Dict[str, List[str]] = {}
+    for col in columns:
+        m = LIPIDSEARCH_AREA_RE.match(str(col))
+        if m:
+            intensity_type = m.group("type").lower()
+            candidates.setdefault(intensity_type, []).append(col)
+
+    # Preferred order: normalized area per replicate, then original area, then mean area, then conc
+    priority = ["normarea", "originalarea", "orgmeanarea", "conc"]
+    chosen = []
+    for itype in priority:
+        if itype in candidates:
+            chosen = candidates[itype]
+            break
+
+    sample_groups = {}
+    for col in chosen:
+        m = LIPIDSEARCH_AREA_RE.match(str(col))
+        if m:
+            sid = _normalize_lipidsearch_sample_id(m.group("sample"))
+            group = sid.split("-")[0]
+            sample_groups[col] = group
+
+    return chosen, sample_groups, candidates
+
+
+def _detect_compound_discoverer_samples(columns: List[str], metadata: Dict[str, Dict[str, Any]]) -> Tuple[List[str], Dict[str, str]]:
+    """Detect Compound Discoverer sample area columns and apply metadata mapping."""
+    sample_columns = []
+    sample_groups = {}
+    for col in columns:
+        m = COMPOUND_DISCOVERER_AREA_RE.match(str(col))
+        if m:
+            sample_columns.append(col)
+            filecode = m.group("filecode").upper()
+            raw_base = _base_raw_name(m.group("raw"))
+            if metadata and filecode in metadata:
+                sample_groups[col] = metadata[filecode].get("condition", raw_base)
+            elif metadata and raw_base.lower() in metadata:
+                sample_groups[col] = metadata[raw_base.lower()].get("condition", raw_base)
+            else:
+                sample_groups[col] = raw_base
+    return sample_columns, sample_groups
+
+
+def read_file_to_df(path: str, sheet: str = None) -> pd.DataFrame:
+    ext = os.path.splitext(path)[1].lower()
+    if ext in [".xlsx", ".xls"]:
+        if sheet:
+            return pd.read_excel(path, sheet_name=sheet, engine="openpyxl")
+        return pd.read_excel(path, engine="openpyxl")
+    if ext == ".csv":
+        return pd.read_csv(path, low_memory=False)
+    if ext in [".tsv", ".txt"]:
+        return pd.read_csv(path, sep="\t", low_memory=False, encoding="utf-8")
+    raise ValueError(f"Unsupported file extension: {ext}")
+
+
+def list_sheets(path: str) -> List[str]:
+    ext = os.path.splitext(path)[1].lower()
+    if ext in [".xlsx", ".xls"]:
+        xl = pd.ExcelFile(path, engine="openpyxl")
+        return xl.sheet_names
+    return []
+
+
+def detect_file_format(path: str, ext: str = None) -> Dict[str, Any]:
+    ext = ext or os.path.splitext(path)[1].lower()
+    try:
+        sheets = list_sheets(path)
+        if sheets:
+            df = pd.read_excel(path, sheet_name=sheets[0], engine="openpyxl", nrows=5)
+        else:
+            if ext == ".csv":
+                df = pd.read_csv(path, nrows=5, low_memory=False)
+            else:
+                df = pd.read_csv(path, sep="\t", nrows=5, low_memory=False)
+    except Exception as e:
+        return {"format": None, "error": str(e), "sheets": []}
+
+    columns = [str(c) for c in df.columns]
+    scores = {}
+    for fmt, markers in KNOWN_FORMATS.items():
+        scores[fmt] = sum(1 for m in markers if any(m.lower() in c.lower() for c in columns))
+    best = max(scores, key=scores.get) if scores and max(scores.values()) > 0 else None
+    return {"format": best, "scores": scores, "sheets": sheets, "columns": columns}
+
+
+def detect_columns(df: pd.DataFrame, metadata: Dict[str, Dict[str, Any]] = None) -> Dict[str, Any]:
+    columns = [str(c) for c in df.columns]
+
+    feature_markers = {
+        "feature_id": ["name", "compound", "lipidion", "lipid ion", "metabolite", "lipidmolec"],
+        "formula": ["formula", "molecular formula"],
+        "mz": ["m/z", "precursor mz", "precursor_mz", "calcmass"],
+        "rt": ["retention time", "retentiontime", "rt (min)", "rt [min]", "rt", "basert"],
+        "adduct": ["adduct", "reference ion", "ion type", "ion_type"],
+        "lipid_class": ["lipid class", "lipid_class", "classkey"],
+        "grade": ["grade", "score", "totalgrade"],
+        "fa": ["fa", "fatty acyl", "fattyacid", "fa composition", "fakey"],
+        "calc_mw": ["calc. mw", "calc.mw", "calculated mw"],
+        "polarity": ["polarity"],
+        "neutral_losses": ["neutral losses", "neutral_losses"],
+    }
+    suggested = {}
+    already = set()
+    for key, markers in feature_markers.items():
+        for col in columns:
+            col_lower = col.lower()
+            if key == "lipid_class":
+                # avoid CD "Class Coverage", "Class FISh Score" columns
+                if any(w in col_lower for w in ["coverage", "fish", "score"]):
+                    continue
+            if any(
+                col_lower == m
+                or col_lower.startswith(m + " ")
+                or col_lower.endswith(" " + m)
+                or (m in col_lower and "(" + m + ")" in col_lower)
+                for m in markers
+            ):
+                if col not in already:
+                    suggested[key] = col
+                    already.add(col)
+                    break
+
+    # Try Compound Discoverer-specific area columns first
+    cd_samples, cd_groups = _detect_compound_discoverer_samples(columns, metadata or {})
+
+    # Try LipidSearch-specific area columns next
+    ls_samples, ls_groups, ls_candidates = _detect_lipidsearch_samples(columns)
+
+    if cd_samples:
+        sample_columns = cd_samples
+        sample_groups = cd_groups
+    elif ls_samples:
+        sample_columns = ls_samples
+        sample_groups = ls_groups
+    else:
+        sample_columns = [c for c in columns if SAMPLE_REGEX.search(str(c)) and c not in already]
+        if not sample_columns:
+            sample_columns = [c for c in columns if re.search(r"_[0-9]+$", str(c))]
+
+        sample_groups = {}
+        for col in sample_columns:
+            match = GROUP_REGEX.match(str(col))
+            if match:
+                sample_groups[col] = match.group("group")
+            else:
+                sample_groups[col] = "unknown"
+
+    # Apply LipidSearch alignment file mapping if metadata was supplied that way
+    if metadata:
+        for col in sample_columns:
+            m = LIPIDSEARCH_AREA_RE.match(str(col))
+            if m:
+                sid = _normalize_lipidsearch_sample_id(m.group("sample"))
+                if sid in metadata:
+                    sample_groups[col] = metadata[sid].get("condition", sample_groups[col])
+            elif col in metadata:
+                sample_groups[col] = metadata[col].get("condition", sample_groups[col])
+
+    feature_columns = [c for c in columns if c not in sample_columns and c not in already]
+    return {
+        "suggested_mapping": suggested,
+        "sample_columns": sample_columns,
+        "feature_columns": feature_columns,
+        "sample_groups": sample_groups,
+        "lipidsearch_candidates": ls_candidates,
+    }
+
+
+def parse_lipidsearch_alignment(path: str) -> Dict[str, Dict[str, Any]]:
+    """Parse a LipidSearch alignment .txt file and return sample_id -> {condition} mapping."""
+    mapping: Dict[str, Dict[str, Any]] = {}
+    if not os.path.exists(path):
+        return mapping
+
+    with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+        in_section = False
+        for raw_line in fh:
+            line = raw_line.replace("\r\n", "\n").replace("\r", "\n").rstrip("\n")
+            if not line:
+                continue
+            if line.startswith("*Target search job"):
+                in_section = True
+                continue
+            if in_section:
+                if line.startswith("*"):
+                    break
+                parts = line.split("\t")
+                if len(parts) >= 4:
+                    sid = _normalize_lipidsearch_sample_id(parts[2].strip())
+                    mapping[sid] = {"condition": parts[3].strip()}
+    return mapping
+
+
+def parse_compound_discoverer_metadata(path: str) -> Dict[str, Dict[str, Any]]:
+    """Parse a Compound Discoverer metadata .xlsx/.csv/.txt and return file identifier -> metadata mapping."""
+    mapping: Dict[str, Dict[str, Any]] = {}
+    if not os.path.exists(path):
+        return mapping
+
+    ext = os.path.splitext(path)[1].lower()
+    try:
+        if ext in [".xlsx", ".xls"]:
+            xl = pd.ExcelFile(path, engine="openpyxl")
+            df = pd.read_excel(path, sheet_name=xl.sheet_names[0])
+        elif ext == ".csv":
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(path, sep="\t")
+    except Exception:
+        return mapping
+
+    for _, row in df.iterrows():
+        def _get(col):
+            val = row.get(col, "")
+            if pd.isna(val):
+                return ""
+            return str(val).strip()
+
+        sample = _get("Sample")
+        file_code = _get("File").upper()
+        sample_id = _get("Sample Identifier")
+        sample_type = _get("Sample Type")
+        condition = _get("Condition")
+
+        meta = {
+            "sample": sample,
+            "file_code": file_code,
+            "sample_identifier": sample_id,
+            "sample_type": sample_type,
+            "condition": condition or sample_type or sample_id,
+        }
+        if file_code:
+            mapping[file_code] = meta
+        if sample_id:
+            mapping[_base_raw_name(sample_id).lower()] = meta
+            mapping[sample_id.lower()] = meta
+        if sample:
+            mapping[sample.upper()] = meta
+    return mapping
+
+
+def parse_sample_metadata(path: str) -> Dict[str, Dict[str, Any]]:
+    """Dispatch to the correct metadata/alignment parser based on file content."""
+    ext = os.path.splitext(path)[1].lower()
+    if ext in [".xlsx", ".xls", ".csv"]:
+        # Try CD metadata first; if empty, fall back to generic
+        mapping = parse_compound_discoverer_metadata(path)
+        if mapping:
+            return mapping
+    if ext in [".txt", ".tsv", ".csv"]:
+        mapping = parse_lipidsearch_alignment(path)
+        if mapping:
+            return mapping
+    return {}
+
+
+def preview_file(uploaded, sheet: str = None, metadata: Dict[str, Dict[str, Any]] = None) -> Dict[str, Any]:
+    path = os.path.join("uploads", uploaded.stored_name)
+    df = read_file_to_df(path, sheet)
+    mapping = detect_columns(df, metadata=metadata)
+    return {
+        "detected_format": uploaded.detected_format,
+        "sheets": list_sheets(path),
+        "columns": [str(c) for c in df.columns],
+        "sample_columns": mapping["sample_columns"],
+        "feature_columns": mapping["feature_columns"],
+        "row_count": len(df),
+        "suggested_mapping": mapping["suggested_mapping"],
+        "sample_groups": mapping["sample_groups"],
+        "lipidsearch_candidates": mapping.get("lipidsearch_candidates", {}),
+    }

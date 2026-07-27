@@ -1,1 +1,49 @@
-aW1wb3J0IHsgdXNlU3RhdGUsIEZvcm1FdmVudCB9IGZyb20gJ3JlYWN0JwppbXBvcnQgeyBsb2dpbiB9IGZyb20gJy4uL2FwaScKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIExvZ2luKHsgb25Mb2dpbiB9OiB7IG9uTG9naW46ICh0OiBzdHJpbmcpID0+IHZvaWQgfSkgewogIGNvbnN0IFtlbWFpbCwgc2V0RW1haWxdID0gdXNlU3RhdGUoJycpCiAgY29uc3QgW3Bhc3N3b3JkLCBzZXRQYXNzd29yZF0gPSB1c2VTdGF0ZSgnJykKICBjb25zdCBbZXJyb3IsIHNldEVycm9yXSA9IHVzZVN0YXRlKCcnKQoKICBjb25zdCBzdWJtaXQgPSBhc3luYyAoZTogRm9ybUV2ZW50KSA9PiB7CiAgICBlLnByZXZlbnREZWZhdWx0KCkKICAgIHRyeSB7CiAgICAgIGNvbnN0IGZvcm0gPSBuZXcgVVJMU2VhcmNoUGFyYW1zKCkKICAgICAgZm9ybS5hcHBlbmQoJ3VzZXJuYW1lJywgZW1haWwpCiAgICAgIGZvcm0uYXBwZW5kKCdwYXNzd29yZCcsIHBhc3N3b3JkKQogICAgICBjb25zdCByZXMgPSBhd2FpdCBsb2dpbih7IHVzZXJuYW1lOiBlbWFpbCwgcGFzc3dvcmQgfSkKICAgICAgb25Mb2dpbihyZXMuZGF0YS5hY2Nlc3NfdG9rZW4pCiAgICB9IGNhdGNoIChlcnI6IGFueSkgewogICAgICBzZXRFcnJvcihlcnIucmVzcG9uc2U/LmRhdGE/LmRldGFpbCB8fCAnTG9naW4gZmFpbGVkJykKICAgIH0KICB9CgogIHJldHVybiAoCiAgICA8ZGl2IGNsYXNzTmFtZT0ibWluLWgtc2NyZWVuIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIGJnLWdyYXktNTAgZGFyazpiZy1ncmF5LTkwMCI+CiAgICAgIDxmb3JtIG9uU3VibWl0PXtzdWJtaXR9IGNsYXNzTmFtZT0iYmctd2hpdGUgZGFyazpiZy1ncmF5LTgwMCBwLTggcm91bmRlZC14bCBzaGFkb3ctbWQgdy1mdWxsIG1heC13LW1kIj4KICAgICAgICA8aDEgY2xhc3NOYW1lPSJ0ZXh0LTJ4bCBmb250LWJvbGQgbWItNiB0ZXh0LWdyYXktOTAwIGRhcms6dGV4dC13aGl0ZSI+TWV0YWJvU2NvcGU8L2gxPgogICAgICAgIHtlcnJvciAmJiA8ZGl2IGNsYXNzTmFtZT0ibWItNCB0ZXh0LXJlZC02MDAiPntlcnJvcn08L2Rpdj59CiAgICAgICAgPGRpdiBjbGFzc05hbWU9Im1iLTQiPgogICAgICAgICAgPGxhYmVsIGNsYXNzTmFtZT0iYmxvY2sgdGV4dC1zbSBmb250LW1lZGl1bSB0ZXh0LWdyYXktNzAwIGRhcms6dGV4dC1ncmF5LTMwMCI+RW1haWw8L2xhYmVsPgogICAgICAgICAgPGlucHV0IHR5cGU9ImVtYWlsIiB2YWx1ZT17ZW1haWx9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0RW1haWwoZS50YXJnZXQudmFsdWUpfSBjbGFzc05hbWU9Im10LTEgYmxvY2sgdy1mdWxsIHJvdW5kZWQtbWQgYm9yZGVyLWdyYXktMzAwIHNoYWRvdy1zbSIgcmVxdWlyZWQgLz4KICAgICAgICA8L2Rpdj4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ibWItNiI+CiAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPSJibG9jayB0ZXh0LXNtIGZvbnQtbWVkaXVtIHRleHQtZ3JheS03MDAgZGFyazp0ZXh0LWdyYXktMzAwIj5QYXNzd29yZDwvbGFiZWw+CiAgICAgICAgICA8aW5wdXQgdHlwZT0icGFzc3dvcmQiIHZhbHVlPXtwYXNzd29yZH0gb25DaGFuZ2U9eyhlKSA9PiBzZXRQYXNzd29yZChlLnRhcmdldC52YWx1ZSl9IGNsYXNzTmFtZT0ibXQtMSBibG9jayB3LWZ1bGwgcm91bmRlZC1tZCBib3JkZXItZ3JheS0zMDAgc2hhZG93LXNtIiByZXF1aXJlZCAvPgogICAgICAgIDwvZGl2PgogICAgICAgIDxidXR0b24gdHlwZT0ic3VibWl0IiBjbGFzc05hbWU9InctZnVsbCBiZy1ibHVlLTYwMCB0ZXh0LXdoaXRlIHB5LTIgcm91bmRlZC1sZyBob3ZlcjpiZy1ibHVlLTcwMCI+TG9naW48L2J1dHRvbj4KICAgICAgPC9mb3JtPgogICAgPC9kaXY+CiAgKQp9Cg==
+import { useState, FormEvent } from 'react'
+import { login } from '../api'
+import { LuMail, LuLock } from 'react-icons/lu'
+
+export default function Login({ onLogin }: { onLogin: (t: string) => void }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    try {
+      const res = await login({ username: email, password })
+      onLogin(res.data.access_token)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Login failed')
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800 p-4">
+      <div className="w-full max-w-md card p-8">
+        <div className="flex justify-center mb-8">
+          <div className="bg-black rounded-xl p-4">
+            <img src="/logo.png" alt="isotopiq" className="h-10 w-auto object-contain" />
+          </div>
+        </div>
+        {error && <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 text-sm">{error}</div>}
+        <form onSubmit={submit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
+            <div className="relative">
+              <LuMail className="absolute left-3 top-2.5 text-slate-400" />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input pl-10" placeholder="you@example.com" required />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
+            <div className="relative">
+              <LuLock className="absolute left-3 top-2.5 text-slate-400" />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="input pl-10" placeholder="••••••••" required />
+            </div>
+          </div>
+          <button type="submit" className="btn-primary w-full py-2.5">Sign In</button>
+        </form>
+      </div>
+    </div>
+  )
+}

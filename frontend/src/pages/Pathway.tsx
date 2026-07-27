@@ -1,1 +1,90 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgUGxvdCBmcm9tICdyZWFjdC1wbG90bHkuanMnCmltcG9ydCB7IGxpc3RQcm9qZWN0cywgbGlzdERhdGFzZXRzLCBidWlsZFBhdGh3YXkgfSBmcm9tICcuLi9hcGknCmltcG9ydCB7IFByb2plY3QsIERhdGFzZXQgfSBmcm9tICcuLi90eXBlcycKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFBhdGh3YXkoKSB7CiAgY29uc3QgW3Byb2plY3RzLCBzZXRQcm9qZWN0c10gPSB1c2VTdGF0ZTxQcm9qZWN0W10+KFtdKQogIGNvbnN0IFtkYXRhc2V0cywgc2V0RGF0YXNldHNdID0gdXNlU3RhdGU8RGF0YXNldFtdPihbXSkKICBjb25zdCBbcHJvamVjdElkLCBzZXRQcm9qZWN0SWRdID0gdXNlU3RhdGU8bnVtYmVyIHwgJyc+KCcnKQogIGNvbnN0IFtkYXRhc2V0SWQsIHNldERhdGFzZXRJZF0gPSB1c2VTdGF0ZTxudW1iZXIgfCAnJz4oJycpCiAgY29uc3QgW3ZhbHVlVHlwZSwgc2V0VmFsdWVUeXBlXSA9IHVzZVN0YXRlKCdhYnVuZGFuY2UnKQogIGNvbnN0IFtmaWd1cmUsIHNldEZpZ3VyZV0gPSB1c2VTdGF0ZTxhbnk+KG51bGwpCgogIHVzZUVmZmVjdCgoKSA9PiB7IGxpc3RQcm9qZWN0cygpLnRoZW4oKHIpID0+IHNldFByb2plY3RzKHIuZGF0YSkpIH0sIFtdKQogIHVzZUVmZmVjdCgoKSA9PiB7IGlmIChwcm9qZWN0SWQpIGxpc3REYXRhc2V0cyhOdW1iZXIocHJvamVjdElkKSkudGhlbigocikgPT4gc2V0RGF0YXNldHMoci5kYXRhKSkgfSwgW3Byb2plY3RJZF0pCgogIGNvbnN0IGdlbmVyYXRlID0gYXN5bmMgKCkgPT4gewogICAgaWYgKCFwcm9qZWN0SWQgfHwgIWRhdGFzZXRJZCkgcmV0dXJuCiAgICBjb25zdCByZXMgPSBhd2FpdCBidWlsZFBhdGh3YXkoTnVtYmVyKHByb2plY3RJZCksIE51bWJlcihkYXRhc2V0SWQpLCB7IHZhbHVlX3R5cGU6IHZhbHVlVHlwZSwgcGF0aHdheV9zb3VyY2U6ICdrZWdnJyB9KQogICAgc2V0RmlndXJlKHJlcy5kYXRhKQogIH0KCiAgcmV0dXJuICgKICAgIDxkaXY+CiAgICAgIDxoMSBjbGFzc05hbWU9InRleHQtMnhsIGZvbnQtYm9sZCBtYi00IHRleHQtZ3JheS05MDAgZGFyazp0ZXh0LXdoaXRlIj5QYXRod2F5IE1hcHBpbmc8L2gxPgogICAgICA8cCBjbGFzc05hbWU9InRleHQtc20gdGV4dC1ncmF5LTYwMCBkYXJrOnRleHQtZ3JheS0zMDAgbWItNCI+Tm9kZXM6IG1ldGFib2xpdGVzOyBlZGdlczogcmVhY3Rpb25zLiBDb2xvcnMgZGlzdGluZ3Vpc2ggbWVhc3VyZWQgYWJ1bmRhbmNlLCBpc290b3BlIGVucmljaG1lbnQsIGluZmVycmVkIGZsdXggcHJveGllcywgYW5kIHVzZXItcHJvdmlkZWQgdmFsdWVzLjwvcD4KICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggZmxleC13cmFwIGdhcC0yIG1iLTQiPgogICAgICAgIDxzZWxlY3QgdmFsdWU9e3Byb2plY3RJZH0gb25DaGFuZ2U9eyhlKSA9PiBzZXRQcm9qZWN0SWQoTnVtYmVyKGUudGFyZ2V0LnZhbHVlKSl9IGNsYXNzTmFtZT0iYm9yZGVyIHJvdW5kZWQtbGcgcC0yIj48b3B0aW9uIHZhbHVlPSIiPlByb2plY3Q8L29wdGlvbj57cHJvamVjdHMubWFwKChwKSA9PiA8b3B0aW9uIGtleT17cC5pZH0gdmFsdWU9e3AuaWR9PntwLm5hbWV9PC9vcHRpb24+KX08L3NlbGVjdD4KICAgICAgICA8c2VsZWN0IHZhbHVlPXtkYXRhc2V0SWR9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0RGF0YXNldElkKE51bWJlcihlLnRhcmdldC52YWx1ZSkpfSBjbGFzc05hbWU9ImJvcmRlciByb3VuZGVkLWxnIHAtMiI+PG9wdGlvbiB2YWx1ZT0iIj5EYXRhc2V0PC9vcHRpb24+e2RhdGFzZXRzLm1hcCgoZCkgPT4gPG9wdGlvbiBrZXk9e2QuaWR9IHZhbHVlPXtkLmlkfT57ZC5uYW1lfTwvb3B0aW9uPil9PC9zZWxlY3Q+CiAgICAgICAgPHNlbGVjdCB2YWx1ZT17dmFsdWVUeXBlfSBvbkNoYW5nZT17KGUpID0+IHNldFZhbHVlVHlwZShlLnRhcmdldC52YWx1ZSl9IGNsYXNzTmFtZT0iYm9yZGVyIHJvdW5kZWQtbGcgcC0yIj4KICAgICAgICAgIDxvcHRpb24gdmFsdWU9ImFidW5kYW5jZSI+TWVhc3VyZWQgQWJ1bmRhbmNlPC9vcHRpb24+CiAgICAgICAgICA8b3B0aW9uIHZhbHVlPSJpc290b3BlX2VucmljaG1lbnQiPk1lYXN1cmVkIElzb3RvcGUgRW5yaWNobWVudDwvb3B0aW9uPgogICAgICAgICAgPG9wdGlvbiB2YWx1ZT0iaW5mZXJyZWRfZmx1eCI+SW5mZXJyZWQgRmx1eCBQcm94eTwvb3B0aW9uPgogICAgICAgICAgPG9wdGlvbiB2YWx1ZT0idXNlcl9mbHV4Ij5Vc2VyLXByb3ZpZGVkIEZsdXg8L29wdGlvbj4KICAgICAgICAgIDxvcHRpb24gdmFsdWU9Im1vZGVsZWRfZmx1eCI+TW9kZWxlZCBGbHV4PC9vcHRpb24+CiAgICAgICAgPC9zZWxlY3Q+CiAgICAgICAgPGJ1dHRvbiBvbkNsaWNrPXtnZW5lcmF0ZX0gY2xhc3NOYW1lPSJiZy1ibHVlLTYwMCB0ZXh0LXdoaXRlIHJvdW5kZWQtbGcgcHgtNCBweS0yIGhvdmVyOmJnLWJsdWUtNzAwIj5HZW5lcmF0ZTwvYnV0dG9uPgogICAgICA8L2Rpdj4KICAgICAge2ZpZ3VyZSAmJiA8ZGl2IGNsYXNzTmFtZT0iYmctd2hpdGUgZGFyazpiZy1ncmF5LTgwMCByb3VuZGVkLWxnIHNoYWRvdyBwLTQiPjxQbG90IGRhdGE9e2ZpZ3VyZS5kYXRhfSBsYXlvdXQ9e2ZpZ3VyZS5sYXlvdXR9IHN0eWxlPXt7IHdpZHRoOiAnMTAwJScsIGhlaWdodDogJzYwMHB4JyB9fSBjb25maWc9e3sgcmVzcG9uc2l2ZTogdHJ1ZSB9fSAvPjwvZGl2Pn0KICAgIDwvZGl2PgogICkKfQo=
+import { useEffect, useState } from 'react'
+import Plot from 'react-plotly.js'
+import { useWorkspace } from '../context/WorkspaceContext'
+import DatasetPicker from '../components/DatasetPicker'
+import { buildPathway } from '../api'
+import { LuGitMerge, LuRefreshCw, LuDownload } from 'react-icons/lu'
+
+export default function Pathway() {
+  const { projectId, datasetId, selectedDataset } = useWorkspace()
+  const [valueType, setValueType] = useState('abundance')
+  const [pathwaySource, setPathwaySource] = useState('kegg')
+  const [figure, setFigure] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  const generate = async () => {
+    if (!projectId || !datasetId) return
+    setLoading(true)
+    const res = await buildPathway(Number(projectId), Number(datasetId), { value_type: valueType, pathway_source: pathwaySource })
+    setFigure(res.data)
+    setLoading(false)
+  }
+
+  const exportJson = () => {
+    if (!figure) return
+    const blob = new Blob([JSON.stringify(figure)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pathway_${pathwaySource}.json`
+    a.click()
+  }
+
+  useEffect(() => { setFigure(null) }, [selectedDataset])
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">Pathway Mapping</h1>
+        <p className="page-subtitle">Map abundance, fold change, significance, or isotope enrichment onto metabolic pathways.</p>
+      </div>
+
+      <DatasetPicker />
+
+      {!selectedDataset && <div className="card p-8 text-center text-slate-500 dark:text-slate-400">Select a dataset to map onto pathways.</div>}
+
+      {selectedDataset && (
+        <>
+          <div className="card p-5">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuGitMerge /> Pathway Options</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Value to map</label>
+                <select value={valueType} onChange={(e) => setValueType(e.target.value)} className="input">
+                  <option value="abundance">Measured Abundance</option>
+                  <option value="isotope_enrichment">Measured Isotope Enrichment</option>
+                  <option value="inferred_flux">Inferred Flux Proxy</option>
+                  <option value="user_flux">User-provided Flux</option>
+                  <option value="modeled_flux">Modeled Flux</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Pathway source</label>
+                <select value={pathwaySource} onChange={(e) => setPathwaySource(e.target.value)} className="input">
+                  <option value="kegg">KEGG</option>
+                  <option value="hmdb">HMDB</option>
+                  <option value="chebi">ChEBI</option>
+                  <option value="reactome">Reactome</option>
+                  <option value="sbml">SBML</option>
+                  <option value="metabolika">Metabolika</option>
+                  <option value="custom">User-defined</option>
+                </select>
+              </div>
+              <div className="flex gap-3 md:col-span-2">
+                <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+                <button onClick={exportJson} disabled={!figure} className="btn-secondary"><LuDownload /> Export</button>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">Nodes: metabolites. Edges: reactions. Colors distinguish measured abundance, measured isotope enrichment, inferred flux proxies, user-provided fluxes, and formally modeled fluxes.</p>
+          </div>
+
+          {figure && (
+            <div className="card p-5">
+              <Plot data={figure.data} layout={figure.layout} style={{ width: '100%', height: '600px' }} config={{ responsive: true }} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

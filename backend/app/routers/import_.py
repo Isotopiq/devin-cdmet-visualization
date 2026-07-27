@@ -1,1 +1,109 @@
-ZnJvbSB0eXBpbmcgaW1wb3J0IEFueSwgRGljdApmcm9tIGZhc3RhcGkgaW1wb3J0IEFQSVJvdXRlciwgRGVwZW5kcywgSFRUUEV4Y2VwdGlvbgpmcm9tIHNxbGFsY2hlbXkuZXh0LmFzeW5jaW8gaW1wb3J0IEFzeW5jU2Vzc2lvbgpmcm9tIHNxbGFsY2hlbXkgaW1wb3J0IHNlbGVjdApmcm9tIGFwcC5kYXRhYmFzZSBpbXBvcnQgZ2V0X2RiCmZyb20gYXBwLmF1dGggaW1wb3J0IGdldF9jdXJyZW50X2FjdGl2ZV91c2VyCmZyb20gYXBwIGltcG9ydCBtb2RlbHMsIHNjaGVtYXMKZnJvbSBhcHAuc2VydmljZXMuZGV0ZWN0aW9uIGltcG9ydCBwcmV2aWV3X2ZpbGUsIGRldGVjdF9jb2x1bW5zCmZyb20gYXBwLnNlcnZpY2VzLmltcG9ydGVyIGltcG9ydCBpbXBvcnRfZGF0YXNldAoKcm91dGVyID0gQVBJUm91dGVyKCkKCgpAcm91dGVyLmdldCgiL3tmaWxlX2lkfS9wcmV2aWV3IiwgcmVzcG9uc2VfbW9kZWw9c2NoZW1hcy5JbXBvcnRQcmV2aWV3KQphc3luYyBkZWYgcHJldmlld19pbXBvcnQoZmlsZV9pZDogaW50LCBzaGVldDogc3RyID0gTm9uZSwgZGI6IEFzeW5jU2Vzc2lvbiA9IERlcGVuZHMoZ2V0X2RiKSwKICAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnRfdXNlcjogbW9kZWxzLlVzZXIgPSBEZXBlbmRzKGdldF9jdXJyZW50X2FjdGl2ZV91c2VyKSk6CiAgICByZXN1bHQgPSBhd2FpdCBkYi5leGVjdXRlKHNlbGVjdChtb2RlbHMuVXBsb2FkZWRGaWxlKS5qb2luKG1vZGVscy5Qcm9qZWN0KS53aGVyZSgKICAgICAgICBtb2RlbHMuVXBsb2FkZWRGaWxlLmlkID09IGZpbGVfaWQsIG1vZGVscy5Qcm9qZWN0Lm93bmVyX2lkID09IGN1cnJlbnRfdXNlci5pZCkpCiAgICB1cGxvYWRlZCA9IHJlc3VsdC5zY2FsYXJfb25lX29yX25vbmUoKQogICAgaWYgbm90IHVwbG9hZGVkOgogICAgICAgIHJhaXNlIEhUVFBFeGNlcHRpb24oc3RhdHVzX2NvZGU9NDA0LCBkZXRhaWw9IkZpbGUgbm90IGZvdW5kIikKCiAgICBwcmV2aWV3ID0gcHJldmlld19maWxlKHVwbG9hZGVkLCBzaGVldCkKICAgIHJldHVybiBwcmV2aWV3CgoKQHJvdXRlci5wb3N0KCIve2ZpbGVfaWR9L21hcCIsIHJlc3BvbnNlX21vZGVsPURpY3Rbc3RyLCBBbnldKQphc3luYyBkZWYgbWFwX2NvbHVtbnMoZmlsZV9pZDogaW50LCBtYXBwaW5nOiBzY2hlbWFzLkNvbHVtbk1hcHBpbmcsIGRiOiBBc3luY1Nlc3Npb24gPSBEZXBlbmRzKGdldF9kYiksCiAgICAgICAgICAgICAgICAgICAgICBjdXJyZW50X3VzZXI6IG1vZGVscy5Vc2VyID0gRGVwZW5kcyhnZXRfY3VycmVudF9hY3RpdmVfdXNlcikpOgogICAgcmVzdWx0ID0gYXdhaXQgZGIuZXhlY3V0ZShzZWxlY3QobW9kZWxzLlVwbG9hZGVkRmlsZSkuam9pbihtb2RlbHMuUHJvamVjdCkud2hlcmUoCiAgICAgICAgbW9kZWxzLlVwbG9hZGVkRmlsZS5pZCA9PSBmaWxlX2lkLCBtb2RlbHMuUHJvamVjdC5vd25lcl9pZCA9PSBjdXJyZW50X3VzZXIuaWQpKQogICAgdXBsb2FkZWQgPSByZXN1bHQuc2NhbGFyX29uZV9vcl9ub25lKCkKICAgIGlmIG5vdCB1cGxvYWRlZDoKICAgICAgICByYWlzZSBIVFRQRXhjZXB0aW9uKHN0YXR1c19jb2RlPTQwNCwgZGV0YWlsPSJGaWxlIG5vdCBmb3VuZCIpCgogICAgdXBsb2FkZWQuY29sdW1uX21hcHBpbmcgPSBtYXBwaW5nLm1vZGVsX2R1bXAoKQogICAgYXdhaXQgZGIuY29tbWl0KCkKICAgIHJldHVybiB7Im9rIjogVHJ1ZX0KCgpAcm91dGVyLnBvc3QoIi97ZmlsZV9pZH0vaW1wb3J0IiwgcmVzcG9uc2VfbW9kZWw9c2NoZW1hcy5EYXRhc2V0T3V0KQphc3luYyBkZWYgcnVuX2ltcG9ydChmaWxlX2lkOiBpbnQsIGZlYXR1cmVfdHlwZTogc3RyID0gIm1ldGFib2xpdGUiLCBkYjogQXN5bmNTZXNzaW9uID0gRGVwZW5kcyhnZXRfZGIpLAogICAgICAgICAgICAgICAgICAgICBjdXJyZW50X3VzZXI6IG1vZGVscy5Vc2VyID0gRGVwZW5kcyhnZXRfY3VycmVudF9hY3RpdmVfdXNlcikpOgogICAgcmVzdWx0ID0gYXdhaXQgZGIuZXhlY3V0ZShzZWxlY3QobW9kZWxzLlVwbG9hZGVkRmlsZSkuam9pbihtb2RlbHMuUHJvamVjdCkud2hlcmUoCiAgICAgICAgbW9kZWxzLlVwbG9hZGVkRmlsZS5pZCA9PSBmaWxlX2lkLCBtb2RlbHMuUHJvamVjdC5vd25lcl9pZCA9PSBjdXJyZW50X3VzZXIuaWQpKQogICAgdXBsb2FkZWQgPSByZXN1bHQuc2NhbGFyX29uZV9vcl9ub25lKCkKICAgIGlmIG5vdCB1cGxvYWRlZDoKICAgICAgICByYWlzZSBIVFRQRXhjZXB0aW9uKHN0YXR1c19jb2RlPTQwNCwgZGV0YWlsPSJGaWxlIG5vdCBmb3VuZCIpCgogICAgZGF0YXNldCA9IGF3YWl0IGltcG9ydF9kYXRhc2V0KGRiLCB1cGxvYWRlZCwgZmVhdHVyZV90eXBlKQogICAgcmV0dXJuIGRhdGFzZXQK
+import os
+from typing import Any, Dict
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.database import get_db
+from app.auth import get_current_active_user
+from app import models, schemas
+from app.services.detection import preview_file, detect_columns, parse_sample_metadata
+from app.services.importer import import_dataset
+
+router = APIRouter()
+
+
+def _uploaded_file_path(uploaded: models.UploadedFile) -> str:
+    return os.path.join("uploads", uploaded.stored_name)
+
+
+@router.get("/{file_id}/preview", response_model=schemas.ImportPreview)
+async def preview_import(
+    file_id: int,
+    sheet: str = None,
+    alignment_file_id: int = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(
+        select(models.UploadedFile)
+        .join(models.Project)
+        .where(models.UploadedFile.id == file_id, models.Project.owner_id == current_user.id)
+    )
+    uploaded = result.scalar_one_or_none()
+    if not uploaded:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    metadata = None
+    if alignment_file_id:
+        res = await db.execute(
+            select(models.UploadedFile)
+            .join(models.Project)
+            .where(models.UploadedFile.id == alignment_file_id, models.Project.owner_id == current_user.id)
+        )
+        meta_file = res.scalar_one_or_none()
+        if meta_file:
+            metadata = parse_sample_metadata(_uploaded_file_path(meta_file))
+
+    if sheet:
+        uploaded.selected_sheet = sheet
+        await db.commit()
+
+    preview = preview_file(uploaded, sheet, metadata=metadata)
+    return preview
+
+
+@router.post("/{file_id}/map", response_model=Dict[str, Any])
+async def map_columns(
+    file_id: int,
+    mapping: schemas.ColumnMapping,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(
+        select(models.UploadedFile)
+        .join(models.Project)
+        .where(models.UploadedFile.id == file_id, models.Project.owner_id == current_user.id)
+    )
+    uploaded = result.scalar_one_or_none()
+    if not uploaded:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    uploaded.column_mapping = mapping.model_dump()
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/{file_id}/import", response_model=schemas.DatasetOut)
+async def run_import(
+    file_id: int,
+    feature_type: str = "metabolite",
+    sheet: str = None,
+    alignment_file_id: int = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(
+        select(models.UploadedFile)
+        .join(models.Project)
+        .where(models.UploadedFile.id == file_id, models.Project.owner_id == current_user.id)
+    )
+    uploaded = result.scalar_one_or_none()
+    if not uploaded:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    if sheet:
+        uploaded.selected_sheet = sheet
+
+    metadata_path = None
+    if alignment_file_id:
+        res = await db.execute(
+            select(models.UploadedFile)
+            .join(models.Project)
+            .where(models.UploadedFile.id == alignment_file_id, models.Project.owner_id == current_user.id)
+        )
+        meta_file = res.scalar_one_or_none()
+        if meta_file:
+            metadata_path = _uploaded_file_path(meta_file)
+
+    dataset = await import_dataset(db, uploaded, feature_type, metadata_path=metadata_path)
+    return dataset

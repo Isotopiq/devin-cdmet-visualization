@@ -1,1 +1,14 @@
-LyoqIEB0eXBlIHtpbXBvcnQoJ3RhaWx3aW5kY3NzJykuQ29uZmlnfSAqLwpleHBvcnQgZGVmYXVsdCB7CiAgY29udGVudDogWwogICAgIi4vaW5kZXguaHRtbCIsCiAgICAiLi9zcmMvKiovKi57anMsdHMsanN4LHRzeH0iLAogICAgIi4vbm9kZV9tb2R1bGVzL2Zsb3diaXRlLXJlYWN0LyoqLyouanMiCiAgXSwKICB0aGVtZTogewogICAgZXh0ZW5kOiB7fSwKICB9LAogIHBsdWdpbnM6IFsKICAgIHJlcXVpcmUoImZsb3diaXRlL3BsdWdpbiIpCiAgXSwKfQo=
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/flowbite-react/**/*.js"
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [
+    require("flowbite/plugin")
+  ],
+}

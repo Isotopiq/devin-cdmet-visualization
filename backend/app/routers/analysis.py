@@ -1,1 +1,50 @@
-ZnJvbSB0eXBpbmcgaW1wb3J0IExpc3QKZnJvbSBmYXN0YXBpIGltcG9ydCBBUElSb3V0ZXIsIERlcGVuZHMsIEhUVFBFeGNlcHRpb24KZnJvbSBzcWxhbGNoZW15LmV4dC5hc3luY2lvIGltcG9ydCBBc3luY1Nlc3Npb24KZnJvbSBzcWxhbGNoZW15IGltcG9ydCBzZWxlY3QKZnJvbSBhcHAuZGF0YWJhc2UgaW1wb3J0IGdldF9kYgpmcm9tIGFwcC5hdXRoIGltcG9ydCBnZXRfY3VycmVudF9hY3RpdmVfdXNlcgpmcm9tIGFwcCBpbXBvcnQgbW9kZWxzLCBzY2hlbWFzCmZyb20gYXBwLnNlcnZpY2VzLnByZXByb2Nlc3NpbmcgaW1wb3J0IHByZXByb2Nlc3NfZGF0YXNldAoKcm91dGVyID0gQVBJUm91dGVyKCkKCgpAcm91dGVyLmdldCgiL3twcm9qZWN0X2lkfS9kYXRhc2V0L3tkYXRhc2V0X2lkfSIsIHJlc3BvbnNlX21vZGVsPXNjaGVtYXMuRGF0YXNldE91dCkKYXN5bmMgZGVmIGdldF9kYXRhc2V0KHByb2plY3RfaWQ6IGludCwgZGF0YXNldF9pZDogaW50LCBkYjogQXN5bmNTZXNzaW9uID0gRGVwZW5kcyhnZXRfZGIpLAogICAgICAgICAgICAgICAgICAgICAgY3VycmVudF91c2VyOiBtb2RlbHMuVXNlciA9IERlcGVuZHMoZ2V0X2N1cnJlbnRfYWN0aXZlX3VzZXIpKToKICAgIHJlc3VsdCA9IGF3YWl0IGRiLmV4ZWN1dGUoc2VsZWN0KG1vZGVscy5EYXRhc2V0KS5qb2luKG1vZGVscy5Qcm9qZWN0KS53aGVyZSgKICAgICAgICBtb2RlbHMuRGF0YXNldC5pZCA9PSBkYXRhc2V0X2lkLCBtb2RlbHMuRGF0YXNldC5wcm9qZWN0X2lkID09IHByb2plY3RfaWQsIG1vZGVscy5Qcm9qZWN0Lm93bmVyX2lkID09IGN1cnJlbnRfdXNlci5pZCkpCiAgICBkYXRhc2V0ID0gcmVzdWx0LnNjYWxhcl9vbmVfb3Jfbm9uZSgpCiAgICBpZiBub3QgZGF0YXNldDoKICAgICAgICByYWlzZSBIVFRQRXhjZXB0aW9uKHN0YXR1c19jb2RlPTQwNCwgZGV0YWlsPSJEYXRhc2V0IG5vdCBmb3VuZCIpCiAgICByZXR1cm4gZGF0YXNldAoKCkByb3V0ZXIucG9zdCgiL3twcm9qZWN0X2lkfS9kYXRhc2V0L3tkYXRhc2V0X2lkfS9wcmVwcm9jZXNzIiwgcmVzcG9uc2VfbW9kZWw9c2NoZW1hcy5EYXRhc2V0T3V0KQphc3luYyBkZWYgcHJlcHJvY2Vzcyhwcm9qZWN0X2lkOiBpbnQsIGRhdGFzZXRfaWQ6IGludCwgcGFyYW1zOiBzY2hlbWFzLlByZXByb2Nlc3NpbmdQYXJhbXMsCiAgICAgICAgICAgICAgICAgICAgIGRiOiBBc3luY1Nlc3Npb24gPSBEZXBlbmRzKGdldF9kYiksIGN1cnJlbnRfdXNlcjogbW9kZWxzLlVzZXIgPSBEZXBlbmRzKGdldF9jdXJyZW50X2FjdGl2ZV91c2VyKSk6CiAgICByZXN1bHQgPSBhd2FpdCBkYi5leGVjdXRlKHNlbGVjdChtb2RlbHMuRGF0YXNldCkuam9pbihtb2RlbHMuUHJvamVjdCkud2hlcmUoCiAgICAgICAgbW9kZWxzLkRhdGFzZXQuaWQgPT0gZGF0YXNldF9pZCwgbW9kZWxzLkRhdGFzZXQucHJvamVjdF9pZCA9PSBwcm9qZWN0X2lkLCBtb2RlbHMuUHJvamVjdC5vd25lcl9pZCA9PSBjdXJyZW50X3VzZXIuaWQpKQogICAgZGF0YXNldCA9IHJlc3VsdC5zY2FsYXJfb25lX29yX25vbmUoKQogICAgaWYgbm90IGRhdGFzZXQ6CiAgICAgICAgcmFpc2UgSFRUUEV4Y2VwdGlvbihzdGF0dXNfY29kZT00MDQsIGRldGFpbD0iRGF0YXNldCBub3QgZm91bmQiKQoKICAgIG5ld19kYXRhc2V0ID0gYXdhaXQgcHJlcHJvY2Vzc19kYXRhc2V0KGRiLCBkYXRhc2V0LCBwYXJhbXMpCiAgICByZXR1cm4gbmV3X2RhdGFzZXQKCgpAcm91dGVyLmdldCgiL3twcm9qZWN0X2lkfS9kYXRhc2V0cyIsIHJlc3BvbnNlX21vZGVsPUxpc3Rbc2NoZW1hcy5EYXRhc2V0T3V0XSkKYXN5bmMgZGVmIGxpc3RfZGF0YXNldHMocHJvamVjdF9pZDogaW50LCBkYjogQXN5bmNTZXNzaW9uID0gRGVwZW5kcyhnZXRfZGIpLAogICAgICAgICAgICAgICAgICAgICAgICBjdXJyZW50X3VzZXI6IG1vZGVscy5Vc2VyID0gRGVwZW5kcyhnZXRfY3VycmVudF9hY3RpdmVfdXNlcikpOgogICAgcmVzdWx0ID0gYXdhaXQgZGIuZXhlY3V0ZShzZWxlY3QobW9kZWxzLkRhdGFzZXQpLmpvaW4obW9kZWxzLlByb2plY3QpLndoZXJlKAogICAgICAgIG1vZGVscy5EYXRhc2V0LnByb2plY3RfaWQgPT0gcHJvamVjdF9pZCwgbW9kZWxzLlByb2plY3Qub3duZXJfaWQgPT0gY3VycmVudF91c2VyLmlkKSkKICAgIHJldHVybiByZXN1bHQuc2NhbGFycygpLmFsbCgpCgoKQHJvdXRlci5nZXQoIi97cHJvamVjdF9pZH0vYW5hbHlzZXMiLCByZXNwb25zZV9tb2RlbD1MaXN0W3NjaGVtYXMuQW5hbHlzaXNPdXRdKQphc3luYyBkZWYgbGlzdF9hbmFseXNlcyhwcm9qZWN0X2lkOiBpbnQsIGRiOiBBc3luY1Nlc3Npb24gPSBEZXBlbmRzKGdldF9kYiksCiAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnRfdXNlcjogbW9kZWxzLlVzZXIgPSBEZXBlbmRzKGdldF9jdXJyZW50X2FjdGl2ZV91c2VyKSk6CiAgICByZXN1bHQgPSBhd2FpdCBkYi5leGVjdXRlKHNlbGVjdChtb2RlbHMuQW5hbHlzaXMpLmpvaW4obW9kZWxzLlByb2plY3QpLndoZXJlKAogICAgICAgIG1vZGVscy5BbmFseXNpcy5wcm9qZWN0X2lkID09IHByb2plY3RfaWQsIG1vZGVscy5Qcm9qZWN0Lm93bmVyX2lkID09IGN1cnJlbnRfdXNlci5pZCkpCiAgICByZXR1cm4gcmVzdWx0LnNjYWxhcnMoKS5hbGwoKQo=
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.database import get_db
+from app.auth import get_current_active_user
+from app import models, schemas
+from app.services.preprocessing import preprocess_dataset
+
+router = APIRouter()
+
+
+@router.get("/{project_id}/dataset/{dataset_id}", response_model=schemas.DatasetOut)
+async def get_dataset(project_id: int, dataset_id: int, db: AsyncSession = Depends(get_db),
+                      current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Dataset.id == dataset_id, models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
+    dataset = result.scalar_one_or_none()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    return dataset
+
+
+@router.post("/{project_id}/dataset/{dataset_id}/preprocess", response_model=schemas.DatasetOut)
+async def preprocess(project_id: int, dataset_id: int, params: schemas.PreprocessingParams,
+                     db: AsyncSession = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Dataset.id == dataset_id, models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
+    dataset = result.scalar_one_or_none()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    new_dataset = await preprocess_dataset(db, dataset, params)
+    return new_dataset
+
+
+@router.get("/{project_id}/datasets", response_model=List[schemas.DatasetOut])
+async def list_datasets(project_id: int, db: AsyncSession = Depends(get_db),
+                        current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
+    return result.scalars().all()
+
+
+@router.get("/{project_id}/analyses", response_model=List[schemas.AnalysisOut])
+async def list_analyses(project_id: int, db: AsyncSession = Depends(get_db),
+                        current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Analysis).join(models.Project).where(
+        models.Analysis.project_id == project_id, models.Project.owner_id == current_user.id))
+    return result.scalars().all()

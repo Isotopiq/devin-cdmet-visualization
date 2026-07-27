@@ -1,1 +1,78 @@
-IyBNZXRhYm9TY29wZSDigJQgTWV0YWJvbG9taWNzLCBMaXBpZG9taWNzICYgU3RhYmxlLUlzb3RvcGUgVHJhY2luZyBQbGF0Zm9ybQoKQSBwcm9kdWN0aW9uLXJlYWR5LCBEb2NrZXJpemVkIHdlYiBhcHBsaWNhdGlvbiBmb3IgaW1wb3J0aW5nLCBhbmFseXppbmcsIGFuZCB2aXN1YWxpemluZyBtZXRhYm9sb21pY3MsIGxpcGlkb21pY3MsIGFuZCBzdGFibGUtaXNvdG9wZSB0cmFjaW5nIGRhdGEgZXhwb3J0ZWQgZnJvbSBUaGVybW8gQ29tcG91bmQgRGlzY292ZXJlciBhbmQgTGlwaWRTZWFyY2ggNS4KCiMjIFRlY2hub2xvZ3kgU3RhY2sKCi0gKipGcm9udGVuZDoqKiBSZWFjdCAxOCwgVHlwZVNjcmlwdCwgVGFpbHdpbmQgQ1NTLCBGbG93Yml0ZSwgUGxvdGx5Ci0gKipCYWNrZW5kOioqIFB5dGhvbiAzLjEwKywgRmFzdEFQSSwgU1FMQWxjaGVteSAyIChhc3luYyksIEFsZW1iaWMsIFBhbmRhcywgTnVtUHksIFNjaVB5LCBTdGF0c21vZGVscywgU2Npa2l0LWxlYXJuCi0gKipEYXRhYmFzZToqKiBQb3N0Z3JlU1FMIDE1Ci0gKipQYWNrYWdpbmc6KiogRG9ja2VyIENvbXBvc2UKCiMjIFF1aWNrIFN0YXJ0CgoxLiBDb3B5IHRoZSBlbnZpcm9ubWVudCB0ZW1wbGF0ZSBhbmQgZWRpdCBzZWNyZXRzOgogICBgYGBiYXNoCiAgIGNwIC5lbnYudGVtcGxhdGUgLmVudgogICBgYGAKCjIuIEJ1aWxkIGFuZCBzdGFydCBhbGwgc2VydmljZXM6CiAgIGBgYGJhc2gKICAgZG9ja2VyIGNvbXBvc2UgdXAgLS1idWlsZAogICBgYGAKCjMuIE9wZW4gdGhlIGZyb250ZW5kIGF0IGh0dHA6Ly9sb2NhbGhvc3Q6MzAwMCBhbmQgdGhlIGJhY2tlbmQgZG9jcyBhdCBodHRwOi8vbG9jYWxob3N0OjgwMDAvZG9jcy4KCiMjIERldmVsb3BtZW50CgojIyMgQmFja2VuZAoKYGBgYmFzaApjZCBiYWNrZW5kCnBpcCBpbnN0YWxsIC1lIC4KYWxlbWJpYyB1cGdyYWRlIGhlYWQKdXZpY29ybiBhcHAubWFpbjphcHAgLS1yZWxvYWQKYGBgCgpSdW4gdGVzdHM6CmBgYGJhc2gKY2QgYmFja2VuZApweXRlc3QKYGBgCgojIyMgRnJvbnRlbmQKCmBgYGJhc2gKY2QgZnJvbnRlbmQKbnBtIGluc3RhbGwKbnBtIHJ1biBkZXYKYGBgCgojIyBGZWF0dXJlcwoKLSBKV1QtYmFzZWQgdXNlciBhdXRoZW50aWNhdGlvbiBhbmQgcHJpdmF0ZSBwcm9qZWN0cwotIERpcmVjdCB1cGxvYWQgb2YgRXhjZWwsIENTViwgYW5kIFRTViBmaWxlcwotIEF1dG9tYXRpYyBmb3JtYXQgZGV0ZWN0aW9uIGZvciBDb21wb3VuZCBEaXNjb3ZlcmVyIGFuZCBMaXBpZFNlYXJjaCA1Ci0gTWFudWFsIGNvbHVtbiBtYXBwaW5nIGFuZCBzYW1wbGUgZ3JvdXAgYXNzaWdubWVudAotIFByZXByb2Nlc3Npbmc6IG1pc3NpbmctdmFsdWUgZmlsdGVyaW5nLCBibGFuayBzdWJ0cmFjdGlvbiwgUUMgQ1YgZmlsdGVyaW5nLCBpbXB1dGF0aW9uLCBsb2cgdHJhbnNmb3JtYXRpb24sIHNjYWxpbmcsIG5vcm1hbGl6YXRpb24sIGJhdGNoIGNvcnJlY3Rpb24KLSBTdGF0aXN0aWNzOiB0LXRlc3RzLCBXZWxjaCwgcGFpcmVkLCBNYW5uLVdoaXRuZXksIFdpbGNveG9uLCBBTk9WQSwgS3J1c2thbC1XYWxsaXMsIG11bHRpcGxlLXRlc3RpbmcgY29ycmVjdGlvbiwgZWZmZWN0IHNpemVzCi0gSW50ZXJhY3RpdmUgUGxvdGx5IHZpc3VhbGl6YXRpb25zOiBiYXIsIGJveCwgdmlvbGluLCBkb3QsIHBhaXJlZCwgaGVhdG1hcCwgUENBLCB2b2xjYW5vLCBjb3JyZWxhdGlvbiwgUlQgdnMgbS96LCBsaXBpZCBjbGFzcyBwbG90cwotIFN0YWJsZS1pc290b3BlIHRyYWNpbmcgd2l0aCBNKzAuLk0rbiBpc290b3BvbG9ndWUgZnJhY3Rpb25zLCB0b3RhbCBsYWJlbGVkIGZyYWN0aW9uLCBmcmFjdGlvbmFsIGVucmljaG1lbnQsIG1lYW4gbGFiZWxlZCBhdG9tcywgcG9vbGVkIGxhYmVsaW5nCi0gUGF0aHdheSBtYXBwaW5nIHdpdGggS0VHRy9ITURCL0NoRUJJL1JlYWN0b21lL1NCTUwvY3VzdG9tIG5vZGUtZWRnZSBzdXBwb3J0IGFuZCB2aXN1YWwgZGlzdGluY3Rpb24gb2YgZGF0YSB0eXBlcwoKIyMgUHJvamVjdCBTdHJ1Y3R1cmUKCmBgYAptZXRhYm9sb21pY3MtcGxhdGZvcm0vCuKUnOKUgOKUgCBkb2NrZXItY29tcG9zZS55bWwK4pSc4pSA4pSAIC5lbnYudGVtcGxhdGUK4pSc4pSA4pSAIGJhY2tlbmQvICAgICAgICAgICAgICBGYXN0QVBJIGFwcGxpY2F0aW9uCuKUnOKUgOKUgCBmcm9udGVuZC8gICAgICAgICAgICAgUmVhY3QgYXBwbGljYXRpb24K4pSc4pSA4pSAIHRlbXBsYXRlcy8gICAgICAgICAgICBFeGFtcGxlIGltcG9ydCBmaWxlcwrilJzilIDilIAgZXhhbXBsZXMvICAgICAgICAgICAgIEFkZGl0aW9uYWwgdXNhZ2UgZXhhbXBsZXMK4pSU4pSA4pSAIGRvY3MvICAgICAgICAgICAgICAgICBBcmNoaXRlY3R1cmUgYW5kIEFQSSBkb2N1bWVudGF0aW9uCmBgYAoKIyMgTGljZW5zZQoKTUlUCg==
+# MetaboScope — Metabolomics, Lipidomics & Stable-Isotope Tracing Platform
+
+A production-ready, Dockerized web application for importing, analyzing, and visualizing metabolomics, lipidomics, and stable-isotope tracing data exported from Thermo Compound Discoverer and LipidSearch 5.
+
+## Technology Stack
+
+- **Frontend:** React 18, TypeScript, Tailwind CSS, Flowbite, Plotly
+- **Backend:** Python 3.10+, FastAPI, SQLAlchemy 2 (async), Alembic, Pandas, NumPy, SciPy, Statsmodels, Scikit-learn
+- **Database:** PostgreSQL 15
+- **Packaging:** Docker Compose
+
+## Quick Start
+
+1. Copy the environment template and edit secrets:
+   ```bash
+   cp .env.template .env
+   ```
+
+2. Build and start all services:
+   ```bash
+   docker compose up --build
+   ```
+
+3. Open the frontend at http://localhost:3000 and the backend docs at http://localhost:8000/docs.
+
+## Development
+
+### Backend
+
+```bash
+cd backend
+pip install -e .
+alembic upgrade head
+uvicorn app.main:app --reload
+```
+
+Run tests:
+```bash
+cd backend
+pytest
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Features
+
+- JWT-based user authentication and private projects
+- Direct upload of Excel, CSV, and TSV files
+- Automatic format detection for Compound Discoverer and LipidSearch 5
+- Manual column mapping and sample group assignment
+- Preprocessing: missing-value filtering, blank subtraction, QC CV filtering, imputation, log transformation, scaling, normalization, batch correction
+- Statistics: t-tests, Welch, paired, Mann-Whitney, Wilcoxon, ANOVA, Kruskal-Wallis, multiple-testing correction, effect sizes
+- Interactive Plotly visualizations: bar, box, violin, dot, paired, heatmap, PCA, volcano, correlation, RT vs m/z, lipid class plots
+- Stable-isotope tracing with M+0..M+n isotopologue fractions, total labeled fraction, fractional enrichment, mean labeled atoms, pooled labeling
+- Pathway mapping with KEGG/HMDB/ChEBI/Reactome/SBML/custom node-edge support and visual distinction of data types
+
+## Project Structure
+
+```
+metabolomics-platform/
+├── docker-compose.yml
+├── .env.template
+├── backend/              FastAPI application
+├── frontend/             React application
+├── templates/            Example import files
+├── examples/             Additional usage examples
+└── docs/                 Architecture and API documentation
+```
+
+## License
+
+MIT

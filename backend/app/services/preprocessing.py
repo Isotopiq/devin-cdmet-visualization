@@ -1,1 +1,83 @@
-aW1wb3J0IGNvcHkKaW1wb3J0IG51bXB5IGFzIG5wCmltcG9ydCBwYW5kYXMgYXMgcGQKZnJvbSBzY2lweSBpbXBvcnQgc3RhdHMKZnJvbSBza2xlYXJuLnByZXByb2Nlc3NpbmcgaW1wb3J0IFN0YW5kYXJkU2NhbGVyLCBSb2J1c3RTY2FsZXIsIE1pbk1heFNjYWxlcgpmcm9tIHNxbGFsY2hlbXkuZXh0LmFzeW5jaW8gaW1wb3J0IEFzeW5jU2Vzc2lvbgpmcm9tIGFwcCBpbXBvcnQgbW9kZWxzLCBzY2hlbWFzCgoKZGVmIHRvX2RhdGFmcmFtZShkYXRhc2V0OiBtb2RlbHMuRGF0YXNldCkgLT4gcGQuRGF0YUZyYW1lOgogICAgZGYgPSBwZC5EYXRhRnJhbWUoZGF0YXNldC5kYXRhX21hdHJpeCkKICAgIGZvciBjb2wgaW4gZGYuY29sdW1uczoKICAgICAgICBkZltjb2xdID0gcGQudG9fbnVtZXJpYyhkZltjb2xdLCBlcnJvcnM9ImNvZXJjZSIpCiAgICByZXR1cm4gZGYKCgpkZWYgZnJvbV9kYXRhZnJhbWUoZGY6IHBkLkRhdGFGcmFtZSwgZGF0YXNldDogbW9kZWxzLkRhdGFzZXQsIGhpc3Rvcnlfc3RlcDogZGljdCkgLT4gbW9kZWxzLkRhdGFzZXQ6CiAgICBkYXRhX21hdHJpeCA9IHtjb2w6IGRmW2NvbF0udG9saXN0KCkgZm9yIGNvbCBpbiBkZi5jb2x1bW5zfQogICAgbmV3X2RhdGFzZXQgPSBtb2RlbHMuRGF0YXNldCgKICAgICAgICBwcm9qZWN0X2lkPWRhdGFzZXQucHJvamVjdF9pZCwKICAgICAgICBzb3VyY2VfZmlsZV9pZD1kYXRhc2V0LnNvdXJjZV9maWxlX2lkLAogICAgICAgIG5hbWU9ZiJ7ZGF0YXNldC5uYW1lfV9wcm9jZXNzZWQiLAogICAgICAgIGZlYXR1cmVfdHlwZT1kYXRhc2V0LmZlYXR1cmVfdHlwZSwKICAgICAgICBkYXRhX21hdHJpeD1kYXRhX21hdHJpeCwKICAgICAgICBzYW1wbGVfbWV0YWRhdGE9Y29weS5kZWVwY29weShkYXRhc2V0LnNhbXBsZV9tZXRhZGF0YSksCiAgICAgICAgZmVhdHVyZV9tZXRhZGF0YT1jb3B5LmRlZXBjb3B5KGRhdGFzZXQuZmVhdHVyZV9tZXRhZGF0YSksCiAgICAgICAgcHJvY2Vzc2luZ19oaXN0b3J5PWNvcHkuZGVlcGNvcHkoZGF0YXNldC5wcm9jZXNzaW5nX2hpc3RvcnkpICsgW2hpc3Rvcnlfc3RlcF0sCiAgICApCiAgICByZXR1cm4gbmV3X2RhdGFzZXQKCgphc3luYyBkZWYgcHJlcHJvY2Vzc19kYXRhc2V0KGRiOiBBc3luY1Nlc3Npb24sIGRhdGFzZXQ6IG1vZGVscy5EYXRhc2V0LCBwYXJhbXM6IHNjaGVtYXMuUHJlcHJvY2Vzc2luZ1BhcmFtcykgLT4gbW9kZWxzLkRhdGFzZXQ6CiAgICBkZiA9IHRvX2RhdGFmcmFtZShkYXRhc2V0KQogICAgaGlzdG9yeSA9IHsic3RlcCI6ICJwcmVwcm9jZXNzaW5nIiwgInBhcmFtcyI6IHBhcmFtcy5tb2RlbF9kdW1wKCl9CgogICAgaWYgcGFyYW1zLm1pc3NpbmdfdmFsdWVfZmlsdGVyID4gMDoKICAgICAgICB0aHJlc2hvbGQgPSBpbnQobGVuKGRmLmNvbHVtbnMpICogcGFyYW1zLm1pc3NpbmdfdmFsdWVfZmlsdGVyKQogICAgICAgIGRmID0gZGYuZHJvcG5hKHRocmVzaD10aHJlc2hvbGQpCgogICAgaWYgcGFyYW1zLmJsYW5rX3N1YnRyYWN0aW9uIGFuZCBwYXJhbXMuYmxhbmtfY29sdW1uczoKICAgICAgICBibGFua19tZWFuID0gZGZbcGFyYW1zLmJsYW5rX2NvbHVtbnNdLm1lYW4oYXhpcz0xKQogICAgICAgIGZvciBjb2wgaW4gZGYuY29sdW1uczoKICAgICAgICAgICAgaWYgY29sIG5vdCBpbiBwYXJhbXMuYmxhbmtfY29sdW1uczoKICAgICAgICAgICAgICAgIGRmW2NvbF0gPSBkZltjb2xdIC0gYmxhbmtfbWVhbgoKICAgIGlmIHBhcmFtcy5xY19jdl9maWx0ZXIgPiAwIGFuZCBwYXJhbXMucWNfY29sdW1uczoKICAgICAgICBjdiA9IGRmW3BhcmFtcy5xY19jb2x1bW5zXS5zdGQoYXhpcz0xKSAvIGRmW3BhcmFtcy5xY19jb2x1bW5zXS5tZWFuKGF4aXM9MSkKICAgICAgICBkZiA9IGRmW2N2IDw9IHBhcmFtcy5xY19jdl9maWx0ZXJdCgogICAgaWYgcGFyYW1zLmR1cGxpY2F0ZV9oYW5kbGluZyA9PSAibWVhbiI6CiAgICAgICAgZGYgPSBkZi5ncm91cGJ5KGRmLmluZGV4KS5tZWFuKCkKCiAgICBpZiBwYXJhbXMuaW1wdXRhdGlvbiA9PSAibWluIjoKICAgICAgICBkZiA9IGRmLmZpbGxuYShkZi5taW4oKS5taW4oKSAvIDIpCiAgICBlbGlmIHBhcmFtcy5pbXB1dGF0aW9uID09ICJtZWRpYW4iOgogICAgICAgIGRmID0gZGYuZmlsbG5hKGRmLm1lZGlhbigpKQogICAgZWxpZiBwYXJhbXMuaW1wdXRhdGlvbiA9PSAia25uIjoKICAgICAgICBkZiA9IGRmLmZpbGxuYShkZi5tZWFuKCkpCgogICAgaWYgcGFyYW1zLmxvZ190cmFuc2Zvcm06CiAgICAgICAgZGYgPSBucC5sb2cyKGRmLnJlcGxhY2UoMCwgbnAubmFubWluKGRmLnZhbHVlc1tkZi52YWx1ZXMgPiAwXSkgLyAyKSkKCiAgICBpZiBwYXJhbXMuc2NhbGUgPT0gInN0YW5kYXJkIjoKICAgICAgICBkZiA9IHBkLkRhdGFGcmFtZShTdGFuZGFyZFNjYWxlcigpLmZpdF90cmFuc2Zvcm0oZGYpLCBjb2x1bW5zPWRmLmNvbHVtbnMsIGluZGV4PWRmLmluZGV4KQogICAgZWxpZiBwYXJhbXMuc2NhbGUgPT0gInJvYnVzdCI6CiAgICAgICAgZGYgPSBwZC5EYXRhRnJhbWUoUm9idXN0U2NhbGVyKCkuZml0X3RyYW5zZm9ybShkZiksIGNvbHVtbnM9ZGYuY29sdW1ucywgaW5kZXg9ZGYuaW5kZXgpCiAgICBlbGlmIHBhcmFtcy5zY2FsZSA9PSAibWlubWF4IjoKICAgICAgICBkZiA9IHBkLkRhdGFGcmFtZShNaW5NYXhTY2FsZXIoKS5maXRfdHJhbnNmb3JtKGRmKSwgY29sdW1ucz1kZi5jb2x1bW5zLCBpbmRleD1kZi5pbmRleCkKCiAgICBpZiBwYXJhbXMubm9ybWFsaXphdGlvbiA9PSAidG90YWxfYXJlYSI6CiAgICAgICAgZGYgPSBkZi5kaXYoZGYuc3VtKGF4aXM9MCksIGF4aXM9MSkKICAgIGVsaWYgcGFyYW1zLm5vcm1hbGl6YXRpb24gPT0gImN1c3RvbV9mYWN0b3IiIGFuZCBwYXJhbXMuY3VzdG9tX2ZhY3RvcjoKICAgICAgICBkZiA9IGRmIC8gcGFyYW1zLmN1c3RvbV9mYWN0b3IKCiAgICBpZiBwYXJhbXMuYmF0Y2hfY29ycmVjdGlvbiA9PSAibWVhbiIgYW5kIHBhcmFtcy5iYXRjaF9jb2x1bW46CiAgICAgICAgZ3JvdXAgPSBkZi5ncm91cGJ5KHBhcmFtcy5iYXRjaF9jb2x1bW4sIGF4aXM9MSkKICAgICAgICBkZiA9IGdyb3VwLnRyYW5zZm9ybShsYW1iZGEgeDogeCAvIHgubWVhbigpKQoKICAgIG5ld19kYXRhc2V0ID0gZnJvbV9kYXRhZnJhbWUoZGYsIGRhdGFzZXQsIGhpc3RvcnkpCiAgICBkYi5hZGQobmV3X2RhdGFzZXQpCiAgICBhd2FpdCBkYi5jb21taXQoKQogICAgYXdhaXQgZGIucmVmcmVzaChuZXdfZGF0YXNldCkKICAgIHJldHVybiBuZXdfZGF0YXNldAo=
+import copy
+import numpy as np
+import pandas as pd
+from scipy import stats
+from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
+from sqlalchemy.ext.asyncio import AsyncSession
+from app import models, schemas
+
+
+def to_dataframe(dataset: models.Dataset) -> pd.DataFrame:
+    df = pd.DataFrame(dataset.data_matrix)
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
+
+
+def from_dataframe(df: pd.DataFrame, dataset: models.Dataset, history_step: dict) -> models.Dataset:
+    data_matrix = {col: df[col].tolist() for col in df.columns}
+    new_dataset = models.Dataset(
+        project_id=dataset.project_id,
+        source_file_id=dataset.source_file_id,
+        name=f"{dataset.name}_processed",
+        feature_type=dataset.feature_type,
+        data_matrix=data_matrix,
+        sample_metadata=copy.deepcopy(dataset.sample_metadata),
+        feature_metadata=copy.deepcopy(dataset.feature_metadata),
+        processing_history=copy.deepcopy(dataset.processing_history) + [history_step],
+    )
+    return new_dataset
+
+
+async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: schemas.PreprocessingParams) -> models.Dataset:
+    df = to_dataframe(dataset)
+    history = {"step": "preprocessing", "params": params.model_dump()}
+
+    if params.missing_value_filter > 0:
+        threshold = int(len(df.columns) * params.missing_value_filter)
+        df = df.dropna(thresh=threshold)
+
+    if params.blank_subtraction and params.blank_columns:
+        blank_mean = df[params.blank_columns].mean(axis=1)
+        for col in df.columns:
+            if col not in params.blank_columns:
+                df[col] = df[col] - blank_mean
+
+    if params.qc_cv_filter > 0 and params.qc_columns:
+        cv = df[params.qc_columns].std(axis=1) / df[params.qc_columns].mean(axis=1)
+        df = df[cv <= params.qc_cv_filter]
+
+    if params.duplicate_handling == "mean":
+        df = df.groupby(df.index).mean()
+
+    if params.imputation == "min":
+        df = df.fillna(df.min().min() / 2)
+    elif params.imputation == "median":
+        df = df.fillna(df.median())
+    elif params.imputation == "knn":
+        df = df.fillna(df.mean())
+
+    if params.log_transform:
+        df = np.log2(df.replace(0, np.nanmin(df.values[df.values > 0]) / 2))
+
+    if params.scale == "standard":
+        df = pd.DataFrame(StandardScaler().fit_transform(df), columns=df.columns, index=df.index)
+    elif params.scale == "robust":
+        df = pd.DataFrame(RobustScaler().fit_transform(df), columns=df.columns, index=df.index)
+    elif params.scale == "minmax":
+        df = pd.DataFrame(MinMaxScaler().fit_transform(df), columns=df.columns, index=df.index)
+
+    if params.normalization == "total_area":
+        df = df.div(df.sum(axis=0), axis=1)
+    elif params.normalization == "custom_factor" and params.custom_factor:
+        df = df / params.custom_factor
+
+    if params.batch_correction == "mean" and params.batch_column:
+        group = df.groupby(params.batch_column, axis=1)
+        df = group.transform(lambda x: x / x.mean())
+
+    new_dataset = from_dataframe(df, dataset, history)
+    db.add(new_dataset)
+    await db.commit()
+    await db.refresh(new_dataset)
+    return new_dataset

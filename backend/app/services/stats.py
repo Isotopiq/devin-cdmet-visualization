@@ -1,1 +1,69 @@
-aW1wb3J0IG51bXB5IGFzIG5wCmltcG9ydCBwYW5kYXMgYXMgcGQKZnJvbSBzY2lweSBpbXBvcnQgc3RhdHMKZnJvbSBzdGF0c21vZGVscy5zdGF0cy5tdWx0aXRlc3QgaW1wb3J0IG11bHRpcGxldGVzdHMKZnJvbSBhcHAgaW1wb3J0IG1vZGVscywgc2NoZW1hcwpmcm9tIGFwcC5zZXJ2aWNlcy5wcmVwcm9jZXNzaW5nIGltcG9ydCB0b19kYXRhZnJhbWUKCgpkZWYgcnVuX3N0YXRpc3RpY2FsX3Rlc3QoZGF0YXNldDogbW9kZWxzLkRhdGFzZXQsIHJlcTogc2NoZW1hcy5TdGF0c1JlcXVlc3QpOgogICAgZGYgPSB0b19kYXRhZnJhbWUoZGF0YXNldCkKICAgIHNhbXBsZV9tZXRhID0gZGF0YXNldC5zYW1wbGVfbWV0YWRhdGEKICAgIGdyb3VwcyA9IHt9CiAgICBmb3IgY29sLCBncm91cCBpbiBzYW1wbGVfbWV0YS5pdGVtcygpOgogICAgICAgIGdyb3Vwcy5zZXRkZWZhdWx0KGdyb3VwLCBbXSkuYXBwZW5kKGNvbCkKCiAgICBncm91cF9hX2NvbHMgPSByZXEuZ3JvdXBfYSBhbmQgZ3JvdXBzLmdldChyZXEuZ3JvdXBfYSwgW10pCiAgICBncm91cF9iX2NvbHMgPSByZXEuZ3JvdXBfYiBhbmQgZ3JvdXBzLmdldChyZXEuZ3JvdXBfYiwgW10pCgogICAgcmVzdWx0cyA9IFtdCiAgICBmb3IgaWR4IGluIGRmLmluZGV4OgogICAgICAgIGEgPSBkZi5sb2NbaWR4LCBncm91cF9hX2NvbHNdLmRyb3BuYSgpLnZhbHVlcyBpZiBncm91cF9hX2NvbHMgZWxzZSBucC5hcnJheShbXSkKICAgICAgICBiID0gZGYubG9jW2lkeCwgZ3JvdXBfYl9jb2xzXS5kcm9wbmEoKS52YWx1ZXMgaWYgZ3JvdXBfYl9jb2xzIGVsc2UgbnAuYXJyYXkoW10pCiAgICAgICAgaWYgbGVuKGEpIDwgMiBvciBsZW4oYikgPCAyOgogICAgICAgICAgICBjb250aW51ZQoKICAgICAgICBzdGF0ID0gTm9uZQogICAgICAgIHAgPSBOb25lCiAgICAgICAgaWYgcmVxLnRlc3QgPT0gInRfdGVzdCI6CiAgICAgICAgICAgIHN0YXQsIHAgPSBzdGF0cy50dGVzdF9pbmQoYSwgYiwgZXF1YWxfdmFyPVRydWUpCiAgICAgICAgZWxpZiByZXEudGVzdCA9PSAid2VsY2giOgogICAgICAgICAgICBzdGF0LCBwID0gc3RhdHMudHRlc3RfaW5kKGEsIGIsIGVxdWFsX3Zhcj1GYWxzZSkKICAgICAgICBlbGlmIHJlcS50ZXN0ID09ICJtYW5ud2hpdG5leSI6CiAgICAgICAgICAgIHN0YXQsIHAgPSBzdGF0cy5tYW5ud2hpdG5leXUoYSwgYiwgYWx0ZXJuYXRpdmU9InR3by1zaWRlZCIpCiAgICAgICAgZWxpZiByZXEudGVzdCA9PSAicGFpcmVkIjoKICAgICAgICAgICAgaWYgbGVuKGEpID09IGxlbihiKToKICAgICAgICAgICAgICAgIHN0YXQsIHAgPSBzdGF0cy50dGVzdF9yZWwoYSwgYikKICAgICAgICBlbGlmIHJlcS50ZXN0ID09ICJ3aWxjb3hvbiI6CiAgICAgICAgICAgIGlmIGxlbihhKSA9PSBsZW4oYik6CiAgICAgICAgICAgICAgICBzdGF0LCBwID0gc3RhdHMud2lsY294b24oYSwgYikKICAgICAgICBlbGlmIHJlcS50ZXN0ID09ICJhbm92YSI6CiAgICAgICAgICAgIGFycmF5cyA9IFtkZi5sb2NbaWR4LCBjb2xzXS5kcm9wbmEoKS52YWx1ZXMgZm9yIGNvbHMgaW4gZ3JvdXBzLnZhbHVlcygpIGlmIGxlbihjb2xzKSA+IDFdCiAgICAgICAgICAgIGlmIGxlbihhcnJheXMpID49IDI6CiAgICAgICAgICAgICAgICBzdGF0LCBwID0gc3RhdHMuZl9vbmV3YXkoKmFycmF5cykKICAgICAgICBlbGlmIHJlcS50ZXN0ID09ICJrcnVza2FsIjoKICAgICAgICAgICAgYXJyYXlzID0gW2RmLmxvY1tpZHgsIGNvbHNdLmRyb3BuYSgpLnZhbHVlcyBmb3IgY29scyBpbiBncm91cHMudmFsdWVzKCkgaWYgbGVuKGNvbHMpID4gMV0KICAgICAgICAgICAgaWYgbGVuKGFycmF5cykgPj0gMjoKICAgICAgICAgICAgICAgIHN0YXQsIHAgPSBzdGF0cy5rcnVza2FsKCphcnJheXMpCgogICAgICAgIGlmIHAgaXMgbm90IE5vbmUgYW5kIG5vdCBucC5pc25hbihwKToKICAgICAgICAgICAgcmVzdWx0cy5hcHBlbmQoewogICAgICAgICAgICAgICAgImZlYXR1cmVfaWQiOiBkYXRhc2V0LmZlYXR1cmVfbWV0YWRhdGFbaWR4XS5nZXQoImZlYXR1cmVfaWQiLCBpZHgpLAogICAgICAgICAgICAgICAgInN0YXRpc3RpYyI6IGZsb2F0KHN0YXQpLAogICAgICAgICAgICAgICAgInB2YWx1ZSI6IGZsb2F0KHApLAogICAgICAgICAgICAgICAgIm1lYW5fYSI6IGZsb2F0KG5wLm1lYW4oYSkpLAogICAgICAgICAgICAgICAgIm1lYW5fYiI6IGZsb2F0KG5wLm1lYW4oYikpLAogICAgICAgICAgICAgICAgImxvZzJmYyI6IGZsb2F0KG5wLmxvZzIobnAubWVhbihiKSAvIG5wLm1lYW4oYSkpKSBpZiBucC5tZWFuKGEpID4gMCBlbHNlIE5vbmUsCiAgICAgICAgICAgIH0pCgogICAgcHZhbHMgPSBbclsicHZhbHVlIl0gZm9yIHIgaW4gcmVzdWx0c10KICAgIGlmIHB2YWxzIGFuZCByZXEubXVsdGlwbGVfdGVzdGluZzoKICAgICAgICB0cnk6CiAgICAgICAgICAgIF8sIHBhZGosIF8sIF8gPSBtdWx0aXBsZXRlc3RzKHB2YWxzLCBhbHBoYT1yZXEuYWxwaGEsIG1ldGhvZD1yZXEubXVsdGlwbGVfdGVzdGluZykKICAgICAgICAgICAgZm9yIHIsIHBhIGluIHppcChyZXN1bHRzLCBwYWRqKToKICAgICAgICAgICAgICAgIHJbInBhZGoiXSA9IGZsb2F0KHBhKQogICAgICAgIGV4Y2VwdCBFeGNlcHRpb246CiAgICAgICAgICAgIGZvciByIGluIHJlc3VsdHM6CiAgICAgICAgICAgICAgICByWyJwYWRqIl0gPSByWyJwdmFsdWUiXQoKICAgIHJldHVybiB7InRlc3QiOiByZXEudGVzdCwgIm5fZmVhdHVyZXMiOiBsZW4ocmVzdWx0cyksICJyZXN1bHRzIjogcmVzdWx0c30K
+import numpy as np
+import pandas as pd
+from scipy import stats
+from statsmodels.stats.multitest import multipletests
+from app import models, schemas
+from app.services.preprocessing import to_dataframe
+
+
+def run_statistical_test(dataset: models.Dataset, req: schemas.StatsRequest):
+    df = to_dataframe(dataset)
+    sample_meta = dataset.sample_metadata
+    groups = {}
+    for col, group in sample_meta.items():
+        groups.setdefault(group, []).append(col)
+
+    group_a_cols = req.group_a and groups.get(req.group_a, [])
+    group_b_cols = req.group_b and groups.get(req.group_b, [])
+
+    results = []
+    for idx in df.index:
+        a = df.loc[idx, group_a_cols].dropna().values if group_a_cols else np.array([])
+        b = df.loc[idx, group_b_cols].dropna().values if group_b_cols else np.array([])
+        if len(a) < 2 or len(b) < 2:
+            continue
+
+        stat = None
+        p = None
+        if req.test == "t_test":
+            stat, p = stats.ttest_ind(a, b, equal_var=True)
+        elif req.test == "welch":
+            stat, p = stats.ttest_ind(a, b, equal_var=False)
+        elif req.test == "mannwhitney":
+            stat, p = stats.mannwhitneyu(a, b, alternative="two-sided")
+        elif req.test == "paired":
+            if len(a) == len(b):
+                stat, p = stats.ttest_rel(a, b)
+        elif req.test == "wilcoxon":
+            if len(a) == len(b):
+                stat, p = stats.wilcoxon(a, b)
+        elif req.test == "anova":
+            arrays = [df.loc[idx, cols].dropna().values for cols in groups.values() if len(cols) > 1]
+            if len(arrays) >= 2:
+                stat, p = stats.f_oneway(*arrays)
+        elif req.test == "kruskal":
+            arrays = [df.loc[idx, cols].dropna().values for cols in groups.values() if len(cols) > 1]
+            if len(arrays) >= 2:
+                stat, p = stats.kruskal(*arrays)
+
+        if p is not None and not np.isnan(p):
+            results.append({
+                "feature_id": dataset.feature_metadata[idx].get("feature_id", idx),
+                "statistic": float(stat),
+                "pvalue": float(p),
+                "mean_a": float(np.mean(a)),
+                "mean_b": float(np.mean(b)),
+                "log2fc": float(np.log2(np.mean(b) / np.mean(a))) if np.mean(a) > 0 else None,
+            })
+
+    pvals = [r["pvalue"] for r in results]
+    if pvals and req.multiple_testing:
+        try:
+            _, padj, _, _ = multipletests(pvals, alpha=req.alpha, method=req.multiple_testing)
+            for r, pa in zip(results, padj):
+                r["padj"] = float(pa)
+        except Exception:
+            for r in results:
+                r["padj"] = r["pvalue"]
+
+    return {"test": req.test, "n_features": len(results), "results": results}

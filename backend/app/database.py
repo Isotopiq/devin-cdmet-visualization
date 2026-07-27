@@ -1,1 +1,15 @@
-ZnJvbSBzcWxhbGNoZW15LmV4dC5hc3luY2lvIGltcG9ydCBBc3luY1Nlc3Npb24sIGNyZWF0ZV9hc3luY19lbmdpbmUsIGFzeW5jX3Nlc3Npb25tYWtlcgpmcm9tIHNxbGFsY2hlbXkub3JtIGltcG9ydCBkZWNsYXJhdGl2ZV9iYXNlCmZyb20gYXBwLmNvbmZpZyBpbXBvcnQgc2V0dGluZ3MKCmVuZ2luZSA9IGNyZWF0ZV9hc3luY19lbmdpbmUoc2V0dGluZ3MuREFUQUJBU0VfVVJMLCBlY2hvPUZhbHNlLCBmdXR1cmU9VHJ1ZSkKQXN5bmNTZXNzaW9uTG9jYWwgPSBhc3luY19zZXNzaW9ubWFrZXIoZW5naW5lLCBjbGFzc189QXN5bmNTZXNzaW9uLCBleHBpcmVfb25fY29tbWl0PUZhbHNlKQpCYXNlID0gZGVjbGFyYXRpdmVfYmFzZSgpCgoKYXN5bmMgZGVmIGdldF9kYigpOgogICAgYXN5bmMgd2l0aCBBc3luY1Nlc3Npb25Mb2NhbCgpIGFzIHNlc3Npb246CiAgICAgICAgdHJ5OgogICAgICAgICAgICB5aWVsZCBzZXNzaW9uCiAgICAgICAgZmluYWxseToKICAgICAgICAgICAgYXdhaXQgc2Vzc2lvbi5jbG9zZSgpCg==
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import declarative_base
+from app.config import settings
+
+engine = create_async_engine(settings.DATABASE_URL, echo=False, future=True)
+AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+Base = declarative_base()
+
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()

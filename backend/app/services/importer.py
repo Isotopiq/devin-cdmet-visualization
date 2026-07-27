@@ -1,1 +1,78 @@
-aW1wb3J0IG9zCmltcG9ydCBwYW5kYXMgYXMgcGQKZnJvbSBzcWxhbGNoZW15LmV4dC5hc3luY2lvIGltcG9ydCBBc3luY1Nlc3Npb24KZnJvbSBhcHAgaW1wb3J0IG1vZGVscwpmcm9tIGFwcC5zZXJ2aWNlcy5kZXRlY3Rpb24gaW1wb3J0IHJlYWRfZmlsZV90b19kZgoKCmFzeW5jIGRlZiBpbXBvcnRfZGF0YXNldChkYjogQXN5bmNTZXNzaW9uLCB1cGxvYWRlZDogbW9kZWxzLlVwbG9hZGVkRmlsZSwgZmVhdHVyZV90eXBlOiBzdHIgPSAibWV0YWJvbGl0ZSIpOgogICAgcGF0aCA9IG9zLnBhdGguam9pbigidXBsb2FkcyIsIHVwbG9hZGVkLnN0b3JlZF9uYW1lKQogICAgZGYgPSByZWFkX2ZpbGVfdG9fZGYocGF0aCwgdXBsb2FkZWQuc2VsZWN0ZWRfc2hlZXQpCgogICAgZnJvbSBhcHAuc2VydmljZXMuZGV0ZWN0aW9uIGltcG9ydCBkZXRlY3RfY29sdW1ucwogICAgZGV0ZWN0ZWQgPSBkZXRlY3RfY29sdW1ucyhkZikKCiAgICBtYXBwaW5nID0gdXBsb2FkZWQuY29sdW1uX21hcHBpbmcgb3Ige30KICAgIGZlYXR1cmVfaWRfY29sID0gbWFwcGluZy5nZXQoImZlYXR1cmVfaWQiKSBvciBtYXBwaW5nLmdldCgibmFtZSIpIG9yIGRldGVjdGVkWyJzdWdnZXN0ZWRfbWFwcGluZyJdLmdldCgiZmVhdHVyZV9pZCIpIG9yIHN0cihkZi5jb2x1bW5zWzBdKQogICAgc2FtcGxlX2NvbHMgPSBtYXBwaW5nLmdldCgic2FtcGxlX2NvbHVtbnMiKSBvciBkZXRlY3RlZFsic2FtcGxlX2NvbHVtbnMiXQogICAgaWYgbm90IHNhbXBsZV9jb2xzOgogICAgICAgIHNhbXBsZV9jb2xzID0gbGlzdChkZi5jb2x1bW5zKQoKICAgIGZlYXR1cmVfbWV0YWRhdGEgPSBbXQogICAgZm9yIF8sIHJvdyBpbiBkZi5pdGVycm93cygpOgogICAgICAgIG1ldGEgPSB7ImZlYXR1cmVfaWQiOiBzdHIocm93LmdldChmZWF0dXJlX2lkX2NvbCwgIiIpKX0KICAgICAgICBmb3Iga2V5IGluIFsiZm9ybXVsYSIsICJteiIsICJydCIsICJhZGR1Y3QiLCAibGlwaWRfY2xhc3MiLCAiZ3JhZGUiLCAiZmEiXToKICAgICAgICAgICAgY29sID0gbWFwcGluZy5nZXQoa2V5KQogICAgICAgICAgICBpZiBjb2wgYW5kIGNvbCBpbiByb3c6CiAgICAgICAgICAgICAgICBtZXRhW2tleV0gPSByb3dbY29sXQogICAgICAgIGZlYXR1cmVfbWV0YWRhdGEuYXBwZW5kKG1ldGEpCgogICAgZGF0YV9tYXRyaXggPSB7fQogICAgZm9yIGNvbCBpbiBzYW1wbGVfY29sczoKICAgICAgICBkYXRhX21hdHJpeFtzdHIoY29sKV0gPSBwZC50b19udW1lcmljKGRmW2NvbF0sIGVycm9ycz0iY29lcmNlIikudG9saXN0KCkKCiAgICBzYW1wbGVfZ3JvdXBzID0gbWFwcGluZy5nZXQoInNhbXBsZV9ncm91cHMiKSBvciBkZXRlY3RlZFsic2FtcGxlX2dyb3VwcyJdCiAgICBzYW1wbGVfbWV0YWRhdGEgPSB7c3RyKGNvbCk6IHNhbXBsZV9ncm91cHMuZ2V0KHN0cihjb2wpLCAidW5rbm93biIpIGZvciBjb2wgaW4gc2FtcGxlX2NvbHN9CgogICAgZGF0YXNldCA9IG1vZGVscy5EYXRhc2V0KAogICAgICAgIHByb2plY3RfaWQ9dXBsb2FkZWQucHJvamVjdF9pZCwKICAgICAgICBzb3VyY2VfZmlsZV9pZD11cGxvYWRlZC5pZCwKICAgICAgICBuYW1lPXVwbG9hZGVkLm9yaWdpbmFsX25hbWUsCiAgICAgICAgZmVhdHVyZV90eXBlPWZlYXR1cmVfdHlwZSwKICAgICAgICBkYXRhX21hdHJpeD1kYXRhX21hdHJpeCwKICAgICAgICBzYW1wbGVfbWV0YWRhdGE9c2FtcGxlX21ldGFkYXRhLAogICAgICAgIGZlYXR1cmVfbWV0YWRhdGE9ZmVhdHVyZV9tZXRhZGF0YSwKICAgICAgICBwcm9jZXNzaW5nX2hpc3Rvcnk9W3sic3RlcCI6ICJpbXBvcnQiLCAic291cmNlIjogdXBsb2FkZWQub3JpZ2luYWxfbmFtZX1dLAogICAgKQogICAgZGIuYWRkKGRhdGFzZXQpCiAgICB1cGxvYWRlZC5zdGF0dXMgPSAiaW1wb3J0ZWQiCiAgICBhd2FpdCBkYi5jb21taXQoKQogICAgYXdhaXQgZGIucmVmcmVzaChkYXRhc2V0KQogICAgcmV0dXJuIGRhdGFzZXQK
+import os
+import pandas as pd
+from sqlalchemy.ext.asyncio import AsyncSession
+from app import models
+from app.services.detection import read_file_to_df, detect_columns, parse_sample_metadata
+
+
+async def import_dataset(
+    db: AsyncSession,
+    uploaded: models.UploadedFile,
+    feature_type: str = "metabolite",
+    metadata_path: str = None,
+):
+    path = os.path.join("uploads", uploaded.stored_name)
+    df = read_file_to_df(path, uploaded.selected_sheet)
+
+    metadata = None
+    if metadata_path:
+        metadata = parse_sample_metadata(metadata_path)
+
+    detected = detect_columns(df, metadata=metadata)
+
+    mapping = uploaded.column_mapping or {}
+    feature_id_col = (
+        mapping.get("feature_id")
+        or mapping.get("name")
+        or detected["suggested_mapping"].get("feature_id")
+        or str(df.columns[0])
+    )
+    sample_cols = mapping.get("sample_columns") or detected["sample_columns"]
+    if not sample_cols:
+        sample_cols = list(df.columns)
+
+    feature_keys = ["formula", "mz", "rt", "adduct", "lipid_class", "grade", "fa", "calc_mw", "polarity", "neutral_losses"]
+    feature_metadata = []
+    for _, row in df.iterrows():
+        meta = {"feature_id": str(row.get(feature_id_col, ""))}
+        for key in feature_keys:
+            col = mapping.get(key) or detected["suggested_mapping"].get(key)
+            if col and col in row:
+                meta[key] = row[col]
+        feature_metadata.append(meta)
+
+    data_matrix = {}
+    for col in sample_cols:
+        data_matrix[str(col)] = [
+            None if pd.isna(v) else v for v in pd.to_numeric(df[col], errors="coerce").tolist()
+        ]
+
+    sample_groups = mapping.get("sample_groups") or detected["sample_groups"]
+    sample_metadata = {str(col): sample_groups.get(str(col), "unknown") for col in sample_cols}
+
+    def _clean_meta(value):
+        if pd.isna(value):
+            return None
+        if isinstance(value, float) and pd.isna(value):
+            return None
+        return value
+
+    feature_metadata = [
+        {k: _clean_meta(v) for k, v in meta.items()} for meta in feature_metadata
+    ]
+
+    dataset = models.Dataset(
+        project_id=uploaded.project_id,
+        source_file_id=uploaded.id,
+        name=uploaded.original_name,
+        feature_type=feature_type,
+        data_matrix=data_matrix,
+        sample_metadata=sample_metadata,
+        feature_metadata=feature_metadata,
+        processing_history=[{"step": "import", "source": uploaded.original_name}],
+    )
+    db.add(dataset)
+    uploaded.status = "imported"
+    await db.commit()
+    await db.refresh(dataset)
+    return dataset

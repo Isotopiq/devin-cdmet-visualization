@@ -1,1 +1,34 @@
-ZnJvbSB0eXBpbmcgaW1wb3J0IEFueSwgRGljdApmcm9tIGZhc3RhcGkgaW1wb3J0IEFQSVJvdXRlciwgRGVwZW5kcywgSFRUUEV4Y2VwdGlvbgpmcm9tIHNxbGFsY2hlbXkuZXh0LmFzeW5jaW8gaW1wb3J0IEFzeW5jU2Vzc2lvbgpmcm9tIHNxbGFsY2hlbXkgaW1wb3J0IHNlbGVjdApmcm9tIGFwcC5kYXRhYmFzZSBpbXBvcnQgZ2V0X2RiCmZyb20gYXBwLmF1dGggaW1wb3J0IGdldF9jdXJyZW50X2FjdGl2ZV91c2VyCmZyb20gYXBwIGltcG9ydCBtb2RlbHMsIHNjaGVtYXMKZnJvbSBhcHAuc2VydmljZXMuaXNvdG9wZSBpbXBvcnQgcnVuX2lzb3RvcGVfYW5hbHlzaXMKCnJvdXRlciA9IEFQSVJvdXRlcigpCgoKQHJvdXRlci5wb3N0KCIve3Byb2plY3RfaWR9L2RhdGFzZXQve2RhdGFzZXRfaWR9L2lzb3RvcGUiLCByZXNwb25zZV9tb2RlbD1EaWN0W3N0ciwgQW55XSkKYXN5bmMgZGVmIGlzb3RvcGUocHJvamVjdF9pZDogaW50LCBkYXRhc2V0X2lkOiBpbnQsIHJlcTogc2NoZW1hcy5Jc290b3BlUmVxdWVzdCwKICAgICAgICAgICAgICAgICAgZGI6IEFzeW5jU2Vzc2lvbiA9IERlcGVuZHMoZ2V0X2RiKSwgY3VycmVudF91c2VyOiBtb2RlbHMuVXNlciA9IERlcGVuZHMoZ2V0X2N1cnJlbnRfYWN0aXZlX3VzZXIpKToKICAgIHJlc3VsdCA9IGF3YWl0IGRiLmV4ZWN1dGUoc2VsZWN0KG1vZGVscy5EYXRhc2V0KS5qb2luKG1vZGVscy5Qcm9qZWN0KS53aGVyZSgKICAgICAgICBtb2RlbHMuRGF0YXNldC5pZCA9PSBkYXRhc2V0X2lkLCBtb2RlbHMuRGF0YXNldC5wcm9qZWN0X2lkID09IHByb2plY3RfaWQsIG1vZGVscy5Qcm9qZWN0Lm93bmVyX2lkID09IGN1cnJlbnRfdXNlci5pZCkpCiAgICBkYXRhc2V0ID0gcmVzdWx0LnNjYWxhcl9vbmVfb3Jfbm9uZSgpCiAgICBpZiBub3QgZGF0YXNldDoKICAgICAgICByYWlzZSBIVFRQRXhjZXB0aW9uKHN0YXR1c19jb2RlPTQwNCwgZGV0YWlsPSJEYXRhc2V0IG5vdCBmb3VuZCIpCgogICAgcmVzdWx0cyA9IHJ1bl9pc290b3BlX2FuYWx5c2lzKGRhdGFzZXQsIHJlcSkKICAgIGFuYWx5c2lzID0gbW9kZWxzLkFuYWx5c2lzKAogICAgICAgIHByb2plY3RfaWQ9cHJvamVjdF9pZCwKICAgICAgICBkYXRhc2V0X2lkPWRhdGFzZXRfaWQsCiAgICAgICAgbmFtZT1mImlzb3RvcGVfe3JlcS50cmFjZXJ9IiwKICAgICAgICBhbmFseXNpc190eXBlPSJpc290b3BlIiwKICAgICAgICBwYXJhbWV0ZXJzPXJlcS5tb2RlbF9kdW1wKCksCiAgICAgICAgcmVzdWx0cz1yZXN1bHRzLAogICAgKQogICAgZGIuYWRkKGFuYWx5c2lzKQogICAgYXdhaXQgZGIuY29tbWl0KCkKICAgIGF3YWl0IGRiLnJlZnJlc2goYW5hbHlzaXMpCiAgICByZXR1cm4gcmVzdWx0cwo=
+from typing import Any, Dict
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.database import get_db
+from app.auth import get_current_active_user
+from app import models, schemas
+from app.services.isotope import run_isotope_analysis
+
+router = APIRouter()
+
+
+@router.post("/{project_id}/dataset/{dataset_id}/isotope", response_model=Dict[str, Any])
+async def isotope(project_id: int, dataset_id: int, req: schemas.IsotopeRequest,
+                  db: AsyncSession = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Dataset.id == dataset_id, models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
+    dataset = result.scalar_one_or_none()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    results = run_isotope_analysis(dataset, req)
+    analysis = models.Analysis(
+        project_id=project_id,
+        dataset_id=dataset_id,
+        name=f"isotope_{req.tracer}",
+        analysis_type="isotope",
+        parameters=req.model_dump(),
+        results=results,
+    )
+    db.add(analysis)
+    await db.commit()
+    await db.refresh(analysis)
+    return results

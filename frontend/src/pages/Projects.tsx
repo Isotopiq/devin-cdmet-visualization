@@ -1,1 +1,88 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgeyBsaXN0UHJvamVjdHMsIGNyZWF0ZVByb2plY3QsIGRlbGV0ZVByb2plY3QgfSBmcm9tICcuLi9hcGknCmltcG9ydCB7IFByb2plY3QgfSBmcm9tICcuLi90eXBlcycKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFByb2plY3RzKCkgewogIGNvbnN0IFtwcm9qZWN0cywgc2V0UHJvamVjdHNdID0gdXNlU3RhdGU8UHJvamVjdFtdPihbXSkKICBjb25zdCBbbmFtZSwgc2V0TmFtZV0gPSB1c2VTdGF0ZSgnJykKICBjb25zdCBbZGVzY3JpcHRpb24sIHNldERlc2NyaXB0aW9uXSA9IHVzZVN0YXRlKCcnKQoKICBjb25zdCBsb2FkID0gYXN5bmMgKCkgPT4gewogICAgY29uc3QgcmVzID0gYXdhaXQgbGlzdFByb2plY3RzKCkKICAgIHNldFByb2plY3RzKHJlcy5kYXRhKQogIH0KCiAgdXNlRWZmZWN0KCgpID0+IHsgbG9hZCgpIH0sIFtdKQoKICBjb25zdCBjcmVhdGUgPSBhc3luYyAoZTogUmVhY3QuRm9ybUV2ZW50KSA9PiB7CiAgICBlLnByZXZlbnREZWZhdWx0KCkKICAgIGF3YWl0IGNyZWF0ZVByb2plY3QoeyBuYW1lLCBkZXNjcmlwdGlvbiB9KQogICAgc2V0TmFtZSgnJykKICAgIHNldERlc2NyaXB0aW9uKCcnKQogICAgbG9hZCgpCiAgfQoKICBjb25zdCBkZWwgPSBhc3luYyAoaWQ6IG51bWJlcikgPT4gewogICAgYXdhaXQgZGVsZXRlUHJvamVjdChpZCkKICAgIGxvYWQoKQogIH0KCiAgcmV0dXJuICgKICAgIDxkaXY+CiAgICAgIDxoMSBjbGFzc05hbWU9InRleHQtMnhsIGZvbnQtYm9sZCBtYi00IHRleHQtZ3JheS05MDAgZGFyazp0ZXh0LXdoaXRlIj5Qcm9qZWN0czwvaDE+CiAgICAgIDxmb3JtIG9uU3VibWl0PXtjcmVhdGV9IGNsYXNzTmFtZT0iYmctd2hpdGUgZGFyazpiZy1ncmF5LTgwMCBwLTQgcm91bmRlZC1sZyBzaGFkb3cgbWItNiBncmlkIGdyaWQtY29scy0xIG1kOmdyaWQtY29scy0zIGdhcC00Ij4KICAgICAgICA8aW5wdXQgcGxhY2Vob2xkZXI9IlByb2plY3QgbmFtZSIgdmFsdWU9e25hbWV9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0TmFtZShlLnRhcmdldC52YWx1ZSl9IGNsYXNzTmFtZT0iYm9yZGVyIHJvdW5kZWQtbGcgcC0yIiByZXF1aXJlZCAvPgogICAgICAgIDxpbnB1dCBwbGFjZWhvbGRlcj0iRGVzY3JpcHRpb24iIHZhbHVlPXtkZXNjcmlwdGlvbn0gb25DaGFuZ2U9eyhlKSA9PiBzZXREZXNjcmlwdGlvbihlLnRhcmdldC52YWx1ZSl9IGNsYXNzTmFtZT0iYm9yZGVyIHJvdW5kZWQtbGcgcC0yIiAvPgogICAgICAgIDxidXR0b24gdHlwZT0ic3VibWl0IiBjbGFzc05hbWU9ImJnLWJsdWUtNjAwIHRleHQtd2hpdGUgcm91bmRlZC1sZyBwLTIgaG92ZXI6YmctYmx1ZS03MDAiPkNyZWF0ZSBQcm9qZWN0PC9idXR0b24+CiAgICAgIDwvZm9ybT4KICAgICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktMyI+CiAgICAgICAge3Byb2plY3RzLm1hcCgocCkgPT4gKAogICAgICAgICAgPGRpdiBrZXk9e3AuaWR9IGNsYXNzTmFtZT0iYmctd2hpdGUgZGFyazpiZy1ncmF5LTgwMCBwLTQgcm91bmRlZC1sZyBzaGFkb3cgZmxleCBqdXN0aWZ5LWJldHdlZW4gaXRlbXMtY2VudGVyIj4KICAgICAgICAgICAgPGRpdj4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZm9udC1zZW1pYm9sZCB0ZXh0LWdyYXktOTAwIGRhcms6dGV4dC13aGl0ZSI+e3AubmFtZX08L2Rpdj4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0idGV4dC1zbSB0ZXh0LWdyYXktNTAwIj57cC5kZXNjcmlwdGlvbn08L2Rpdj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDxidXR0b24gb25DbGljaz17KCkgPT4gZGVsKHAuaWQpfSBjbGFzc05hbWU9InRleHQtcmVkLTYwMCBob3Zlcjp1bmRlcmxpbmUiPkRlbGV0ZTwvYnV0dG9uPgogICAgICAgICAgPC9kaXY+CiAgICAgICAgKSl9CiAgICAgIDwvZGl2PgogICAgPC9kaXY+CiAgKQp9Cg==
+import { useEffect, useState } from 'react'
+import { listProjects, createProject, deleteProject } from '../api'
+import { Project } from '../types'
+import { LuPlus, LuTrash2, LuFolderOpen, LuSearch } from 'react-icons/lu'
+
+export default function Projects() {
+  const [projects, setProjects] = useState<Project[]>([])
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [search, setSearch] = useState('')
+
+  const load = async () => {
+    const res = await listProjects()
+    setProjects(res.data)
+  }
+
+  useEffect(() => { load() }, [])
+
+  const create = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) return
+    await createProject({ name, description })
+    setName('')
+    setDescription('')
+    load()
+  }
+
+  const del = async (id: number) => {
+    if (!confirm('Delete this project and all its data?')) return
+    await deleteProject(id)
+    load()
+  }
+
+  const filtered = projects.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()) || (p.description || '').toLowerCase().includes(search.toLowerCase()))
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">Projects</h1>
+        <p className="page-subtitle">Manage your metabolomics and lipidomics projects.</p>
+      </div>
+
+      <form onSubmit={create} className="card p-5">
+        <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuPlus /> Create Project</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input placeholder="Project name" value={name} onChange={(e) => setName(e.target.value)} className="input" required />
+          <input placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} className="input" />
+          <button type="submit" className="btn-primary"><LuPlus /> Create</button>
+        </div>
+      </form>
+
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-900 dark:text-white">Your Projects</h3>
+          <div className="relative">
+            <LuSearch className="absolute left-3 top-2.5 text-slate-400" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search projects..." className="input pl-9 w-64" />
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-300 uppercase text-xs">
+              <tr>
+                <th className="text-left p-3 font-semibold">Project</th>
+                <th className="text-left p-3 font-semibold">Description</th>
+                <th className="text-left p-3 font-semibold">Created</th>
+                <th className="text-right p-3 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+              {filtered.map((p) => (
+                <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                  <td className="p-3 font-medium text-slate-900 dark:text-white flex items-center gap-2"><LuFolderOpen className="text-indigo-500" /> {p.name}</td>
+                  <td className="p-3 text-slate-600 dark:text-slate-300">{p.description || '-'}</td>
+                  <td className="p-3 text-slate-500 dark:text-slate-400">{new Date(p.created_at).toLocaleDateString()}</td>
+                  <td className="p-3 text-right">
+                    <button onClick={() => del(p.id)} className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete"><LuTrash2 /></button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-slate-500 dark:text-slate-400">No projects found.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}

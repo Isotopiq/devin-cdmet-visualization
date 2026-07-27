@@ -1,1 +1,147 @@
-ZnJvbSB0eXBpbmcgaW1wb3J0IE9wdGlvbmFsLCBEaWN0LCBBbnksIExpc3QKZnJvbSBweWRhbnRpYyBpbXBvcnQgQmFzZU1vZGVsLCBDb25maWdEaWN0CmltcG9ydCBkYXRldGltZSBhcyBkdAoKCmNsYXNzIFVzZXJCYXNlKEJhc2VNb2RlbCk6CiAgICBlbWFpbDogc3RyCgoKY2xhc3MgVXNlckNyZWF0ZShVc2VyQmFzZSk6CiAgICBwYXNzd29yZDogc3RyCgoKY2xhc3MgVXNlck91dChVc2VyQmFzZSk6CiAgICBtb2RlbF9jb25maWcgPSBDb25maWdEaWN0KGZyb21fYXR0cmlidXRlcz1UcnVlKQogICAgaWQ6IGludAogICAgaXNfYWN0aXZlOiBib29sCiAgICBjcmVhdGVkX2F0OiBkdC5kYXRldGltZQoKCmNsYXNzIFRva2VuKEJhc2VNb2RlbCk6CiAgICBhY2Nlc3NfdG9rZW46IHN0cgogICAgdG9rZW5fdHlwZTogc3RyCgoKY2xhc3MgUHJvamVjdEJhc2UoQmFzZU1vZGVsKToKICAgIG5hbWU6IHN0cgogICAgZGVzY3JpcHRpb246IE9wdGlvbmFsW3N0cl0gPSBOb25lCgoKY2xhc3MgUHJvamVjdENyZWF0ZShQcm9qZWN0QmFzZSk6CiAgICBwYXNzCgoKY2xhc3MgUHJvamVjdE91dChQcm9qZWN0QmFzZSk6CiAgICBtb2RlbF9jb25maWcgPSBDb25maWdEaWN0KGZyb21fYXR0cmlidXRlcz1UcnVlKQogICAgaWQ6IGludAogICAgb3duZXJfaWQ6IGludAogICAgY3JlYXRlZF9hdDogZHQuZGF0ZXRpbWUKICAgIHVwZGF0ZWRfYXQ6IGR0LmRhdGV0aW1lCgoKY2xhc3MgVXBsb2FkZWRGaWxlT3V0KEJhc2VNb2RlbCk6CiAgICBtb2RlbF9jb25maWcgPSBDb25maWdEaWN0KGZyb21fYXR0cmlidXRlcz1UcnVlKQogICAgaWQ6IGludAogICAgcHJvamVjdF9pZDogaW50CiAgICBvcmlnaW5hbF9uYW1lOiBzdHIKICAgIHN0b3JlZF9uYW1lOiBzdHIKICAgIGZpbGVfdHlwZTogT3B0aW9uYWxbc3RyXQogICAgZGV0ZWN0ZWRfZm9ybWF0OiBPcHRpb25hbFtzdHJdCiAgICBzaGVldHM6IExpc3Rbc3RyXQogICAgc2VsZWN0ZWRfc2hlZXQ6IE9wdGlvbmFsW3N0cl0KICAgIHN0YXR1czogc3RyCiAgICBjcmVhdGVkX2F0OiBkdC5kYXRldGltZQoKCmNsYXNzIERhdGFzZXRPdXQoQmFzZU1vZGVsKToKICAgIG1vZGVsX2NvbmZpZyA9IENvbmZpZ0RpY3QoZnJvbV9hdHRyaWJ1dGVzPVRydWUpCiAgICBpZDogaW50CiAgICBwcm9qZWN0X2lkOiBpbnQKICAgIHNvdXJjZV9maWxlX2lkOiBPcHRpb25hbFtpbnRdCiAgICBuYW1lOiBzdHIKICAgIGZlYXR1cmVfdHlwZTogc3RyCiAgICBjcmVhdGVkX2F0OiBkdC5kYXRldGltZQoKCmNsYXNzIEFuYWx5c2lzT3V0KEJhc2VNb2RlbCk6CiAgICBtb2RlbF9jb25maWcgPSBDb25maWdEaWN0KGZyb21fYXR0cmlidXRlcz1UcnVlKQogICAgaWQ6IGludAogICAgcHJvamVjdF9pZDogaW50CiAgICBkYXRhc2V0X2lkOiBpbnQKICAgIG5hbWU6IHN0cgogICAgYW5hbHlzaXNfdHlwZTogc3RyCiAgICBjcmVhdGVkX2F0OiBkdC5kYXRldGltZQoKCmNsYXNzIENvbHVtbk1hcHBpbmcoQmFzZU1vZGVsKToKICAgIGZlYXR1cmVfaWQ6IE9wdGlvbmFsW3N0cl0gPSBOb25lCiAgICBuYW1lOiBPcHRpb25hbFtzdHJdID0gTm9uZQogICAgZm9ybXVsYTogT3B0aW9uYWxbc3RyXSA9IE5vbmUKICAgIG16OiBPcHRpb25hbFtzdHJdID0gTm9uZQogICAgcnQ6IE9wdGlvbmFsW3N0cl0gPSBOb25lCiAgICBhZGR1Y3Q6IE9wdGlvbmFsW3N0cl0gPSBOb25lCiAgICBsaXBpZF9jbGFzczogT3B0aW9uYWxbc3RyXSA9IE5vbmUKICAgIGdyYWRlOiBPcHRpb25hbFtzdHJdID0gTm9uZQogICAgc2FtcGxlX2NvbHVtbnM6IExpc3Rbc3RyXSA9IFtdCiAgICBzYW1wbGVfZ3JvdXBzOiBEaWN0W3N0ciwgc3RyXSA9IHt9CgoKY2xhc3MgSW1wb3J0UHJldmlldyhCYXNlTW9kZWwpOgogICAgZGV0ZWN0ZWRfZm9ybWF0OiBPcHRpb25hbFtzdHJdCiAgICBzaGVldHM6IExpc3Rbc3RyXQogICAgY29sdW1uczogTGlzdFtzdHJdCiAgICBzYW1wbGVfY29sdW1uczogTGlzdFtzdHJdCiAgICBmZWF0dXJlX2NvbHVtbnM6IExpc3Rbc3RyXQogICAgcm93X2NvdW50OiBpbnQKICAgIHN1Z2dlc3RlZF9tYXBwaW5nOiBEaWN0W3N0ciwgQW55XQogICAgc2FtcGxlX2dyb3VwczogRGljdFtzdHIsIHN0cl0KCgpjbGFzcyBQcmVwcm9jZXNzaW5nUGFyYW1zKEJhc2VNb2RlbCk6CiAgICBtaXNzaW5nX3ZhbHVlX2ZpbHRlcjogZmxvYXQgPSAwLjAKICAgIGJsYW5rX3N1YnRyYWN0aW9uOiBib29sID0gRmFsc2UKICAgIGJsYW5rX2NvbHVtbnM6IExpc3Rbc3RyXSA9IFtdCiAgICBxY19jdl9maWx0ZXI6IGZsb2F0ID0gMC4wCiAgICBxY19jb2x1bW5zOiBMaXN0W3N0cl0gPSBbXQogICAgZHVwbGljYXRlX2hhbmRsaW5nOiBzdHIgPSAibWVhbiIKICAgIGltcHV0YXRpb246IHN0ciA9ICJub25lIgogICAgbG9nX3RyYW5zZm9ybTogYm9vbCA9IEZhbHNlCiAgICBzY2FsZTogc3RyID0gIm5vbmUiCiAgICBub3JtYWxpemF0aW9uOiBzdHIgPSAibm9uZSIKICAgIGN1c3RvbV9mYWN0b3I6IE9wdGlvbmFsW2Zsb2F0XSA9IE5vbmUKICAgIGJhdGNoX2NvcnJlY3Rpb246IHN0ciA9ICJub25lIgogICAgYmF0Y2hfY29sdW1uOiBPcHRpb25hbFtzdHJdID0gTm9uZQoKCmNsYXNzIFN0YXRzUmVxdWVzdChCYXNlTW9kZWwpOgogICAgdGVzdDogc3RyCiAgICBncm91cF9hOiBPcHRpb25hbFtzdHJdID0gTm9uZQogICAgZ3JvdXBfYjogT3B0aW9uYWxbc3RyXSA9IE5vbmUKICAgIHZhbHVlX2NvbHVtbjogT3B0aW9uYWxbc3RyXSA9IE5vbmUKICAgIGdyb3VwX2NvbHVtbjogT3B0aW9uYWxbc3RyXSA9IE5vbmUKICAgIHBhaXJlZDogYm9vbCA9IEZhbHNlCiAgICBtdWx0aXBsZV90ZXN0aW5nOiBzdHIgPSAiZmRyX2JoIgogICAgYWxwaGE6IGZsb2F0ID0gMC4wNQoKCmNsYXNzIFBsb3RSZXF1ZXN0KEJhc2VNb2RlbCk6CiAgICBwbG90X3R5cGU6IHN0cgogICAgcGFyYW1ldGVyczogRGljdFtzdHIsIEFueV0gPSB7fQoKCmNsYXNzIElzb3RvcGVSZXF1ZXN0KEJhc2VNb2RlbCk6CiAgICB0cmFjZXI6IHN0cgogICAgbWF4X2xhYmVsOiBpbnQKICAgIG5hdHVyYWxfYWJ1bmRhbmNlX2NvcnJlY3Rpb246IGJvb2wgPSBGYWxzZQogICAgY2lyY3VsYXRpbmdfZW5yaWNobWVudDogT3B0aW9uYWxbZmxvYXRdID0gTm9uZQogICAgbm9ybWFsaXphdGlvbjogc3RyID0gIm5vbmUiCgoKY2xhc3MgUGF0aHdheVJlcXVlc3QoQmFzZU1vZGVsKToKICAgIHZhbHVlX3R5cGU6IHN0cgogICAgcGF0aHdheV9zb3VyY2U6IHN0ciA9ICJrZWdnIgogICAgY3VzdG9tX25vZGVzOiBPcHRpb25hbFtMaXN0W0RpY3Rbc3RyLCBBbnldXV0gPSBOb25lCiAgICBjdXN0b21fZWRnZXM6IE9wdGlvbmFsW0xpc3RbRGljdFtzdHIsIEFueV1dXSA9IE5vbmUK
+from typing import Optional, Dict, Any, List
+from pydantic import BaseModel, ConfigDict
+import datetime as dt
+
+
+class UserBase(BaseModel):
+    email: str
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserOut(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    is_active: bool
+    created_at: dt.datetime
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class ProjectBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class ProjectCreate(ProjectBase):
+    pass
+
+
+class ProjectOut(ProjectBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    owner_id: int
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+
+class UploadedFileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    project_id: int
+    original_name: str
+    stored_name: str
+    file_type: Optional[str]
+    detected_format: Optional[str]
+    sheets: List[str]
+    selected_sheet: Optional[str]
+    status: str
+    created_at: dt.datetime
+
+
+class DatasetOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    project_id: int
+    source_file_id: Optional[int]
+    name: str
+    feature_type: str
+    sample_metadata: Dict[str, Any]
+    feature_metadata: List[Dict[str, Any]]
+    created_at: dt.datetime
+
+
+class AnalysisOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    project_id: int
+    dataset_id: int
+    name: str
+    analysis_type: str
+    created_at: dt.datetime
+
+
+class ColumnMapping(BaseModel):
+    feature_id: Optional[str] = None
+    name: Optional[str] = None
+    formula: Optional[str] = None
+    mz: Optional[str] = None
+    rt: Optional[str] = None
+    adduct: Optional[str] = None
+    lipid_class: Optional[str] = None
+    grade: Optional[str] = None
+    sample_columns: List[str] = []
+    sample_groups: Dict[str, str] = {}
+
+
+class ImportPreview(BaseModel):
+    detected_format: Optional[str]
+    sheets: List[str]
+    columns: List[str]
+    sample_columns: List[str]
+    feature_columns: List[str]
+    row_count: int
+    suggested_mapping: Dict[str, Any]
+    sample_groups: Dict[str, str]
+
+
+class PreprocessingParams(BaseModel):
+    missing_value_filter: float = 0.0
+    blank_subtraction: bool = False
+    blank_columns: List[str] = []
+    qc_cv_filter: float = 0.0
+    qc_columns: List[str] = []
+    duplicate_handling: str = "mean"
+    imputation: str = "none"
+    log_transform: bool = False
+    scale: str = "none"
+    normalization: str = "none"
+    custom_factor: Optional[float] = None
+    batch_correction: str = "none"
+    batch_column: Optional[str] = None
+
+
+class StatsRequest(BaseModel):
+    test: str
+    group_a: Optional[str] = None
+    group_b: Optional[str] = None
+    value_column: Optional[str] = None
+    group_column: Optional[str] = None
+    paired: bool = False
+    multiple_testing: str = "fdr_bh"
+    alpha: float = 0.05
+
+
+class PlotRequest(BaseModel):
+    plot_type: str
+    parameters: Dict[str, Any] = {}
+
+
+class IsotopeRequest(BaseModel):
+    tracer: str
+    max_label: int
+    natural_abundance_correction: bool = False
+    circulating_enrichment: Optional[float] = None
+    normalization: str = "none"
+
+
+class PathwayRequest(BaseModel):
+    value_type: str
+    pathway_source: str = "kegg"
+    custom_nodes: Optional[List[Dict[str, Any]]] = None
+    custom_edges: Optional[List[Dict[str, Any]]] = None

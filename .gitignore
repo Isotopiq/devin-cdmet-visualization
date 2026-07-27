@@ -1,1 +1,36 @@
-IyBQeXRob24KX19weWNhY2hlX18vCioucHlbY29kXQoqJHB5LmNsYXNzCiouc28KLlB5dGhvbgplbnYvCnZlbnYvCi52ZW52LwoqLmVnZy1pbmZvLwpkaXN0LwpidWlsZC8KLnB5dGVzdF9jYWNoZS8KLm15cHlfY2FjaGUvCgojIE5vZGUKbm9kZV9tb2R1bGVzLwpmcm9udGVuZC9kaXN0LwpucG0tZGVidWcubG9nKgoKIyBJREUKLnZzY29kZS8KLmlkZWEvCiouc3dwCiouc3dvCgojIE9TCi5EU19TdG9yZQoKIyBTZWNyZXRzCi5lbnYKCiMgRGF0YQp1cGxvYWRzLwoqLmRiCiouc3FsaXRlMwo=
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+frontend/dist/
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Secrets
+.env
+
+# Data
+uploads/
+*.db
+*.sqlite3

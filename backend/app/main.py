@@ -1,1 +1,39 @@
-aW1wb3J0IG9zCmZyb20gY29udGV4dGxpYiBpbXBvcnQgYXN5bmNjb250ZXh0bWFuYWdlcgoKZnJvbSBmYXN0YXBpIGltcG9ydCBGYXN0QVBJCmZyb20gZmFzdGFwaS5taWRkbGV3YXJlLmNvcnMgaW1wb3J0IENPUlNNaWRkbGV3YXJlCmZyb20gYXBwLmNvbmZpZyBpbXBvcnQgc2V0dGluZ3MKZnJvbSBhcHAucm91dGVycyBpbXBvcnQgYXV0aCwgcHJvamVjdHMsIGZpbGVzLCBpbXBvcnRfLCBhbmFseXNpcywgc3RhdHMsIHBsb3RzLCBpc290b3BlLCBwYXRod2F5cwoKCkBhc3luY2NvbnRleHRtYW5hZ2VyCmFzeW5jIGRlZiBsaWZlc3BhbihhcHA6IEZhc3RBUEkpOgogICAgb3MubWFrZWRpcnMoc2V0dGluZ3MuVVBMT0FEX0RJUiwgZXhpc3Rfb2s9VHJ1ZSkKICAgIHlpZWxkCgoKYXBwID0gRmFzdEFQSSh0aXRsZT0iTWV0YWJvbG9taWNzIFBsYXRmb3JtIiwgdmVyc2lvbj0iMC4xLjAiLCBsaWZlc3Bhbj1saWZlc3BhbikKCmFwcC5hZGRfbWlkZGxld2FyZSgKICAgIENPUlNNaWRkbGV3YXJlLAogICAgYWxsb3dfb3JpZ2lucz1bIioiXSwKICAgIGFsbG93X2NyZWRlbnRpYWxzPVRydWUsCiAgICBhbGxvd19tZXRob2RzPVsiKiJdLAogICAgYWxsb3dfaGVhZGVycz1bIioiXSwKKQoKYXBwLmluY2x1ZGVfcm91dGVyKGF1dGgucm91dGVyLCBwcmVmaXg9Ii9hcGkvYXV0aCIsIHRhZ3M9WyJhdXRoIl0pCmFwcC5pbmNsdWRlX3JvdXRlcihwcm9qZWN0cy5yb3V0ZXIsIHByZWZpeD0iL2FwaS9wcm9qZWN0cyIsIHRhZ3M9WyJwcm9qZWN0cyJdKQphcHAuaW5jbHVkZV9yb3V0ZXIoZmlsZXMucm91dGVyLCBwcmVmaXg9Ii9hcGkvZmlsZXMiLCB0YWdzPVsiZmlsZXMiXSkKYXBwLmluY2x1ZGVfcm91dGVyKGltcG9ydF8ucm91dGVyLCBwcmVmaXg9Ii9hcGkvaW1wb3J0IiwgdGFncz1bImltcG9ydCJdKQphcHAuaW5jbHVkZV9yb3V0ZXIoYW5hbHlzaXMucm91dGVyLCBwcmVmaXg9Ii9hcGkvYW5hbHlzaXMiLCB0YWdzPVsiYW5hbHlzaXMiXSkKYXBwLmluY2x1ZGVfcm91dGVyKHN0YXRzLnJvdXRlciwgcHJlZml4PSIvYXBpL3N0YXRzIiwgdGFncz1bInN0YXRzIl0pCmFwcC5pbmNsdWRlX3JvdXRlcihwbG90cy5yb3V0ZXIsIHByZWZpeD0iL2FwaS9wbG90cyIsIHRhZ3M9WyJwbG90cyJdKQphcHAuaW5jbHVkZV9yb3V0ZXIoaXNvdG9wZS5yb3V0ZXIsIHByZWZpeD0iL2FwaS9pc290b3BlIiwgdGFncz1bImlzb3RvcGUiXSkKYXBwLmluY2x1ZGVfcm91dGVyKHBhdGh3YXlzLnJvdXRlciwgcHJlZml4PSIvYXBpL3BhdGh3YXlzIiwgdGFncz1bInBhdGh3YXlzIl0pCgoKQGFwcC5nZXQoIi9hcGkvaGVhbHRoIikKYXN5bmMgZGVmIGhlYWx0aCgpOgogICAgcmV0dXJuIHsic3RhdHVzIjogIm9rIn0K
+import os
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.config import settings
+from app.routers import auth, projects, files, import_, analysis, stats, plots, isotope, pathways
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    yield
+
+
+app = FastAPI(title="Metabolomics Platform", version="0.1.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
+app.include_router(files.router, prefix="/api/files", tags=["files"])
+app.include_router(import_.router, prefix="/api/import", tags=["import"])
+app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
+app.include_router(stats.router, prefix="/api/stats", tags=["stats"])
+app.include_router(plots.router, prefix="/api/plots", tags=["plots"])
+app.include_router(isotope.router, prefix="/api/isotope", tags=["isotope"])
+app.include_router(pathways.router, prefix="/api/pathways", tags=["pathways"])
+
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}

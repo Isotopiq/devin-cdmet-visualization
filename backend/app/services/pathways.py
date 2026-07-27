@@ -1,1 +1,61 @@
-aW1wb3J0IGpzb24KaW1wb3J0IHBsb3RseS5ncmFwaF9vYmplY3RzIGFzIGdvCmZyb20gYXBwIGltcG9ydCBtb2RlbHMsIHNjaGVtYXMKCgpkZWYgYnVpbGRfcGF0aHdheShkYXRhc2V0OiBtb2RlbHMuRGF0YXNldCwgcmVxOiBzY2hlbWFzLlBhdGh3YXlSZXF1ZXN0KToKICAgIHZhbHVlX3R5cGUgPSByZXEudmFsdWVfdHlwZQogICAgc291cmNlID0gcmVxLnBhdGh3YXlfc291cmNlCgogICAgaWYgcmVxLmN1c3RvbV9ub2RlcyBhbmQgcmVxLmN1c3RvbV9lZGdlczoKICAgICAgICBub2RlcyA9IHJlcS5jdXN0b21fbm9kZXMKICAgICAgICBlZGdlcyA9IHJlcS5jdXN0b21fZWRnZXMKICAgIGVsc2U6CiAgICAgICAgbm9kZXMgPSBbCiAgICAgICAgICAgIHsiaWQiOiAiR2x1Y29zZSIsICJsYWJlbCI6ICJHbHVjb3NlIiwgIngiOiAwLCAieSI6IDB9LAogICAgICAgICAgICB7ImlkIjogIkc2UCIsICJsYWJlbCI6ICJHbHVjb3NlLTYtUCIsICJ4IjogMSwgInkiOiAwfSwKICAgICAgICAgICAgeyJpZCI6ICJGNlAiLCAibGFiZWwiOiAiRnJ1Y3Rvc2UtNi1QIiwgIngiOiAyLCAieSI6IDB9LAogICAgICAgICAgICB7ImlkIjogIlBZUiIsICJsYWJlbCI6ICJQeXJ1dmF0ZSIsICJ4IjogMywgInkiOiAwfSwKICAgICAgICBdCiAgICAgICAgZWRnZXMgPSBbCiAgICAgICAgICAgIHsic291cmNlIjogIkdsdWNvc2UiLCAidGFyZ2V0IjogIkc2UCIsICJsYWJlbCI6ICJISyJ9LAogICAgICAgICAgICB7InNvdXJjZSI6ICJHNlAiLCAidGFyZ2V0IjogIkY2UCIsICJsYWJlbCI6ICJQR0kifSwKICAgICAgICAgICAgeyJzb3VyY2UiOiAiRjZQIiwgInRhcmdldCI6ICJQWVIiLCAibGFiZWwiOiAiZ2x5Y29seXNpcyJ9LAogICAgICAgIF0KCiAgICBub2RlX3ggPSBbblsieCJdIGZvciBuIGluIG5vZGVzXQogICAgbm9kZV95ID0gW25bInkiXSBmb3IgbiBpbiBub2Rlc10KICAgIG5vZGVfdGV4dCA9IFtmIntuWydsYWJlbCddfTxicj57dmFsdWVfdHlwZX06IHtuLmdldCgndmFsdWUnLCAnbWVhc3VyZWQnKX0iIGZvciBuIGluIG5vZGVzXQoKICAgIGZpZyA9IGdvLkZpZ3VyZSgpCiAgICBmb3IgZWRnZSBpbiBlZGdlczoKICAgICAgICB4MCA9IG5leHQoKG5bIngiXSBmb3IgbiBpbiBub2RlcyBpZiBuWyJpZCJdID09IGVkZ2VbInNvdXJjZSJdKSwgMCkKICAgICAgICB5MCA9IG5leHQoKG5bInkiXSBmb3IgbiBpbiBub2RlcyBpZiBuWyJpZCJdID09IGVkZ2VbInNvdXJjZSJdKSwgMCkKICAgICAgICB4MSA9IG5leHQoKG5bIngiXSBmb3IgbiBpbiBub2RlcyBpZiBuWyJpZCJdID09IGVkZ2VbInRhcmdldCJdKSwgMCkKICAgICAgICB5MSA9IG5leHQoKG5bInkiXSBmb3IgbiBpbiBub2RlcyBpZiBuWyJpZCJdID09IGVkZ2VbInRhcmdldCJdKSwgMCkKICAgICAgICBmaWcuYWRkX3RyYWNlKGdvLlNjYXR0ZXIoCiAgICAgICAgICAgIHg9W3gwLCB4MSwgTm9uZV0sIHk9W3kwLCB5MSwgTm9uZV0sCiAgICAgICAgICAgIG1vZGU9ImxpbmVzIiwKICAgICAgICAgICAgbGluZT1kaWN0KHdpZHRoPTIsIGNvbG9yPSIjODg4IiksCiAgICAgICAgICAgIGhvdmVyaW5mbz0idGV4dCIsCiAgICAgICAgICAgIHRleHQ9ZWRnZS5nZXQoImxhYmVsIiwgIiIpLAogICAgICAgICAgICBzaG93bGVnZW5kPUZhbHNlLAogICAgICAgICkpCgogICAgZmlnLmFkZF90cmFjZShnby5TY2F0dGVyKAogICAgICAgIHg9bm9kZV94LCB5PW5vZGVfeSwKICAgICAgICBtb2RlPSJtYXJrZXJzK3RleHQiLAogICAgICAgIG1hcmtlcj1kaWN0KHNpemU9MzAsIGNvbG9yPSJsaWdodGJsdWUiKSwKICAgICAgICB0ZXh0PVtuWyJsYWJlbCJdIGZvciBuIGluIG5vZGVzXSwKICAgICAgICB0ZXh0cG9zaXRpb249InRvcCBjZW50ZXIiLAogICAgICAgIGhvdmVydGV4dD1ub2RlX3RleHQsCiAgICAgICAgc2hvd2xlZ2VuZD1GYWxzZSwKICAgICkpCgogICAgZmlnLnVwZGF0ZV9sYXlvdXQoCiAgICAgICAgdGl0bGU9ZiJQYXRod2F5IE1hcCAoe3NvdXJjZX0pIC0ge3ZhbHVlX3R5cGV9IiwKICAgICAgICB4YXhpcz1kaWN0KHZpc2libGU9RmFsc2UpLAogICAgICAgIHlheGlzPWRpY3QodmlzaWJsZT1GYWxzZSksCiAgICAgICAgcGxvdF9iZ2NvbG9yPSJ3aGl0ZSIsCiAgICApCiAgICByZXR1cm4ganNvbi5sb2FkcyhmaWcudG9fanNvbigpKQo=
+import json
+import plotly.graph_objects as go
+from app import models, schemas
+
+
+def build_pathway(dataset: models.Dataset, req: schemas.PathwayRequest):
+    value_type = req.value_type
+    source = req.pathway_source
+
+    if req.custom_nodes and req.custom_edges:
+        nodes = req.custom_nodes
+        edges = req.custom_edges
+    else:
+        nodes = [
+            {"id": "Glucose", "label": "Glucose", "x": 0, "y": 0},
+            {"id": "G6P", "label": "Glucose-6-P", "x": 1, "y": 0},
+            {"id": "F6P", "label": "Fructose-6-P", "x": 2, "y": 0},
+            {"id": "PYR", "label": "Pyruvate", "x": 3, "y": 0},
+        ]
+        edges = [
+            {"source": "Glucose", "target": "G6P", "label": "HK"},
+            {"source": "G6P", "target": "F6P", "label": "PGI"},
+            {"source": "F6P", "target": "PYR", "label": "glycolysis"},
+        ]
+
+    node_x = [n["x"] for n in nodes]
+    node_y = [n["y"] for n in nodes]
+    node_text = [f"{n['label']}<br>{value_type}: {n.get('value', 'measured')}" for n in nodes]
+
+    fig = go.Figure()
+    for edge in edges:
+        x0 = next((n["x"] for n in nodes if n["id"] == edge["source"]), 0)
+        y0 = next((n["y"] for n in nodes if n["id"] == edge["source"]), 0)
+        x1 = next((n["x"] for n in nodes if n["id"] == edge["target"]), 0)
+        y1 = next((n["y"] for n in nodes if n["id"] == edge["target"]), 0)
+        fig.add_trace(go.Scatter(
+            x=[x0, x1, None], y=[y0, y1, None],
+            mode="lines",
+            line=dict(width=2, color="#888"),
+            hoverinfo="text",
+            text=edge.get("label", ""),
+            showlegend=False,
+        ))
+
+    fig.add_trace(go.Scatter(
+        x=node_x, y=node_y,
+        mode="markers+text",
+        marker=dict(size=30, color="lightblue"),
+        text=[n["label"] for n in nodes],
+        textposition="top center",
+        hovertext=node_text,
+        showlegend=False,
+    ))
+
+    fig.update_layout(
+        title=f"Pathway Map ({source}) - {value_type}",
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        plot_bgcolor="white",
+    )
+    return json.loads(fig.to_json())
