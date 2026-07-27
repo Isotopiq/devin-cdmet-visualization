@@ -21,9 +21,7 @@ export default function Login({ onLogin }: { onLogin: (t: string) => void }) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800 p-4">
       <div className="w-full max-w-md card p-8">
         <div className="flex justify-center mb-8">
-          <div className="bg-black rounded-xl p-4">
-            <img src="/logo.png" alt="isotopiq" className="h-10 w-auto object-contain" />
-          </div>
+          <img src="/logo.png" alt="isotopiq" className="h-10 w-auto object-contain" />
         </div>
         {error && <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 text-sm">{error}</div>}
         <form onSubmit={submit} className="space-y-5">
