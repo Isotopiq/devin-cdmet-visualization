@@ -3,7 +3,7 @@ import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import { runStats, generatePlot } from '../api'
-import { LuPlay, LuDownload, LuAlertCircle } from 'react-icons/lu'
+import { LuPlay, LuDownload, LuAlertCircle, LuSearch } from 'react-icons/lu'
 
 export default function Statistics() {
   const { selectedDataset, projectId, datasetId } = useWorkspace()
@@ -14,9 +14,10 @@ export default function Statistics() {
   const [multipleTesting, setMultipleTesting] = useState('fdr_bh')
   const [alpha, setAlpha] = useState(0.05)
   const [fcThreshold, setFcThreshold] = useState(0.5)
-  const [pvalueFilter, setPvalueFilter] = useState(1)
+  const [pvalueFilter, setPvalueFilter] = useState(0.05)
   const [padjFilter, setPadjFilter] = useState(0.05)
   const [directionFilter, setDirectionFilter] = useState('all')
+  const [search, setSearch] = useState('')
   const [results, setResults] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -55,24 +56,23 @@ export default function Statistics() {
   const displayResults = useMemo(() => {
     if (!results) return []
     return results.results.filter((r: any) => {
-      const absfc = Math.abs(r.log2fc || 0)
-      if (absfc < fcThreshold) return false
-      if ((r.pvalue ?? 1) > pvalueFilter) return false
-      if ((r.padj ?? 1) > padjFilter) return false
+      const name = (r.feature_id || '').toLowerCase()
+      if (search && !name.includes(search.toLowerCase())) return false
       if (directionFilter === 'up' && (r.log2fc || 0) <= 0) return false
       if (directionFilter === 'down' && (r.log2fc || 0) >= 0) return false
       return true
     })
-  }, [results, fcThreshold, pvalueFilter, padjFilter, directionFilter])
+  }, [results, search, directionFilter])
 
   const rowClass = (r: any) => {
     const absfc = Math.abs(r.log2fc || 0)
-    const sig = (r.padj ?? 1) < padjFilter
+    const sigPadj = (r.padj ?? 1) < padjFilter
+    const sigPvalue = (r.pvalue ?? 1) < pvalueFilter
     const bigFc = absfc >= fcThreshold
-    if (sig && bigFc) return 'bg-emerald-50 dark:bg-emerald-900/30'
-    if (sig) return 'bg-amber-50 dark:bg-amber-900/30'
+    if (sigPadj && bigFc) return 'bg-emerald-50 dark:bg-emerald-900/30'
+    if (sigPadj || sigPvalue) return 'bg-amber-50 dark:bg-amber-900/30'
     if (bigFc) return 'bg-blue-50 dark:bg-blue-900/30'
-    return ''
+    return 'bg-slate-50 text-slate-600 dark:bg-slate-700/20 dark:text-slate-400'
   }
 
   const downloadCsv = () => {
@@ -160,7 +160,8 @@ export default function Statistics() {
               </div>
             </div>
 
-            <h3 className="font-semibold text-slate-900 dark:text-white mb-2 mt-4">Result Filters</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-2 mt-4">Significance thresholds</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">All results are shown; thresholds are used to highlight significant rows. Non-significant rows appear grey.</p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2">
               <div>
                 <label className="label-like">Min |log2FC|</label>
@@ -196,7 +197,19 @@ export default function Statistics() {
               <div className="card p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-slate-900 dark:text-white">Results <span className="text-sm font-normal text-slate-500">({displayResults.length} of {results.n_features} features, {test})</span></h3>
-                  <button onClick={downloadCsv} className="btn-secondary"><LuDownload /> CSV</button>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <LuSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search feature..."
+                        className="input pl-9 text-sm"
+                      />
+                    </div>
+                    <button onClick={downloadCsv} className="btn-secondary"><LuDownload /> CSV</button>
+                  </div>
                 </div>
                 <div className="overflow-x-auto max-h-[32rem]">
                   <table className="min-w-full text-sm">
