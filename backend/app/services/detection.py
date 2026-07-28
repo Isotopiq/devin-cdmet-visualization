@@ -1,6 +1,9 @@
 import os
 import re
 from typing import Any, Dict, List, Tuple
+import math
+
+import openpyxl
 import pandas as pd
 
 
@@ -40,6 +43,141 @@ def _base_raw_name(raw: str) -> str:
         if name.lower().endswith(ext):
             name = name[: -len(ext)]
     return name
+
+
+def _is_main_row(row: Tuple) -> bool:
+    """A Compound Discoverer main compound row starts with True/False in the first cell and has a name in the second."""
+    if len(row) < 2:
+        return False
+    first = row[0]
+    if first is None or (isinstance(first, str) and first.strip() == ""):
+        return False
+    if isinstance(first, str):
+        first_clean = first.strip().lower()
+        if first_clean in ("true", "1", "1.0"):
+            first = True
+        elif first_clean in ("false", "0", "0.0"):
+            first = False
+        else:
+            return False
+    if isinstance(first, (int, float)) and first in (0, 1):
+        pass
+    elif not isinstance(first, bool):
+        return False
+    second = row[1]
+    if second is None or (isinstance(second, str) and (second.strip() == "" or second.strip().lower() == "checked")):
+        return False
+    return True
+
+
+def _is_lipid_candidate_header(row: Tuple) -> bool:
+    """The embedded LipidSearch candidate sub-table header row: empty first cell, 'Checked' in second, 'Name' in fifth."""
+    if len(row) < 6:
+        return False
+    first = row[0]
+    if first is not None and not (isinstance(first, str) and first.strip() == ""):
+        return False
+    second = row[1]
+    if not (isinstance(second, str) and second.strip().lower() == "checked"):
+        return False
+    fifth = row[4]
+    if not (isinstance(fifth, str) and fifth.strip().lower() == "name"):
+        return False
+    return True
+
+
+def is_compound_discoverer_lipidset(path: str, sheet: str = None) -> bool:
+    """Detect a Compound Discoverer export that contains an embedded LipidSearch candidate sub-table."""
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    except Exception:
+        return False
+    ws = wb[sheet] if sheet else wb.active
+    for i, row in enumerate(ws.iter_rows(values_only=True)):
+        if i == 0:
+            continue
+        if i > 50:
+            break
+        if _is_lipid_candidate_header(row):
+            return True
+    return False
+
+
+def read_compound_discoverer_lipidset(path: str, sheet: str = None) -> pd.DataFrame:
+    """Parse a Compound Discoverer + LipidSearch combined export.
+
+    The main compound rows become the data rows; the embedded LipidSearch
+    candidate details are attached as a `_lipid_candidates` column per row.
+    """
+    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    ws = wb[sheet] if sheet else wb.active
+    rows = ws.iter_rows(values_only=True)
+    header = next(rows)
+    main_col_idx = {i: str(h).strip() for i, h in enumerate(header) if h is not None}
+
+    main_records: List[Dict[str, Any]] = []
+    candidates_by_idx: Dict[int, List[Dict[str, Any]]] = {}
+    current_idx: int | None = None
+    cand_col_idx: Dict[int, str] = {}
+
+    for row in rows:
+        if _is_main_row(row):
+            record = {h: (row[i] if i < len(row) else None) for i, h in main_col_idx.items()}
+            main_records.append(record)
+            current_idx = len(main_records) - 1
+            cand_col_idx = {}
+            continue
+
+        if _is_lipid_candidate_header(row):
+            cand_col_idx = {i: str(h).strip() for i, h in enumerate(row) if h is not None and str(h).strip() != ""}
+            continue
+
+        if current_idx is not None and cand_col_idx:
+            candidate: Dict[str, Any] = {}
+            for i, h in cand_col_idx.items():
+                val = row[i] if i < len(row) else None
+                if h.lower() == "structure" and isinstance(val, str) and val.startswith("#mol format"):
+                    val = None
+                candidate[h] = val
+            if candidate.get("Name"):
+                candidates_by_idx.setdefault(current_idx, []).append(candidate)
+
+    df = pd.DataFrame(main_records)
+    if not df.empty:
+        df["_lipid_candidates"] = df.index.map(lambda i: candidates_by_idx.get(i, []))
+    return df
+
+
+def select_top_lipid_candidate(candidates: List[Dict[str, Any]]) -> Dict[str, Any] | None:
+    """Pick the best LipidSearch candidate using rank, grade, then ID score."""
+    if not candidates:
+        return None
+
+    def _grade_score(grade):
+        if not grade:
+            return 99
+        g = str(grade).strip().upper()
+        order = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5}
+        return order.get(g[0], 99)
+
+    scored = []
+    for c in candidates:
+        rank = c.get("Rank")
+        try:
+            rank = int(float(rank))
+        except Exception:
+            rank = 999
+        grade = c.get("Grade") or c.get("Best Grade")
+        gs = _grade_score(grade)
+        id_score = c.get("ID Score") or c.get("Best ID Score")
+        try:
+            id_score = float(id_score)
+        except Exception:
+            id_score = 0.0
+        scored.append(((rank, gs, -id_score), c))
+
+    scored.sort(key=lambda x: x[0])
+    return scored[0][1]
 
 
 def _detect_lipidsearch_samples(columns: List[str]) -> Tuple[List[str], Dict[str, str], Dict[str, List[str]]]:
@@ -92,6 +230,8 @@ def _detect_compound_discoverer_samples(columns: List[str], metadata: Dict[str, 
 def read_file_to_df(path: str, sheet: str = None) -> pd.DataFrame:
     ext = os.path.splitext(path)[1].lower()
     if ext in [".xlsx", ".xls"]:
+        if is_compound_discoverer_lipidset(path, sheet):
+            return read_compound_discoverer_lipidset(path, sheet)
         if sheet:
             return pd.read_excel(path, sheet_name=sheet, engine="openpyxl")
         return pd.read_excel(path, engine="openpyxl")
@@ -133,7 +273,7 @@ def detect_file_format(path: str, ext: str = None) -> Dict[str, Any]:
 
 
 def detect_columns(df: pd.DataFrame, metadata: Dict[str, Dict[str, Any]] = None) -> Dict[str, Any]:
-    columns = [str(c) for c in df.columns]
+    columns = [str(c) for c in df.columns if not str(c).startswith("_")]
 
     feature_markers = {
         "feature_id": ["name", "compound", "lipidion", "lipid ion", "metabolite", "lipidmolec"],
@@ -147,6 +287,8 @@ def detect_columns(df: pd.DataFrame, metadata: Dict[str, Dict[str, Any]] = None)
         "calc_mw": ["calc. mw", "calc.mw", "calculated mw"],
         "polarity": ["polarity"],
         "neutral_losses": ["neutral losses", "neutral_losses"],
+        "peak_rating": ["peak rating", "peak_rating"],
+        "num_lipidsearch_results": ["# lipidsearch results", "lipidsearch results"],
     }
     suggested = {}
     already = set()

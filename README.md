@@ -21,7 +21,7 @@ A production-ready, Dockerized web application for importing, analyzing, and vis
    docker compose up --build
    ```
 
-3. Open the frontend at http://localhost:3000 and the backend docs at http://localhost:8000/docs.
+3. Open the frontend at http://localhost:13000 and the backend docs at http://localhost:18000/docs.
 
 ## Development
 

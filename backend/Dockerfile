@@ -8,8 +8,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Install dependencies without building the package itself, so this layer is
+# cached unless pyproject.toml changes.
 COPY pyproject.toml .
-RUN pip install --no-cache-dir -e .
+RUN python - <<'PY'
+import tomllib
+with open('pyproject.toml', 'rb') as f:
+    deps = tomllib.load(f)['project']['dependencies']
+with open('requirements.txt', 'w') as f:
+    f.write('\n'.join(deps) + '\n')
+PY
+RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt
 
 COPY . .
 

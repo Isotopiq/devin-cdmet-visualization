@@ -9,7 +9,7 @@ services:
     volumes:
       - pgdata-easypanel:/var/lib/postgresql/data
     ports:
-      - "5437:5432"
+      - "15437:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -33,7 +33,7 @@ services:
     volumes:
       - upload-data-easypanel:/app/uploads
     ports:
-      - "8457:8000"
+      - "18457:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -51,7 +51,7 @@ services:
     image: metabolomics-platform-frontend
     container_name: metabolomics-frontend-easypanel
     ports:
-      - "3457:80"
+      - "13457:80"
     depends_on:
       - backend
     restart: unless-stopped
