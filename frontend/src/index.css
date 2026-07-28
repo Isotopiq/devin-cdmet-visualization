@@ -64,3 +64,31 @@
     @apply block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1;
   }
 }
+
+@media print {
+  aside, header, .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  body {
+    background: white !important;
+  }
+  .report-overlay {
+    position: static !important;
+    overflow: visible !important;
+    background: white !important;
+    padding: 0 !important;
+    inset: auto !important;
+    z-index: auto !important;
+    color: black !important;
+  }
+}

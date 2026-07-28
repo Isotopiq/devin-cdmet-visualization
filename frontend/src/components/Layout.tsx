@@ -28,6 +28,7 @@ const baseNavItems: NavItem[] = [
   { to: '/heatmap', label: 'Heat Map', icon: <LuPieChart /> },
   { to: '/pca', label: 'PCA / PLS-DA', icon: <LuLayers /> },
   { to: '/volcano', label: 'Volcano Plot', icon: <LuMicroscope /> },
+  { to: '/visualize', label: 'Visualize', icon: <LuBarChart3 /> },
   { section: 'Specialized', to: '/isotope', label: 'Isotope Tracing', icon: <LuDna /> },
   { to: '/pathway', label: 'Pathway Mapping', icon: <LuGitMerge /> },
   { section: 'Output', to: '/reports', label: 'Reports', icon: <LuFileText /> },

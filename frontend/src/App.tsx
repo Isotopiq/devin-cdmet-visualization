@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { WorkspaceProvider } from './context/WorkspaceContext'
+import { PlotConfigProvider } from './context/PlotConfigContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -12,6 +13,7 @@ import Plots from './pages/Plots'
 import HeatMap from './pages/HeatMap'
 import PCA from './pages/PCA'
 import Volcano from './pages/Volcano'
+import Visualize from './pages/Visualize'
 import Isotope from './pages/Isotope'
 import Pathway from './pages/Pathway'
 import Reports from './pages/Reports'
@@ -34,9 +36,10 @@ function App() {
   }
 
   return (
-    <WorkspaceProvider>
-      <Routes>
-        <Route path="/" element={<Layout />}>
+    <PlotConfigProvider>
+      <WorkspaceProvider>
+        <Routes>
+          <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="projects" element={<Projects />} />
           <Route path="import" element={<Import />} />
@@ -46,6 +49,7 @@ function App() {
           <Route path="heatmap" element={<HeatMap />} />
           <Route path="pca" element={<PCA />} />
           <Route path="volcano" element={<Volcano />} />
+          <Route path="visualize" element={<Visualize />} />
           <Route path="isotope" element={<Isotope />} />
           <Route path="pathway" element={<Pathway />} />
           <Route path="reports" element={<Reports />} />
@@ -57,6 +61,7 @@ function App() {
         </Route>
       </Routes>
     </WorkspaceProvider>
+    </PlotConfigProvider>
   )
 }
 

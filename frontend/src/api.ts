@@ -44,6 +44,7 @@ export const listAnalyses = (projectId: number) => API.get(`/analysis/${projectI
 
 export const runStats = (projectId: number, datasetId: number, params: any) => API.post(`/stats/${projectId}/dataset/${datasetId}/stats`, params)
 export const generatePlot = (projectId: number, datasetId: number, params: any) => API.post(`/plots/${projectId}/dataset/${datasetId}/plot`, params)
+export const generateReport = (projectId: number, datasetId: number, params: any) => API.post(`/plots/${projectId}/dataset/${datasetId}/report`, params)
 
 export const runIsotope = (projectId: number, datasetId: number, params: any) => API.post(`/isotope/${projectId}/dataset/${datasetId}/isotope`, params)
 export const buildPathway = (projectId: number, datasetId: number, params: any) => API.post(`/pathways/${projectId}/dataset/${datasetId}/pathway`, params)

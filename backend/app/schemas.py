@@ -165,6 +165,13 @@ class StatsRequest(BaseModel):
 class PlotRequest(BaseModel):
     plot_type: str
     parameters: Dict[str, Any] = {}
+    style: Dict[str, Any] = {}
+
+
+class ReportRequest(BaseModel):
+    include: List[str] = ["pca", "volcano", "heatmap", "per_lipid_bars", "lipid_classes"]
+    style: Dict[str, Any] = {}
+    parameters: Dict[str, Any] = {}
 
 
 class IsotopeRequest(BaseModel):

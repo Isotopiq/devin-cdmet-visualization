@@ -1,15 +1,97 @@
 import json
 import math
+import re
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from scipy.cluster.hierarchy import linkage, leaves_list
 from scipy.spatial.distance import pdist
+from scipy import stats as scipy_stats
 from sklearn.decomposition import PCA as PCA_SKL
 from sklearn.preprocessing import StandardScaler
 from app import models, schemas
 from app.services.preprocessing import to_dataframe, _to_json_safe
+
+
+STYLE_DEFAULTS = {
+    "engine": "plotly",
+    "font_family": "Inter, Arial, sans-serif",
+    "title_size": 16,
+    "axis_label_size": 12,
+    "tick_size": 11,
+    "marker_size": 10,
+    "show_gridlines": True,
+    "paper_bgcolor": "#ffffff",
+    "plot_bgcolor": "#ffffff",
+    "grid_color": "#e2e8f0",
+    "up_color": "#c44e52",
+    "down_color": "#2e6575",
+    "non_significant_color": "#a0aec0",
+    "group_colors": ["#2e6575", "#7eb5c9", "#e9a47f", "#f2cc8f", "#81b29a", "#9d8189"],
+    "heatmap_colorscale": "RdBu_r",
+}
+
+
+def _merge_style(style: dict | None) -> dict:
+    merged = dict(STYLE_DEFAULTS)
+    if style:
+        merged.update(style)
+    return merged
+
+
+def _group_color_map(style: dict, groups: list) -> dict:
+    colors = style.get("group_colors") or STYLE_DEFAULTS["group_colors"]
+    uniq = sorted(set(str(g) for g in groups if g))
+    return {g: colors[i % len(colors)] for i, g in enumerate(uniq)}
+
+
+def _apply_base_layout(fig: go.Figure, style: dict, title: str | None = None):
+    layout = {
+        "font": {"family": style.get("font_family"), "color": "#334155"},
+        "paper_bgcolor": style.get("paper_bgcolor"),
+        "plot_bgcolor": style.get("plot_bgcolor"),
+        "title": {
+            "text": title,
+            "font": {"size": style.get("title_size"), "color": "#1e293b"},
+            "x": 0.5,
+            "xanchor": "center",
+            "y": 0.99,
+            "yanchor": "top",
+            "pad": {"b": 20},
+        } if title else None,
+        "legend": {
+            "title": {"font": {"size": style.get("tick_size")}},
+            "font": {"size": style.get("tick_size")},
+            "bgcolor": "rgba(0,0,0,0)",
+        },
+        "margin": {"l": 70, "r": 50, "t": 100, "b": 70},
+        "xaxis": {
+            "showgrid": style.get("show_gridlines"),
+            "gridcolor": style.get("grid_color"),
+            "gridwidth": 1,
+            "tickfont": {"size": style.get("tick_size")},
+            "title_font": {"size": style.get("axis_label_size")},
+            "zerolinecolor": "#cbd5e1",
+            "automargin": True,
+        },
+        "yaxis": {
+            "showgrid": style.get("show_gridlines"),
+            "gridcolor": style.get("grid_color"),
+            "gridwidth": 1,
+            "tickfont": {"size": style.get("tick_size")},
+            "title_font": {"size": style.get("axis_label_size")},
+            "zerolinecolor": "#cbd5e1",
+            "automargin": True,
+        },
+    }
+    fig.update_layout(**{k: v for k, v in layout.items() if v is not None})
+    if fig.data:
+        for trace in fig.data:
+            if isinstance(trace, (go.Scatter, go.Scattergl)) and trace.mode and "markers" in trace.mode:
+                trace.marker = trace.marker or {}
+                trace.marker.size = style.get("marker_size")
 
 
 def _get_feature_index(dataset, feature_arg):
@@ -46,30 +128,36 @@ def _safe_float(value, default=0.0):
 
 
 def _place_labels(xs, ys, labels, x_min, x_max, y_min, y_max, plot_width_px=900, plot_height_px=520, font_px=9):
-    """Place text labels near volcano points while avoiding overlap and plot edges."""
     placed = []
     x_range = max(x_max - x_min, 1e-9)
     y_range = max(y_max - y_min, 1e-9)
-    char_w = x_range * (font_px * 0.6) / plot_width_px
-    char_h = y_range * (font_px * 1.6) / plot_height_px
-    # Candidate offsets: right, left, top, bottom, corners
-    candidates = [
-        ("top right", char_w * 0.5, char_h),
-        ("top left", -char_w * 0.5, char_h),
-        ("bottom right", char_w * 0.5, -char_h),
-        ("bottom left", -char_w * 0.5, -char_h),
-        ("right", char_w, 0),
-        ("left", -char_w, 0),
-        ("top center", 0, char_h),
-        ("bottom center", 0, -char_h),
-    ]
-    margin = (x_range * 20 / plot_width_px, y_range * 20 / plot_height_px)
+    char_w = x_range * (font_px * 0.75) / plot_width_px
+    char_h = y_range * (font_px * 2.0) / plot_height_px
+    # Build a radial set of candidate offsets
+    candidates = []
+    radii = [1.2, 2.0, 2.8, 3.6]
+    angles = [0.785, 1.571, 2.356, 3.142, 3.927, 4.712, 5.498, 6.283]
+    text_positions = {
+        0.785: "top right", 1.571: "top center", 2.356: "top left",
+        3.142: "left", 3.927: "bottom left", 4.712: "bottom center",
+        5.498: "bottom right", 6.283: "right",
+    }
+    for r in radii:
+        for a in angles:
+            dx = math.cos(a) * r * char_w
+            dy = math.sin(a) * r * char_h
+            candidates.append((text_positions.get(round(a, 3), "top center"), dx, dy))
+    margin = (x_range * 30 / plot_width_px, y_range * 30 / plot_height_px)
 
     def rect(x, y, w, h):
         return (x - w / 2, y - h / 2, x + w / 2, y + h / 2)
 
     def overlaps(r1, r2):
         return not (r1[2] < r2[0] or r2[2] < r1[0] or r1[3] < r2[1] or r2[3] < r1[1])
+
+    # Use data points as obstacles so labels don't cover the markers
+    for x, y in zip(xs, ys):
+        placed.append(rect(x, y, char_w * 0.6, char_h * 0.6))
 
     for x, y, text in zip(xs, ys, labels):
         w = max(len(text) * char_w, char_w)
@@ -80,21 +168,43 @@ def _place_labels(xs, ys, labels, x_min, x_max, y_min, y_max, plot_width_px=900,
             nx = x + dx
             ny = y + dy
             r = rect(nx, ny, w, h)
-            # stay within axis bounds with a margin
             if r[0] < x_min - margin[0] or r[2] > x_max + margin[0] or r[1] < y_min - margin[1] or r[3] > y_max + margin[1]:
                 continue
             if any(overlaps(r, pr) for pr in placed):
                 continue
-            # Prefer positions closer to the original point and the first candidate order
             score = (dx ** 2 + dy ** 2) ** 0.5
             if best is None or score < best_score:
                 best = (nx, ny, pos)
                 best_score = score
         if best is None:
-            # Fallback: keep original position, top center; label may overlap but stays visible
-            best = (x, y + char_h, "top center")
+            best = (x, y + char_h * 1.5, "top center")
         placed.append(rect(best[0], best[1], w, h))
         yield best
+
+
+def _extract_lipid_class(feature_id: str, meta: dict) -> str:
+    cls = meta.get("top_candidate_class") or meta.get("class") or meta.get("lipid_class")
+    if cls:
+        return cls
+    m = re.match(r"^([A-Za-z]+)", str(feature_id))
+    return m.group(1) if m else "Unknown"
+
+
+def _lipid_class_totals(df: pd.DataFrame, classes: list) -> pd.DataFrame:
+    """Return per-sample total intensity per lipid class."""
+    mat = df.copy()
+    mat["class"] = classes
+    return mat.groupby("class").sum(numeric_only=True)
+
+
+def _group_stats(values_by_group: dict) -> tuple:
+    means = []
+    sems = []
+    for g in sorted(values_by_group.keys()):
+        vals = np.array([_safe_float(v) for v in values_by_group[g]])
+        means.append(float(np.mean(vals)))
+        sems.append(float(scipy_stats.sem(vals)) if len(vals) > 1 else 0.0)
+    return means, sems
 
 
 def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
@@ -102,83 +212,163 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
     sample_meta = dataset.sample_metadata
     plot_type = req.plot_type
     params = req.parameters or {}
+    style = _merge_style(req.style)
 
     if plot_type in ("bar", "box", "violin", "dot"):
         feature = _get_feature_index(dataset, params.get("feature"))
-        values = df.iloc[feature].values
-        samples = df.columns.tolist()
-        groups = [sample_meta.get(c, "unknown") for c in samples]
-        group_order = params.get("group_order", [])
-        ordered_df = _reorder_columns(df, sample_meta, group_order)
+        title = f"{dataset.feature_metadata[feature].get('feature_id', feature)}"
+        ordered_df = _reorder_columns(df, sample_meta, params.get("group_order", []))
         ordered_samples = ordered_df.columns.tolist()
         ordered_values = ordered_df.iloc[feature].values
         ordered_groups = [sample_meta.get(c, "unknown") for c in ordered_samples]
-        title = f"{dataset.feature_metadata[feature].get('feature_id', feature)}"
+        color_map = _group_color_map(style, ordered_groups)
 
         if plot_type == "bar":
-            fig = px.bar(x=ordered_samples, y=ordered_values, color=ordered_groups,
-                         labels={"x": "Sample", "y": "Abundance"},
-                         title=f"Abundance: {title}")
+            fig = go.Figure()
+            for g in sorted(set(ordered_groups)):
+                idx = [i for i, gg in enumerate(ordered_groups) if gg == g]
+                vals = [float(ordered_values[i]) for i in idx]
+                samps = [ordered_samples[i] for i in idx]
+                fig.add_trace(go.Bar(x=samps, y=vals, name=g, marker_color=color_map[g]))
+            fig.update_layout(barmode="group", xaxis_title="Sample", yaxis_title="Abundance")
         elif plot_type == "box":
             fig = go.Figure()
             group_vals = {}
             for s, g in zip(ordered_samples, ordered_groups):
                 group_vals.setdefault(g, []).append(_safe_float(ordered_values[ordered_samples.index(s)]))
-            for g, vals in group_vals.items():
-                fig.add_trace(go.Box(y=vals, name=g, boxpoints="all"))
-            fig.update_layout(title=f"Box Plot: {title}", xaxis_title="Group", yaxis_title="Abundance")
+            for g in sorted(group_vals):
+                fig.add_trace(go.Box(y=group_vals[g], name=g, boxpoints="all", marker_color=color_map[g]))
+            fig.update_layout(xaxis_title="Group", yaxis_title="Abundance")
         elif plot_type == "violin":
             fig = go.Figure()
             group_vals = {}
             for s, g in zip(ordered_samples, ordered_groups):
                 group_vals.setdefault(g, []).append(_safe_float(ordered_values[ordered_samples.index(s)]))
-            for g, vals in group_vals.items():
-                fig.add_trace(go.Violin(y=vals, name=g, box_visible=True, meanline_visible=True))
-            fig.update_layout(title=f"Violin Plot: {title}", yaxis_title="Abundance")
+            for g in sorted(group_vals):
+                fig.add_trace(go.Violin(y=group_vals[g], name=g, box_visible=True, meanline_visible=True, line_color=color_map[g]))
+            fig.update_layout(yaxis_title="Abundance")
         else:  # dot
-            fig = px.scatter(x=ordered_samples, y=ordered_values, color=ordered_groups,
-                             labels={"x": "Sample", "y": "Abundance"},
-                             title=f"Dot Plot: {title}")
+            fig = go.Figure()
+            for g in sorted(set(ordered_groups)):
+                idx = [i for i, gg in enumerate(ordered_groups) if gg == g]
+                vals = [float(ordered_values[i]) for i in idx]
+                samps = [ordered_samples[i] for i in idx]
+                fig.add_trace(go.Scatter(x=samps, y=vals, mode="markers", name=g, marker_color=color_map[g], marker_size=style.get("marker_size")))
+            fig.update_layout(xaxis_title="Sample", yaxis_title="Abundance")
+        _apply_base_layout(fig, style, title=f"{plot_type.title()} Plot: {title}")
 
     elif plot_type == "heatmap":
         heatmap_type = params.get("heatmap_type", "abundance")
-        cluster = params.get("cluster", "both")
+        top_n = int(params.get("top_n", 50))
+        metric = params.get("metric", "euclidean")
+        method = params.get("method", "average")
+        scale = params.get("scale", "row_zscore")
+        cluster_rows = bool(params.get("cluster_rows", True))
+        cluster_cols = bool(params.get("cluster_cols", True))
+        colorscale = style.get("heatmap_colorscale", "RdBu_r")
+
         if heatmap_type == "correlation":
-            if cluster in ("row", "both") and len(df.columns) > 2:
+            if cluster_cols and len(df.columns) > 2:
                 try:
-                    dist = pdist(df.T.values)
-                    link = linkage(dist, method="average")
+                    dist = pdist(df.T.values, metric=metric)
+                    link = linkage(dist, method=method)
                     order = leaves_list(link)
                     df = df.iloc[:, order]
                 except Exception:
                     pass
             corr = df.corr().fillna(0)
-            fig = px.imshow(corr, text_auto=".2f", aspect="auto", title="Sample Correlation Heatmap",
-                           color_continuous_scale="RdBu_r", zmid=0)
+            fig = go.Figure(data=go.Heatmap(
+                z=corr.values, x=corr.columns, y=corr.index,
+                colorscale=colorscale, zmid=1,
+                colorbar=dict(title={"text": "r", "side": "right"})))
+            _apply_base_layout(fig, style, title="Sample Correlation Heatmap")
+            fig.update_layout(xaxis=dict(side="top", tickangle=-45))
         else:
             plot_df = df.copy()
-            if cluster in ("row", "both") and len(plot_df) > 2:
+            row_std = plot_df.std(axis=1, numeric_only=True)
+            top_idx = row_std.nlargest(min(top_n, len(plot_df))).index
+            plot_df = plot_df.loc[top_idx]
+
+            if scale == "log10":
+                plot_df = np.log10(plot_df.replace(0, np.nan)).fillna(0)
+                zmid = None
+                cbar_title = "log10 intensity"
+            elif scale == "none":
+                zmid = None
+                cbar_title = "Intensity"
+            else:  # row_zscore
+                plot_df = (plot_df.sub(plot_df.mean(axis=1), axis=0).div(plot_df.std(axis=1).replace(0, np.nan), axis=0)).fillna(0)
+                zmid = 0
+                cbar_title = "Row z-score"
+
+            if cluster_rows and len(plot_df) > 2:
                 try:
-                    dist = pdist(plot_df.values)
-                    link = linkage(dist, method="average")
+                    dist = pdist(plot_df.values, metric=metric)
+                    link = linkage(dist, method=method)
                     order = leaves_list(link)
                     plot_df = plot_df.iloc[order]
                 except Exception:
                     pass
-            if cluster in ("col", "both") and len(plot_df.columns) > 2:
+            if cluster_cols and len(plot_df.columns) > 2:
                 try:
-                    dist = pdist(plot_df.T.values)
-                    link = linkage(dist, method="average")
+                    dist = pdist(plot_df.T.values, metric=metric)
+                    link = linkage(dist, method=method)
                     order = leaves_list(link)
                     plot_df = plot_df.iloc[:, order]
                 except Exception:
                     pass
-            # Use log10(abundance + 1) for visualization if the matrix is non-negative.
-            values = np.log10(plot_df.replace(0, np.nan).fillna(0) + 1).values
-            fig = px.imshow(values, x=plot_df.columns, y=plot_df.index,
-                            aspect="auto", title="Abundance Heatmap",
-                            labels={"color": "log10(abundance + 1)"},
-                            color_continuous_scale="Viridis")
+
+            sample_groups = {c: sample_meta.get(c, "Unknown") for c in plot_df.columns}
+            group_order = sorted(set(sample_groups.values()))
+            if "Unknown" in group_order:
+                group_order = [g for g in group_order if g != "Unknown"] + ["Unknown"]
+            gcolor_map = _group_color_map(style, group_order)
+            group_codes = [group_order.index(sample_groups.get(c, "Unknown")) for c in plot_df.columns]
+            n_groups = max(len(group_order), 1)
+            if n_groups == 1:
+                group_colorscale = [[0, gcolor_map[group_order[0]]], [1, gcolor_map[group_order[0]]]]
+            else:
+                group_colorscale = [[i / (n_groups - 1), gcolor_map[g]] for i, g in enumerate(group_order)]
+
+            fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02, row_heights=[0.06, 0.94])
+            fig.add_trace(go.Heatmap(
+                z=[group_codes],
+                x=plot_df.columns,
+                y=[""],
+                colorscale=group_colorscale,
+                showscale=False,
+                hoverinfo="skip",
+            ), row=1, col=1)
+            fig.add_trace(go.Heatmap(
+                z=plot_df.values,
+                x=plot_df.columns,
+                y=plot_df.index,
+                colorscale=colorscale,
+                zmid=zmid,
+                colorbar=dict(title={"text": cbar_title, "side": "right"}, x=1.02, len=0.85),
+            ), row=2, col=1)
+
+            fig.update_layout(
+                font={"family": style.get("font_family"), "color": "#334155"},
+                paper_bgcolor=style.get("paper_bgcolor"),
+                plot_bgcolor=style.get("plot_bgcolor"),
+                title={
+                    "text": f"Top {len(plot_df)} most-variable lipids",
+                    "font": {"size": style.get("title_size"), "color": "#1e293b"},
+                    "x": 0.5,
+                    "xanchor": "center",
+                    "y": 0.99,
+                    "yanchor": "top",
+                    "pad": {"b": 20},
+                },
+                margin={"l": max(80, 6 * max([len(str(i)) for i in plot_df.index])), "r": 120, "t": 100, "b": 80},
+            )
+            max_label_len = max([len(str(i)) for i in plot_df.index])
+            row_tick_size = max(7, min(style.get("tick_size", 11), int(220 / max(len(plot_df.index), 1))))
+            fig.update_xaxes(side="top", tickangle=-45, automargin=True, showticklabels=False, row=1, col=1)
+            fig.update_xaxes(side="top", tickangle=-45, automargin=True, tickfont={"size": max(7, style.get("tick_size", 11) - 2)}, row=2, col=1)
+            fig.update_yaxes(showticklabels=False, row=1, col=1)
+            fig.update_yaxes(tickfont={"size": row_tick_size}, automargin=True, row=2, col=1)
 
     elif plot_type == "pca":
         ptype = params.get("plot", "score")
@@ -187,31 +377,38 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         X = df.dropna().T
         if X.empty or X.shape[1] < 2 or X.shape[0] < 2:
             fig = go.Figure()
-            fig.update_layout(title="Not enough data for PCA")
+            _apply_base_layout(fig, style, title="Not enough data for PCA")
             return json.loads(fig.to_json())
         X = X.fillna(X.min().min() / 2)
         Xs = StandardScaler().fit_transform(X) if do_scale else X.values
         pca = PCA_SKL(n_components=components)
         scores = pca.fit_transform(Xs)
         labels = [sample_meta.get(c, c) for c in X.index]
+        color_map = _group_color_map(style, labels)
 
         if ptype == "scree":
             fig = px.bar(x=[f"PC{i+1}" for i in range(len(pca.explained_variance_ratio_))],
                          y=pca.explained_variance_ratio_ * 100,
-                         labels={"x": "Principal Component", "y": "Variance Explained (%)"},
-                         title="PCA Scree Plot")
+                         labels={"x": "Principal Component", "y": "Variance Explained (%)"})
+            _apply_base_layout(fig, style, title="PCA Scree Plot")
         elif ptype == "loading":
             loadings = pca.components_[0]
             feat_ids = [m.get("feature_id", i) for i, m in enumerate(dataset.feature_metadata)]
             top_idx = np.argsort(np.abs(loadings))[-50:]
             fig = px.bar(x=[feat_ids[i] for i in top_idx], y=[loadings[i] for i in top_idx],
-                         labels={"x": "Feature", "y": "PC1 Loading"},
-                         title="PCA Top Loadings (PC1)")
+                         labels={"x": "Feature", "y": "PC1 Loading"})
+            _apply_base_layout(fig, style, title="PCA Top Loadings (PC1)")
         elif ptype == "biplot":
-            fig = px.scatter(x=scores[:, 0], y=scores[:, 1], color=labels,
-                             labels={"x": f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)",
-                                     "y": f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)"},
-                             title="PCA Biplot")
+            fig = go.Figure()
+            for g in sorted(set(labels)):
+                idx = [i for i, l in enumerate(labels) if l == g]
+                idx_arr = np.array(idx)
+                fig.add_trace(go.Scatter(
+                    x=scores[idx_arr, 0], y=scores[idx_arr, 1], mode="markers",
+                    name=g, marker_color=color_map[g], marker_size=style.get("marker_size"),
+                    customdata=np.column_stack([[X.index[i] for i in idx], [g] * len(idx)]),
+                    hovertemplate="%{customdata[0]}<br>Group: %{customdata[1]}<extra></extra>",
+                ))
             loadings = pca.components_[:2]
             feat_ids = [m.get("feature_id", i) for i, m in enumerate(dataset.feature_metadata)]
             x_scale = max(np.abs(scores[:, 0]).max(), 1e-9)
@@ -220,11 +417,23 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 fig.add_trace(go.Scatter(x=[0, loadings[0, i]*x_scale], y=[0, loadings[1, i]*y_scale],
                                          mode="lines+text", text=["", feat_ids[i]], textposition="top center",
                                          line=dict(color="gray"), showlegend=False))
+            fig.update_layout(xaxis_title=f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)",
+                              yaxis_title=f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)")
+            _apply_base_layout(fig, style, title="PCA Biplot")
         else:
-            fig = px.scatter(x=scores[:, 0], y=scores[:, 1], color=labels,
-                             labels={"x": f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)",
-                                     "y": f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)"},
-                             title="PCA Score Plot")
+            fig = go.Figure()
+            for g in sorted(set(labels)):
+                idx = [i for i, l in enumerate(labels) if l == g]
+                idx_arr = np.array(idx)
+                fig.add_trace(go.Scatter(
+                    x=scores[idx_arr, 0], y=scores[idx_arr, 1], mode="markers",
+                    name=g, marker_color=color_map[g], marker_size=style.get("marker_size"),
+                    customdata=np.column_stack([[X.index[i] for i in idx], [g] * len(idx)]),
+                    hovertemplate="%{customdata[0]}<br>Group: %{customdata[1]}<extra></extra>",
+                ))
+            fig.update_layout(xaxis_title=f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)",
+                              yaxis_title=f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)")
+            _apply_base_layout(fig, style, title="PCA Score Plot")
 
     elif plot_type == "volcano":
         stats_data = params.get("stats", [])
@@ -232,6 +441,9 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         p_thresh = float(params.get("p_threshold", 0.05))
         show_labels = bool(params.get("show_labels", False))
         top_n = max(0, int(params.get("top_n", 10)))
+        up_color = style.get("up_color", "#c44e52")
+        down_color = style.get("down_color", "#2e6575")
+        ns_color = style.get("non_significant_color", "#a0aec0")
 
         points = []
         for s in stats_data:
@@ -244,24 +456,35 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 continue
             up = lfc > fc_thresh and padj < p_thresh
             down = lfc < -fc_thresh and padj < p_thresh
-            color = "Up" if up else ("Down" if down else "Not significant")
-            points.append({"lfc": lfc, "neglogp": p, "padj": padj, "name": s.get("feature_id", ""), "color": color})
+            color = up_color if up else (down_color if down else ns_color)
+            label = "Up" if up else ("Down" if down else "Not significant")
+            points.append({"lfc": lfc, "neglogp": p, "padj": padj, "name": s.get("feature_id", ""), "color": color, "label": label})
 
-        fc = [p["lfc"] for p in points]
-        neglogp = [p["neglogp"] for p in points]
-        names = [p["name"] for p in points]
-        colors = [p["color"] for p in points]
+        fig = go.Figure()
+        groups = {}
+        for p in points:
+            groups.setdefault(p["label"], []).append(p)
+        names = {"Up": f"Higher in {params.get('group_b','B')}", "Down": f"Lower in {params.get('group_b','B')}", "Not significant": "Not significant"}
+        for label in ["Up", "Down", "Not significant"]:
+            if label in groups:
+                pts = groups[label]
+                fig.add_trace(go.Scatter(
+                    x=[p["lfc"] for p in pts],
+                    y=[p["neglogp"] for p in pts],
+                    mode="markers",
+                    name=names.get(label, label),
+                    marker=dict(color=pts[0]["color"], size=style.get("marker_size"), line=dict(width=0.5, color="white")),
+                    text=[p["name"] for p in pts],
+                    hovertemplate="%{text}<br>log2FC: %{x:.3f}<br>-log10 padj: %{y:.3f}<extra></extra>",
+                ))
 
-        fig = px.scatter(x=fc, y=neglogp, hover_name=names, color=colors,
-                         color_discrete_map={"Up": "red", "Down": "blue", "Not significant": "gray"},
-                         labels={"x": "log2 Fold Change", "y": "-log10 adjusted p-value"},
-                         title="Volcano Plot")
-        fig.add_hline(y=-np.log10(p_thresh), line_dash="dash", line_color="black")
-        fig.add_vline(x=fc_thresh, line_dash="dash", line_color="black")
-        fig.add_vline(x=-fc_thresh, line_dash="dash", line_color="black")
+        fig.add_hline(y=-np.log10(p_thresh), line_dash="dash", line_color=ns_color)
+        fig.add_vline(x=fc_thresh, line_dash="dash", line_color=ns_color)
+        fig.add_vline(x=-fc_thresh, line_dash="dash", line_color=ns_color)
+        fig.update_layout(xaxis_title="log2 fold change", yaxis_title="-log10 p-value")
+        _apply_base_layout(fig, style, title="Volcano Plot")
 
         if show_labels and top_n > 0 and points:
-            # Choose top N most significant points that also meet the fold-change threshold.
             candidates = [p for p in points if abs(p["lfc"]) >= fc_thresh]
             candidates.sort(key=lambda p: p["padj"])
             top = candidates[:top_n]
@@ -269,8 +492,10 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 x_vals = [p["lfc"] for p in top]
                 y_vals = [p["neglogp"] for p in top]
                 labels = [p["name"] for p in top]
-                x_min, x_max = min(fc) if fc else -1, max(fc) if fc else 1
-                y_min, y_max = min(neglogp) if neglogp else 0, max(neglogp) if neglogp else 1
+                xs_all = [p["lfc"] for p in points]
+                ys_all = [p["neglogp"] for p in points]
+                x_min, x_max = min(xs_all) if xs_all else -1, max(xs_all) if xs_all else 1
+                y_min, y_max = min(ys_all) if ys_all else 0, max(ys_all) if ys_all else 1
                 positions = list(_place_labels(x_vals, y_vals, labels, x_min, x_max, y_min, y_max))
                 fig.add_trace(go.Scatter(
                     x=[x for x, _, _ in positions],
@@ -278,22 +503,96 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     mode="text",
                     text=labels,
                     textposition=[pos[2] for pos in positions],
-                    textfont=dict(size=9, color="black"),
+                    textfont=dict(size=9, color="#1e293b"),
                     hoverinfo="skip",
                     showlegend=False,
                     cliponaxis=False,
                 ))
+
+    elif plot_type == "lipid_class":
+        classes = [_extract_lipid_class(f.get("feature_id", ""), f) for f in dataset.feature_metadata]
+        totals = _lipid_class_totals(df, classes)
+        sample_groups = {c: sample_meta.get(c, "unknown") for c in totals.columns}
+        unique_groups = sorted(set(sample_groups.values()))
+        fig = go.Figure()
+        color_map = _group_color_map(style, unique_groups)
+        x = totals.index.tolist()
+        for g in unique_groups:
+            cols = [c for c in totals.columns if sample_groups[c] == g]
+            means = [float(np.mean([_safe_float(totals.loc[cls, col]) for col in cols])) for cls in x]
+            fig.add_trace(go.Bar(name=g, x=x, y=means, marker_color=color_map[g]))
+        fig.update_layout(barmode="group", xaxis_title="Lipid class", yaxis_title="Total intensity (normalized)")
+        _apply_base_layout(fig, style, title="Total abundance by lipid class × group")
+
+    elif plot_type == "per_lipid_bars":
+        stats_data = params.get("stats", [])
+        group_a = params.get("group_a", "A")
+        group_b = params.get("group_b", "B")
+        top_n = int(params.get("top_n", 8))
+        # sort by p-value ascending
+        sorted_stats = sorted([s for s in stats_data if s.get("padj") is not None], key=lambda s: _safe_float(s.get("padj", 1), 1.0))[:top_n]
+        figures = []
+        for s in sorted_stats:
+            fid = s.get("feature_id", "")
+            idx = _get_feature_index(dataset, fid)
+            samples = df.columns.tolist()
+            values = df.iloc[idx].values
+            groups = [sample_meta.get(c, "unknown") for c in samples]
+            color_map = _group_color_map(style, [group_a, group_b])
+            group_vals = {group_a: [], group_b: []}
+            for c, g in zip(samples, groups):
+                if g == group_a or g == group_b:
+                    group_vals.setdefault(g, []).append(_safe_float(df.loc[df.index[idx], c]))
+            ordered = [g for g in [group_a, group_b] if group_vals.get(g)]
+            means = []
+            sems = []
+            for g in ordered:
+                vals = np.array(group_vals[g])
+                means.append(float(np.mean(vals)))
+                sems.append(float(scipy_stats.sem(vals)) if len(vals) > 1 else 0.0)
+            fig = go.Figure()
+            xpos = list(range(len(ordered)))
+            fig.add_trace(go.Bar(
+                x=xpos,
+                y=means,
+                marker_color=[color_map[g] for g in ordered],
+                error_y=dict(type="data", array=sems, visible=True),
+                showlegend=False,
+            ))
+            # overlay individual points
+            np.random.seed(42)
+            for i, g in enumerate(ordered):
+                vals = group_vals[g]
+                jitter = (np.random.rand(len(vals)) - 0.5) * 0.3
+                fig.add_trace(go.Scatter(
+                    x=[i + j for j in jitter],
+                    y=vals,
+                    mode="markers",
+                    marker=dict(color="#1e293b", size=6, line=dict(width=1, color="white")),
+                    showlegend=False,
+                    hoverinfo="skip",
+                ))
+            title = f"{fid}"
+            if s.get("padj", 1) < 0.01:
+                title += " **"
+            elif s.get("padj", 1) < 0.05:
+                title += " *"
+            fig.update_xaxes(tickmode="array", tickvals=xpos, ticktext=ordered, tickangle=0)
+            fig.update_layout(xaxis_title="", yaxis_title="Mean ± SEM")
+            _apply_base_layout(fig, style, title=title)
+            figures.append(json.loads(fig.to_json()))
+        return figures
 
     elif plot_type == "rt_mz":
         mz = [_safe_float(f.get("mz", 0)) for f in dataset.feature_metadata]
         rt = [_safe_float(f.get("rt", 0)) for f in dataset.feature_metadata]
         grades = [str(f.get("grade", "unknown")) for f in dataset.feature_metadata]
         fig = px.scatter(x=mz, y=rt, color=grades,
-                         labels={"x": "m/z", "y": "Retention Time"},
-                         title="Retention Time vs m/z")
+                         labels={"x": "m/z", "y": "Retention Time"})
+        _apply_base_layout(fig, style, title="Retention Time vs m/z")
 
     else:
         fig = go.Figure()
-        fig.update_layout(title="Unsupported plot type")
+        _apply_base_layout(fig, style, title="Unsupported plot type")
 
     return json.loads(fig.to_json())
