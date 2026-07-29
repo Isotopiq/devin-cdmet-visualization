@@ -113,6 +113,8 @@ def _collect_sums(df, feature_metadata, samples):
         cls_sat[c] = np.zeros(n)
 
     for i, row_meta in enumerate(feature_metadata):
+        if i >= len(df):
+            continue
         name = row_meta.get("feature_id", "") or row_meta.get("name", "")
         cls, chains = _parse_feature(name)
         vals = df.iloc[i].values.astype(float)
