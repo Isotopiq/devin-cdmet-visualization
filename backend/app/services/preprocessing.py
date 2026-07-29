@@ -52,6 +52,27 @@ def from_dataframe(df: pd.DataFrame, dataset: models.Dataset, history_step: dict
     for col in df.columns:
         data_matrix[str(col)] = [_to_json_safe(v) for v in df[col].tolist()]
 
+    # Align feature_metadata to the rows that survived filtering/transformation
+    original_meta = copy.deepcopy(dataset.feature_metadata) or []
+    new_meta = []
+    if len(df) == len(original_meta):
+        new_meta = original_meta
+    elif df.index.dtype.kind in "iu" or all(isinstance(i, int) for i in df.index):
+        for i in df.index:
+            if 0 <= i < len(original_meta):
+                new_meta.append(original_meta[i])
+    else:
+        meta_by_fid = {}
+        for m in original_meta:
+            fid = m.get("feature_id")
+            if fid:
+                meta_by_fid[fid] = m
+        for idx in df.index:
+            if isinstance(idx, int) and 0 <= idx < len(original_meta):
+                new_meta.append(original_meta[idx])
+            else:
+                new_meta.append(meta_by_fid.get(str(idx), {"feature_id": str(idx)}))
+
     new_dataset = models.Dataset(
         project_id=dataset.project_id,
         source_file_id=dataset.source_file_id,
@@ -59,7 +80,7 @@ def from_dataframe(df: pd.DataFrame, dataset: models.Dataset, history_step: dict
         feature_type=dataset.feature_type,
         data_matrix=data_matrix,
         sample_metadata=copy.deepcopy(dataset.sample_metadata),
-        feature_metadata=copy.deepcopy(dataset.feature_metadata),
+        feature_metadata=new_meta,
         processing_history=copy.deepcopy(dataset.processing_history) + [history_step],
     )
     return new_dataset

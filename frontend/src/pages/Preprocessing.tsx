@@ -12,7 +12,7 @@ export default function Preprocessing() {
   const [params, setParams] = useState({
     missing_value_filter: 0.2,
     log_transform: true,
-    scale: 'standard',
+    scale: 'none',
     normalization: 'total_area',
     imputation: 'min',
     qc_cv_filter: 0,

@@ -16,6 +16,8 @@ export default function Pathway() {
   const [topN, setTopN] = useState(20)
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [progress, setProgress] = useState<string>('')
+  const [error, setError] = useState<string>('')
 
   const groups = useMemo(() => {
     const meta = selectedDataset?.sample_metadata || {}
@@ -33,6 +35,8 @@ export default function Pathway() {
   const generate = async () => {
     if (!projectId || !datasetId) return
     setLoading(true)
+    setError('')
+    setProgress('Identifying significant features...')
     try {
       const params: any = {
         pathway_source: pathwaySource,
@@ -45,15 +49,21 @@ export default function Pathway() {
         params.fc_threshold = fcThreshold
         params.p_threshold = pThreshold
       }
+      setProgress(`Querying ${pathwaySource.toUpperCase()} database...`)
       const res = await buildPathway(Number(projectId), Number(datasetId), params)
       setResult(res.data)
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || 'Pathway request failed'
+      setError(String(msg))
+      setResult(null)
     } finally {
       setLoading(false)
+      setProgress('')
     }
   }
 
-  const barFigure = result?.bar || result
-  const tableFigure = result?.table
+  const barFigure = result?.bar?.data ? result.bar : (result?.data ? result : null)
+  const tableFigure = result?.table?.data ? result.table : null
   const pathways = result?.pathways || []
 
   return (
@@ -115,13 +125,25 @@ export default function Pathway() {
                 <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
               </div>
             </div>
+
+            {loading && (
+              <div className="mt-4">
+                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded h-2 overflow-hidden">
+                  <div className="bg-blue-500 h-2 w-full animate-pulse rounded" />
+                </div>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                  <span className="inline-block w-3 h-3 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
+                  {progress || 'Running enrichment...'}
+                </p>
+              </div>
+            )}
             <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
               Significant features (|log2FC| and adjusted p-value) are submitted to the selected database. If no groups are selected, all feature names are used.
             </p>
           </div>
 
-          {result?.error && (
-            <div className="card p-5 text-red-600">{result.error}</div>
+          {(error || result?.error) && (
+            <div className="card p-5 text-red-600">{error || result?.error}</div>
           )}
 
           {barFigure && (
@@ -133,12 +155,6 @@ export default function Pathway() {
           {tableFigure && (
             <div className="card p-5">
               <PlotWithDownload data={tableFigure.data} layout={tableFigure.layout} style={{ width: '100%', height: '500px' }} filename={`pathway_${pathwaySource}_table`} />
-            </div>
-          )}
-
-          {!tableFigure && barFigure && !result?.error && (
-            <div className="card p-5">
-              <PlotWithDownload data={barFigure.data} layout={barFigure.layout} style={{ width: '100%', height: '600px' }} filename={`pathway_${pathwaySource}`} />
             </div>
           )}
 
