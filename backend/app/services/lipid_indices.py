@@ -96,15 +96,20 @@ def _build_class_index(major: str, lysos: tuple):
 def _collect_sums(df, feature_metadata, samples):
     n = len(samples)
     class_sums = {}
-    # feature-level property flags: each feature contributes its full intensity once to each bucket it matches
-    prop = {k: np.zeros(n) for k in [
+    # extended chain/property buckets
+    prop_keys = [
         "saturated", "monounsat", "polyunsat",
         "n3", "n6",
-        "c16", "c18", "c20", "c22", "c24",
+        "c12", "c14", "c16", "c18", "c20", "c22", "c24",
+        "c12_0", "c14_0", "c16_0", "c18_0",
+        "c16_1", "c18_1", "c18_2", "c18_3",
+        "c20_4", "c20_5", "c22_6",
         "ether", "plasmalogen",
         "c18_unsat", "c18_sat",
         "epa", "ara", "dha",
-    ]}
+        "peroxidation_index_num", "chain_length_num",
+    ]
+    prop = {k: np.zeros(n) for k in prop_keys}
     # class-specific unsat/sat flags
     cls_unsat = {}
     cls_sat = {}
@@ -117,13 +122,16 @@ def _collect_sums(df, feature_metadata, samples):
             continue
         name = row_meta.get("feature_id", "") or row_meta.get("name", "")
         cls, chains = _parse_feature(name)
-        vals = df.iloc[i].values.astype(float)
+        vals = df.iloc[i].values.astype(float).copy()
         class_sums[cls] = class_sums.get(cls, np.zeros(n)) + vals
 
         if not chains:
             continue
 
         dbs = [ch["db"] for ch in chains]
+        carbons = [ch["carbon"] for ch in chains]
+        avg_db = float(np.mean(dbs))
+        avg_c = float(np.mean(carbons))
         max_db = max(dbs)
         any_sat = all(d == 0 for d in dbs)
         any_unsat = any(d >= 1 for d in dbs)
@@ -135,6 +143,9 @@ def _collect_sums(df, feature_metadata, samples):
             prop["monounsat"] += vals
         if any_poly:
             prop["polyunsat"] += vals
+
+        prop["peroxidation_index_num"] += vals * avg_db
+        prop["chain_length_num"] += vals * avg_c
 
         any_ether = any(ch["ether"] for ch in chains)
         any_plas = any(ch["plasmalogen"] for ch in chains)
@@ -149,22 +160,46 @@ def _collect_sums(df, feature_metadata, samples):
             prop["c18_sat"] += vals
 
         for ch in chains:
-            if ch["carbon"] == 20 and ch["db"] == 5:
-                prop["epa"] += vals
-            if ch["carbon"] == 20 and ch["db"] == 4:
-                prop["ara"] += vals
-            if ch["carbon"] == 22 and ch["db"] == 6:
-                prop["dha"] += vals
-            if ch["carbon"] == 16:
+            c, db = ch["carbon"], ch["db"]
+            if c == 12:
+                prop["c12"] += vals
+            elif c == 14:
+                prop["c14"] += vals
+            elif c == 16:
                 prop["c16"] += vals
-            if ch["carbon"] == 18:
+            elif c == 18:
                 prop["c18"] += vals
-            if ch["carbon"] == 20:
+            elif c == 20:
                 prop["c20"] += vals
-            if ch["carbon"] == 22:
+            elif c == 22:
                 prop["c22"] += vals
-            if ch["carbon"] == 24:
+            elif c == 24:
                 prop["c24"] += vals
+
+            if c == 12 and db == 0:
+                prop["c12_0"] += vals
+            if c == 14 and db == 0:
+                prop["c14_0"] += vals
+            if c == 16 and db == 0:
+                prop["c16_0"] += vals
+            if c == 18 and db == 0:
+                prop["c18_0"] += vals
+            if c == 16 and db == 1:
+                prop["c16_1"] += vals
+            if c == 18 and db == 1:
+                prop["c18_1"] += vals
+            if c == 18 and db == 2:
+                prop["c18_2"] += vals
+            if c == 18 and db == 3:
+                prop["c18_3"] += vals
+            if c == 20 and db == 4:
+                prop["c20_4"] += vals
+            if c == 20 and db == 5:
+                prop["epa"] += vals
+                prop["c20_5"] += vals
+            if c == 22 and db == 6:
+                prop["dha"] += vals
+                prop["c22_6"] += vals
 
         # rough omega classification based on common lipid names
         n3 = any((ch["carbon"], ch["db"]) in [(18, 3), (18, 4), (20, 5), (22, 5), (22, 6)] for ch in chains)
@@ -309,6 +344,48 @@ def compute_functional_indices(df, feature_metadata, sample_meta, group_a, group
                             "Acylcarnitines / total lipids",
                             "Higher fatty acid oxidation substrate in B", "Lower acylcarnitines in B"))
 
+    # Chain-remodeling / enzyme proxies
+    raw.append(_ratio_index("SCD16 index", "Chain remodeling", prop["c16_1"], prop["c16_0"], a_idx, b_idx,
+                            "Stearoyl-CoA desaturase-1 proxy: C16:1/C16:0",
+                            "Higher SCD1 activity in B", "Lower SCD16 index in B"))
+    raw.append(_ratio_index("SCD18 index", "Chain remodeling", prop["c18_1"], prop["c18_0"], a_idx, b_idx,
+                            "Stearoyl-CoA desaturase proxy: C18:1/C18:0",
+                            "Higher SCD activity in B", "Lower SCD18 index in B"))
+    raw.append(_ratio_index("Elovl6 index", "Chain remodeling", prop["c18_0"], prop["c16_0"], a_idx, b_idx,
+                            "Elongase-6 proxy: C18:0/C16:0",
+                            "Higher elongation in B", "Lower elongation in B"))
+    raw.append(_ratio_index("Delta-5 desaturase index", "Chain remodeling", prop["c20_4"], prop["c18_2"], a_idx, b_idx,
+                            "ARA/LA proxy of delta-5 desaturation/elongation",
+                            "Higher ARA production in B", "Lower ARA production in B"))
+    raw.append(_ratio_index("Delta-6 desaturase index", "Chain remodeling", prop["c18_3"], prop["c18_2"], a_idx, b_idx,
+                            "ALA/LA proxy of delta-6 desaturation",
+                            "Higher ALA conversion in B", "Lower delta-6 index in B"))
+    raw.append(_ratio_index("Elovl2/5 index", "Chain remodeling", prop["c22_6"], prop["c20_5"], a_idx, b_idx,
+                            "DHA/EPA proxy of very-long-chain elongation",
+                            "Higher DHA synthesis in B", "Lower DHA synthesis in B"))
+    # Structural/oxidative
+    raw.append(_ratio_index("Peroxidation index", "Oxidative stress", prop["peroxidation_index_num"], total, a_idx, b_idx,
+                            "Average double-bond content (intensity-weighted)",
+                            "Higher peroxidation susceptibility in B", "Lower peroxidation index in B"))
+    raw.append(_ratio_index("Average chain length", "Structural", prop["chain_length_num"], total, a_idx, b_idx,
+                            "Intensity-weighted average acyl carbon chain length",
+                            "Longer average chains in B", "Shorter average chains in B"))
+    raw.append(_ratio_index("CL/PL", "Mitochondrial", get("CL"), pl, a_idx, b_idx,
+                            "Cardiolipin / phospholipid ratio",
+                            "Higher mitochondrial CL in B", "Lower CL/PL in B"))
+    raw.append(_ratio_index("CL fraction", "Mitochondrial", get("CL"), total, a_idx, b_idx,
+                            "Cardiolipin fraction of total lipids",
+                            "Higher CL in B", "Lower CL fraction in B"))
+    raw.append(_ratio_index("Free cholesterol/PL", "Structural", get("Chol"), pl, a_idx, b_idx,
+                            "Free cholesterol / phospholipid ratio (membrane packing)",
+                            "Higher membrane packing/raft signal in B", "Lower FC/PL in B"))
+    raw.append(_ratio_index("n6/n3 ratio", "Inflammation", prop["n6"], prop["n3"], a_idx, b_idx,
+                            "Omega-6 / omega-3 balance",
+                            "Higher pro-inflammatory n6 relative to n3 in B", "Lower n6/n3 in B"))
+    raw.append(_ratio_index("ARA fraction", "Inflammation", prop["c20_4"], total, a_idx, b_idx,
+                            "Arachidonic acid (20:4n6) feature intensity / total",
+                            "Higher ARA precursor pool in B", "Lower ARA fraction in B"))
+
     pvals = [r["pvalue"] for r in raw]
     padjs = _bh(pvals)
     for r, p in zip(raw, padjs):
@@ -369,6 +446,34 @@ def compute_food_profile_indices(df, feature_metadata, sample_meta, group_a, gro
     raw.append(_ratio_index("Alkenyl chain fraction", "Ether-linked chains", prop["plasmalogen"], prop["ether"], a_idx, b_idx,
                             "Plasmalogen / total ether-linked features",
                             "Higher alkenyl-chain lipids in B", "Lower alkenyl-chain lipids in B"))
+
+    # Nutritional quality indices
+    raw.append(_ratio_index("Atherogenicity index (AI)", "Nutritional quality", prop["c12_0"] + 4 * prop["c14_0"] + prop["c16_0"],
+                            prop["monounsat"] + prop["polyunsat"], a_idx, b_idx,
+                            "(12:0 + 4×14:0 + 16:0) / (MUFA + PUFA)",
+                            "Higher atherogenic potential in B", "Lower AI in B"))
+    n3_n6_ratio = _safe_div(prop["n3"], prop["n6"], 0.0)
+    ti_den = 0.5 * prop["monounsat"] + 0.5 * prop["n6"] + 3 * prop["n3"] + n3_n6_ratio
+    raw.append(_ratio_index("Thrombogenicity index (TI)", "Nutritional quality", prop["c14_0"] + prop["c16_0"] + prop["c18_0"],
+                            ti_den, a_idx, b_idx,
+                            "(14:0 + 16:0 + 18:0) / (0.5MUFA + 0.5n6 + 3n3 + n3/n6)",
+                            "Higher thrombogenic potential in B", "Lower TI in B"))
+    raw.append(_ratio_index("h/H ratio", "Nutritional quality", prop["c18_1"] + prop["c16_1"] + prop["polyunsat"],
+                            prop["c14_0"] + prop["c16_0"], a_idx, b_idx,
+                            "(C16:1 + C18:1 + PUFA) / (C14:0 + C16:0)",
+                            "Higher hypocholesterolemic potential in B", "Lower h/H in B"))
+    raw.append(_ratio_index("EPA fraction", "Nutritional quality", prop["c20_5"], total, a_idx, b_idx,
+                            "EPA (20:5n3) feature intensity / total",
+                            "Higher EPA content in B", "Lower EPA fraction in B"))
+    raw.append(_ratio_index("DHA fraction", "Nutritional quality", prop["c22_6"], total, a_idx, b_idx,
+                            "DHA (22:6n3) feature intensity / total",
+                            "Higher DHA content in B", "Lower DHA fraction in B"))
+    raw.append(_ratio_index("n6 fraction", "Nutritional quality", prop["n6"], total, a_idx, b_idx,
+                            "Omega-6 feature intensity / total",
+                            "Higher n6 content in B", "Lower n6 fraction in B"))
+    raw.append(_ratio_index("PUFA/MUFA", "Nutritional quality", prop["polyunsat"], prop["monounsat"], a_idx, b_idx,
+                            "Polyunsaturated / monounsaturated balance",
+                            "Higher PUFA relative to MUFA in B", "Lower PUFA/MUFA in B"))
 
     pvals = [r["pvalue"] for r in raw]
     padjs = _bh(pvals)
