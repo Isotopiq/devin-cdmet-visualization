@@ -9,10 +9,15 @@ import { LuRefreshCw, LuFileDown, LuPrinter, LuChevronDown, LuChevronUp, LuX, Lu
 
 const TABS = [
   { key: 'pca', label: 'PCA' },
+  { key: 'pls_da', label: 'PLS-DA' },
+  { key: 'opls_da', label: 'OPLS-DA' },
+  { key: 'biomarker', label: 'Biomarkers' },
+  { key: 'permanova', label: 'PERMANOVA' },
   { key: 'volcano', label: 'Volcano' },
   { key: 'heatmap', label: 'Heatmap' },
   { key: 'per_lipid_bars', label: 'Per-lipid bars' },
   { key: 'lipid_classes', label: 'Lipid classes' },
+  { key: 'chain_space', label: 'Chain space' },
   { key: 'outlier', label: 'Outlier' },
   { key: 'functional', label: 'Functional' },
   { key: 'food_profile', label: 'Food profile' },
@@ -42,10 +47,15 @@ const LIPIDS_PER_PAGE = [4, 6, 8, 12, 16, 24, 32]
 
 const ALL_PLOT_KEYS = [
   { key: 'pca', label: 'PCA' },
+  { key: 'pls_da', label: 'PLS-DA' },
+  { key: 'opls_da', label: 'OPLS-DA' },
+  { key: 'biomarker', label: 'Biomarkers' },
+  { key: 'permanova', label: 'PERMANOVA' },
   { key: 'volcano', label: 'Volcano (labels reflect current tab settings)' },
   { key: 'heatmap', label: 'Heatmap' },
   { key: 'per_lipid_bars', label: 'Per-lipid bars' },
   { key: 'lipid_classes', label: 'Lipid classes' },
+  { key: 'chain_space', label: 'Chain space' },
   { key: 'outlier', label: 'Outlier' },
   { key: 'functional', label: 'Functional lipid indices' },
   { key: 'food_profile', label: 'Lipid food profile' },
@@ -111,6 +121,18 @@ export default function Visualize() {
       if (tab === 'pca') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pca', parameters: { plot: 'score', title: reportTitle }, style: backendStyle })
         setFigure(res.data)
+      } else if (tab === 'pls_da') {
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pls_da', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
+        setFigure(res.data)
+      } else if (tab === 'opls_da') {
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'opls_da', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
+        setFigure(res.data)
+      } else if (tab === 'biomarker') {
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'biomarker', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
+        setFigure(res.data)
+      } else if (tab === 'permanova') {
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'permanova', parameters: { group_a: groupA, group_b: groupB, metric: 'braycurtis', title: reportTitle }, style: backendStyle })
+        setFigure(res.data)
       } else if (tab === 'volcano') {
         const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
         const res = await generatePlot(base.projectId, base.datasetId, {
@@ -145,6 +167,9 @@ export default function Visualize() {
         else setFigure(res.data)
       } else if (tab === 'lipid_classes') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'lipid_class', parameters: {}, style: backendStyle })
+        setFigure(res.data)
+      } else if (tab === 'chain_space') {
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'chain_space', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
         setFigure(res.data)
       } else if (tab === 'outlier') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'outlier', parameters: { title: reportTitle }, style: backendStyle })

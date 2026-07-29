@@ -53,6 +53,30 @@ async def report(project_id: int, dataset_id: int, req: schemas.ReportRequest,
         if key == "pca":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="pca", parameters={"plot": "score"}, style=style))
             sections.append({"key": key, "title": "PCA Score Plot", "figure": fig})
+        elif key == "pls_da":
+            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="pls_da", parameters={
+                "group_a": params.get("group_a"),
+                "group_b": params.get("group_b"),
+            }, style=style))
+            sections.append({"key": key, "title": "PLS-DA", "figure": fig})
+        elif key == "opls_da":
+            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="opls_da", parameters={
+                "group_a": params.get("group_a"),
+                "group_b": params.get("group_b"),
+            }, style=style))
+            sections.append({"key": key, "title": "OPLS-DA", "figure": fig})
+        elif key == "biomarker":
+            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="biomarker", parameters={
+                "group_a": params.get("group_a"),
+                "group_b": params.get("group_b"),
+            }, style=style))
+            sections.append({"key": key, "title": "Biomarker discovery", "figure": fig})
+        elif key == "permanova":
+            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="permanova", parameters={
+                "group_a": params.get("group_a"),
+                "group_b": params.get("group_b"),
+            }, style=style))
+            sections.append({"key": key, "title": "PERMANOVA", "figure": fig})
         elif key == "volcano":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="volcano", parameters={
                 "stats": stats_data,
@@ -106,5 +130,11 @@ async def report(project_id: int, dataset_id: int, req: schemas.ReportRequest,
                 "group_b": params.get("group_b"),
             }, style=style))
             sections.append({"key": key, "title": "Lipid food profile", "figure": fig})
+        elif key == "chain_space":
+            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="chain_space", parameters={
+                "group_a": params.get("group_a"),
+                "group_b": params.get("group_b"),
+            }, style=style))
+            sections.append({"key": key, "title": "Chain space", "figure": fig})
 
     return sections

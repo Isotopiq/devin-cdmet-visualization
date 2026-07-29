@@ -36,14 +36,18 @@ export const DEFAULT_PLOT_STYLE: PlotStyle = {
 
 export const DEFAULT_INCLUDE_PLOTS: Record<string, boolean> = {
   pca: true,
+  pls_da: true,
+  opls_da: true,
+  biomarker: true,
+  permanova: true,
   volcano: true,
   heatmap: true,
   lipid_classes: true,
   per_lipid_bars: true,
-  functional_index_bar: false,
-  functional_shift: false,
-  functional_volcano: false,
-  functional_circoplot: false,
+  chain_space: true,
+  outlier: true,
+  functional: true,
+  food_profile: true,
 }
 
 interface PlotConfigCtx {

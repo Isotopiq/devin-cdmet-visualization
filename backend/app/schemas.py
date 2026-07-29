@@ -169,7 +169,7 @@ class PlotRequest(BaseModel):
 
 
 class ReportRequest(BaseModel):
-    include: List[str] = ["pca", "volcano", "heatmap", "per_lipid_bars", "lipid_classes"]
+    include: List[str] = ["pca", "pls_da", "opls_da", "biomarker", "permanova", "volcano", "heatmap", "per_lipid_bars", "lipid_classes", "chain_space"]
     style: Dict[str, Any] = {}
     parameters: Dict[str, Any] = {}
 

@@ -14,6 +14,10 @@ from sklearn.preprocessing import StandardScaler
 from app import models, schemas
 from app.services.preprocessing import to_dataframe, _to_json_safe
 from app.services.lipid_indices import compute_functional_indices, compute_food_profile_indices
+from app.services.lipid_building_blocks import compute_building_blocks
+from app.services.multivariate import pls_da_analysis, opls_da_analysis
+from app.services.biomarkers import biomarker_analysis
+from app.services.permanova import permanova_analysis
 
 
 STYLE_DEFAULTS = {
@@ -616,6 +620,402 @@ def _food_profile(df, sample_meta, feature_metadata, style, params):
         _apply_base_layout(fig, style, title="Lipid food profile")
         return fig
     return _category_volcano_figure(indices, f"Lipid food profile: {group_b} vs {group_a}", style)
+
+
+def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
+    group_a = params.get("group_a", "")
+    group_b = params.get("group_b", "")
+    result = compute_building_blocks(df, feature_metadata, sample_meta, group_a, group_b)
+    rows = result.get("rows", [])
+    if not rows:
+        fig = go.Figure()
+        _apply_base_layout(fig, style, title="Chain space (no chains parsed)")
+        return fig
+
+    xs = [r["carbon"] for r in rows]
+    ys = [r["db"] for r in rows]
+    log2fc = [r["log2fc"] for r in rows]
+    size = [max(5, min(35, np.log10(max(r["mean_a"] + r["mean_b"], 1e-9)) * 4 + 5)) for r in rows]
+    text = [f"{r['name']}<br>log2FC: {r['log2fc']:.2f}<br>p-adj: {r['padj']:.3f}" for r in rows]
+
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=("Chain space (carbon × double bonds)", "Chain type composition", "Chain-length distribution", "Unsaturation distribution"),
+        vertical_spacing=0.12,
+        horizontal_spacing=0.1,
+    )
+
+    for ctype in ["acyl", "alkyl", "plasmalogen"]:
+        sub = [r for r in rows if r["chain_type"] == ctype]
+        if not sub:
+            continue
+        fig.add_trace(go.Scatter(
+            x=[r["carbon"] for r in sub],
+            y=[r["db"] for r in sub],
+            mode="markers",
+            name=ctype,
+            marker=dict(
+                color=[r["log2fc"] for r in sub],
+                colorscale="RdBu_r",
+                colorbar=dict(title="log2FC", x=0.47, len=0.45),
+                size=[max(5, min(35, np.log10(max(r["mean_a"] + r["mean_b"], 1e-9)) * 4 + 5)) for r in sub],
+                sizemode="diameter",
+                line=dict(width=0.5, color="white"),
+                showscale=True,
+            ),
+            text=[f"{r['name']}<br>log2FC: {r['log2fc']:.2f}<br>p-adj: {r['padj']:.3f}" for r in sub],
+            hovertemplate="%{text}<extra></extra>",
+        ), row=1, col=1)
+
+    summary = result.get("summary", {})
+    by_type = summary.get("by_type", {})
+    types = sorted({k for d in by_type.values() for k in d.keys()})
+    for g in [group_a, group_b]:
+        vals = [by_type.get(g, {}).get(t, 0.0) for t in types]
+        fig.add_trace(go.Bar(name=g, x=types, y=vals), row=1, col=2)
+
+    by_carbon = summary.get("by_carbon", {})
+    carbons = sorted({k for d in by_carbon.values() for k in d.keys()})
+    for g in [group_a, group_b]:
+        vals = [by_carbon.get(g, {}).get(c, 0.0) for c in carbons]
+        fig.add_trace(go.Bar(name=g, x=[str(c) for c in carbons], y=vals, showlegend=False), row=2, col=1)
+
+    by_db = summary.get("by_db", {})
+    dbs = sorted({k for d in by_db.values() for k in d.keys()})
+    for g in [group_a, group_b]:
+        vals = [by_db.get(g, {}).get(d, 0.0) for d in dbs]
+        fig.add_trace(go.Bar(name=g, x=[str(d) for d in dbs], y=vals, showlegend=False), row=2, col=2)
+
+    fig.update_layout(
+        title={"text": f"Chain space: {group_b} vs {group_a}", "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
+        font={"family": style.get("font_family"), "color": "#334155"},
+        paper_bgcolor=style.get("paper_bgcolor"),
+        plot_bgcolor=style.get("plot_bgcolor"),
+        barmode="group",
+        legend={"orientation": "h", "y": -0.15},
+        margin={"l": 70, "r": 110, "t": 90, "b": 90},
+    )
+    fig.update_xaxes(title_text="Carbon atoms", row=1, col=1)
+    fig.update_yaxes(title_text="Double bonds", row=1, col=1)
+    fig.update_xaxes(title_text="Chain type", row=1, col=2)
+    fig.update_yaxes(title_text="Total intensity", row=1, col=2)
+    fig.update_xaxes(title_text="Carbon atoms", row=2, col=1)
+    fig.update_yaxes(title_text="Total intensity", row=2, col=1)
+    fig.update_xaxes(title_text="Double bonds", row=2, col=2)
+    fig.update_yaxes(title_text="Total intensity", row=2, col=2)
+    return fig
+
+
+def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
+    group_a = params.get("group_a", "")
+    group_b = params.get("group_b", "")
+    n_components = int(params.get("n_components", 2))
+    n_perm = int(params.get("n_perm", 100))
+    result = pls_da_analysis(df, sample_meta, group_a, group_b, n_components=n_components, n_perm=n_perm, feature_metadata=feature_metadata)
+    if result.get("error"):
+        fig = go.Figure()
+        _apply_base_layout(fig, style, title=f"PLS-DA: {result['error']}")
+        return fig
+
+    groups = result["groups"]
+    y = np.array(result["y"])
+    scores = np.array(result["scores"])
+    color_map = _group_color_map(style, [group_a, group_b])
+
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=("Score plot (LV1 vs LV2)", "Top VIP features", "Model performance", "Permutation test (R²Y)"),
+        vertical_spacing=0.12,
+        horizontal_spacing=0.1,
+    )
+
+    # Score plot
+    if scores.shape[1] >= 2:
+        x = scores[:, 0]
+        yv = scores[:, 1]
+    else:
+        x = scores[:, 0]
+        yv = np.zeros(len(x))
+    for g, gname in enumerate(groups):
+        idx = np.where(y == g)[0]
+        fig.add_trace(go.Scatter(
+            x=x[idx], y=yv[idx], mode="markers", name=gname,
+            marker=dict(color=color_map.get(gname, "#2e6575"), size=style.get("marker_size")),
+            text=[result["samples"][i] for i in idx],
+            hovertemplate="%{text}<extra></extra>",
+        ), row=1, col=1)
+    fig.update_xaxes(title_text="LV1", row=1, col=1)
+    fig.update_yaxes(title_text="LV2", row=1, col=1)
+
+    # VIP
+    vip = result["vip_table"][:15]
+    fig.add_trace(go.Bar(
+        x=[v["feature"] for v in vip], y=[v["vip"] for v in vip],
+        marker_color=[color_map.get(group_b, "#c44e52") if v.get("loading_pc1", 0) > 0 else color_map.get(group_a, "#2e6575") for v in vip],
+        showlegend=False,
+    ), row=1, col=2)
+    fig.update_xaxes(tickangle=-45, row=1, col=2)
+    fig.update_yaxes(title_text="VIP score", row=1, col=2)
+
+    # Performance
+    perf = result["performance"]
+    fig.add_trace(go.Scatter(x=[p["n_components"] for p in perf], y=[p["r2y"] for p in perf], mode="lines+markers", name="R²Y", line=dict(color="#2e6575")), row=2, col=1)
+    fig.add_trace(go.Scatter(x=[p["n_components"] for p in perf], y=[p["q2y"] for p in perf], mode="lines+markers", name="Q²Y", line=dict(color="#e9a47f")), row=2, col=1)
+    fig.add_trace(go.Scatter(x=[p["n_components"] for p in perf], y=[p["accuracy"] for p in perf], mode="lines+markers", name="Accuracy", line=dict(color="#81b29a")), row=2, col=1)
+    fig.update_xaxes(title_text="Components", row=2, col=1)
+    fig.update_yaxes(title_text="Value", row=2, col=1)
+
+    # Permutation histogram
+    r2s = result["permutation"]["r2y"]
+    actual = result["r2y"]
+    fig.add_trace(go.Histogram(x=r2s, nbinsx=20, showlegend=False, marker_color="#cbd5e1"), row=2, col=2)
+    fig.add_vline(x=actual, line_dash="dash", line_color="#c44e52", row=2, col=2)
+    fig.update_xaxes(title_text="R²Y (permuted)", row=2, col=2)
+    fig.update_yaxes(title_text="Count", row=2, col=2)
+
+    title = f"PLS-DA: {group_b} vs {group_a} (R²Y={result['r2y']:.2f}, Q²Y={result['q2y']:.2f}, Acc={result['accuracy']:.2f})"
+    fig.update_layout(
+        title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
+        font={"family": style.get("font_family"), "color": "#334155"},
+        paper_bgcolor=style.get("paper_bgcolor"),
+        plot_bgcolor=style.get("plot_bgcolor"),
+        legend={"orientation": "h", "y": -0.15},
+        margin={"l": 70, "r": 80, "t": 100, "b": 90},
+    )
+    return fig
+
+
+def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
+    group_a = params.get("group_a", "")
+    group_b = params.get("group_b", "")
+    n_orth = int(params.get("n_orth", 1))
+    n_perm = int(params.get("n_perm", 100))
+    result = opls_da_analysis(df, sample_meta, group_a, group_b, n_orth=n_orth, n_perm=n_perm, feature_metadata=feature_metadata)
+    if result.get("error"):
+        fig = go.Figure()
+        _apply_base_layout(fig, style, title=f"OPLS-DA: {result['error']}")
+        return fig
+
+    groups = result["groups"]
+    y = np.array(result["y"])
+    pred_score = np.array(result["predictive_score"])
+    orth_scores = result.get("orthogonal_scores", [])
+    orth_dist = np.array(result["orthogonal_distance"])
+    splot = result["splot"]
+    color_map = _group_color_map(style, [group_a, group_b])
+
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=("Score plot (predictive vs orthogonal)", "S-plot", "Top discriminant features", "Observation diagnostics"),
+        vertical_spacing=0.12,
+        horizontal_spacing=0.1,
+    )
+
+    # Score plot
+    orth1 = np.array(orth_scores[0]) if orth_scores else np.zeros(len(pred_score))
+    for g, gname in enumerate(groups):
+        idx = np.where(y == g)[0]
+        fig.add_trace(go.Scatter(
+            x=pred_score[idx], y=orth1[idx], mode="markers", name=gname,
+            marker=dict(color=color_map.get(gname, "#2e6575"), size=style.get("marker_size")),
+            text=[result["samples"][i] for i in idx],
+            hovertemplate="%{text}<extra></extra>",
+        ), row=1, col=1)
+    fig.update_xaxes(title_text="Predictive score", row=1, col=1)
+    fig.update_yaxes(title_text="Orthogonal score 1", row=1, col=1)
+
+    # S-plot
+    fig.add_trace(go.Scatter(
+        x=[s["p_pred"] for s in splot], y=[s["p_corr"] for s in splot],
+        mode="markers", marker=dict(color="#2e6575", size=style.get("marker_size")),
+        text=[s["feature"] for s in splot], hovertemplate="%{text}<extra></extra>", showlegend=False,
+    ), row=1, col=2)
+    fig.update_xaxes(title_text="Predictive loading (p_pred)", row=1, col=2)
+    fig.update_yaxes(title_text="Correlation to score", row=1, col=2)
+
+    # VIP top features by |p_pred|
+    top = sorted(splot, key=lambda s: abs(s["p_pred"]), reverse=True)[:15]
+    fig.add_trace(go.Bar(
+        x=[t["feature"] for t in top], y=[abs(t["p_pred"]) for t in top],
+        marker_color=[color_map.get(group_b, "#c44e52") if t["p_pred"] > 0 else color_map.get(group_a, "#2e6575") for t in top],
+        showlegend=False,
+    ), row=2, col=1)
+    fig.update_xaxes(tickangle=-45, row=2, col=1)
+    fig.update_yaxes(title_text="|p_pred|", row=2, col=1)
+
+    # Diagnostics
+    for g, gname in enumerate(groups):
+        idx = np.where(y == g)[0]
+        fig.add_trace(go.Scatter(
+            x=pred_score[idx], y=orth_dist[idx], mode="markers", name=gname,
+            marker=dict(color=color_map.get(gname, "#2e6575"), size=style.get("marker_size")),
+            text=[result["samples"][i] for i in idx],
+            hovertemplate="%{text}<extra></extra>", showlegend=False,
+        ), row=2, col=2)
+    fig.update_xaxes(title_text="Predictive score", row=2, col=2)
+    fig.update_yaxes(title_text="Orthogonal distance", row=2, col=2)
+
+    title = f"OPLS-DA: {group_b} vs {group_a} (R²Y={result['r2y']:.2f}, Q²Y={result['q2y']:.2f}, Acc={result['accuracy']:.2f})"
+    fig.update_layout(
+        title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
+        font={"family": style.get("font_family"), "color": "#334155"},
+        paper_bgcolor=style.get("paper_bgcolor"),
+        plot_bgcolor=style.get("plot_bgcolor"),
+        legend={"orientation": "h", "y": -0.15},
+        margin={"l": 70, "r": 80, "t": 100, "b": 90},
+    )
+    return fig
+
+
+def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
+    group_a = params.get("group_a", "")
+    group_b = params.get("group_b", "")
+    result = biomarker_analysis(df, sample_meta, group_a, group_b, feature_metadata=feature_metadata)
+    if result.get("error"):
+        fig = go.Figure()
+        _apply_base_layout(fig, style, title=f"Biomarkers: {result['error']}")
+        return fig
+
+    top = result["top_candidates"][:15]
+    mv = result["multivariate"]
+    color_map = _group_color_map(style, [group_a, group_b])
+
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=("Top candidate AUC", "Random Forest ROC", "Top RF importances", "Top candidate table"),
+        vertical_spacing=0.12,
+        horizontal_spacing=0.1,
+        specs=[[{"type": "xy"}, {"type": "xy"}], [{"type": "xy"}, {"type": "table"}]],
+    )
+
+    # AUC bar
+    fig.add_trace(go.Bar(
+        x=[t["feature"] for t in top], y=[t["auc"] for t in top],
+        marker_color=[color_map.get(group_b, "#c44e52") if t["log2fc"] > 0 else color_map.get(group_a, "#2e6575") for t in top],
+        showlegend=False,
+    ), row=1, col=1)
+    fig.update_xaxes(tickangle=-45, row=1, col=1)
+    fig.update_yaxes(title_text="AUC", row=1, col=1)
+
+    # ROC
+    if mv["fpr"] and mv["tpr"]:
+        fig.add_trace(go.Scatter(
+            x=mv["fpr"], y=mv["tpr"], mode="lines",
+            name=f"RF AUC={mv['auc']:.2f}, Acc={mv['accuracy']:.2f}",
+            line=dict(color="#2e6575"),
+            fill="tozeroy", fillcolor="rgba(46,101,117,0.1)",
+        ), row=1, col=2)
+        fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", line=dict(dash="dash", color="#cbd5e1"), showlegend=False), row=1, col=2)
+    fig.update_xaxes(title_text="False positive rate", row=1, col=2)
+    fig.update_yaxes(title_text="True positive rate", row=1, col=2)
+
+    # RF importance
+    fi = result["feature_importances"][:15]
+    fig.add_trace(go.Bar(
+        x=[f["feature"] for f in fi], y=[f["importance"] for f in fi],
+        marker_color="#81b29a", showlegend=False,
+    ), row=2, col=1)
+    fig.update_xaxes(tickangle=-45, row=2, col=1)
+    fig.update_yaxes(title_text="Importance", row=2, col=1)
+
+    # Table
+    table = [
+        [t["feature"] for t in top],
+        [f"{t['auc']:.2f}" for t in top],
+        [f"{t['pvalue']:.2e}" for t in top],
+        [f"{t['padj']:.2e}" for t in top],
+        [f"{t['cohens_d']:.2f}" for t in top],
+        [f"{t['power']:.2f}" for t in top],
+    ]
+    fig.add_trace(go.Table(
+        header=dict(values=["Feature", "AUC", "p-value", "adj p", "Cohen's d", "Power"], fill_color="#e2e8f0", align="left", font=dict(color="#1e293b", size=10)),
+        cells=dict(values=table, align="left", font=dict(size=9), height=20),
+    ), row=2, col=2)
+
+    title = f"Biomarker discovery: {group_b} vs {group_a} (RF AUC={mv['auc']:.2f})"
+    fig.update_layout(
+        title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
+        font={"family": style.get("font_family"), "color": "#334155"},
+        paper_bgcolor=style.get("paper_bgcolor"),
+        plot_bgcolor=style.get("plot_bgcolor"),
+        legend={"orientation": "h", "y": -0.15},
+        margin={"l": 70, "r": 80, "t": 100, "b": 90},
+    )
+    return fig
+
+
+def _permanova_figure(df, sample_meta, feature_metadata, style, params):
+    group_a = params.get("group_a", "")
+    group_b = params.get("group_b", "")
+    metric = params.get("metric", "braycurtis")
+    result = permanova_analysis(df, sample_meta, group_a, group_b, metric=metric, n_perm=999)
+    if result.get("error"):
+        fig = go.Figure()
+        _apply_base_layout(fig, style, title=f"PERMANOVA: {result['error']}")
+        return fig
+
+    color_map = _group_color_map(style, [group_a, group_b])
+
+    # Classical MDS / PCoA on Gower-centered distance matrix
+    from sklearn.metrics import pairwise_distances
+    X = df[result["samples"]].T.values.copy()
+    for col in range(X.shape[1]):
+        vals = X[:, col]
+        pos = vals[np.isfinite(vals) & (vals > 0)]
+        fill = float(np.min(pos) / 2) if len(pos) else 1e-6
+        vals[~np.isfinite(vals)] = fill
+        vals[vals <= 0] = fill
+    X = np.log10(X)
+    X = StandardScaler().fit_transform(X)
+    D = pairwise_distances(X, metric=metric if metric in ("euclidean", "manhattan", "cosine", "braycurtis") else "euclidean")
+    n = D.shape[0]
+    D2 = D ** 2
+    row_mean = D2.mean(axis=1, keepdims=True)
+    col_mean = D2.mean(axis=0, keepdims=True)
+    grand_mean = D2.mean()
+    G = -0.5 * (D2 - row_mean - col_mean + grand_mean)
+    try:
+        eigvals, eigvecs = np.linalg.eigh(G)
+        idx = np.argsort(eigvals)[::-1]
+        coords = eigvecs[:, idx] * np.sqrt(np.maximum(eigvals[idx], 0))
+    except Exception:
+        coords = np.zeros((n, 2))
+
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=("PERMANOVA permutation distribution", f"PCoA ({metric})"),
+        horizontal_spacing=0.12,
+    )
+
+    perm_f = result["perm_f"]
+    actual = result["pseudo_f"]
+    fig.add_trace(go.Histogram(x=perm_f, nbinsx=30, showlegend=False, marker_color="#cbd5e1"), row=1, col=1)
+    fig.add_vline(x=actual, line_dash="dash", line_color="#c44e52", row=1, col=1)
+    fig.update_xaxes(title_text=f"Pseudo-F (p={result['p_value']:.3f})", row=1, col=1)
+    fig.update_yaxes(title_text="Count", row=1, col=1)
+
+    groups = result["groups"]
+    for gname in sorted(set(groups)):
+        idx = [i for i, g in enumerate(groups) if g == gname]
+        fig.add_trace(go.Scatter(
+            x=coords[idx, 0], y=coords[idx, 1], mode="markers", name=gname,
+            marker=dict(color=color_map.get(gname, "#2e6575"), size=style.get("marker_size")),
+            text=[result["samples"][i] for i in idx],
+            hovertemplate="%{text}<extra></extra>",
+        ), row=1, col=2)
+    fig.update_xaxes(title_text="PCoA 1", row=1, col=2)
+    fig.update_yaxes(title_text="PCoA 2", row=1, col=2)
+
+    title = f"PERMANOVA: {group_b} vs {group_a} (pseudo-F={actual:.2f}, p={result['p_value']:.3f}, R²={result['r2']:.2f})"
+    fig.update_layout(
+        title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
+        font={"family": style.get("font_family"), "color": "#334155"},
+        paper_bgcolor=style.get("paper_bgcolor"),
+        plot_bgcolor=style.get("plot_bgcolor"),
+        legend={"orientation": "h", "y": -0.15},
+        margin={"l": 70, "r": 80, "t": 100, "b": 90},
+    )
+    return fig
 
 
 def _dendrogram_coords(link, n_leaves, orientation="top"):
@@ -1241,6 +1641,21 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
     elif plot_type == "food_profile":
         fig = _food_profile(df, sample_meta, dataset.feature_metadata, style, params)
+
+    elif plot_type == "chain_space":
+        fig = _chain_space_figure(df, sample_meta, dataset.feature_metadata, style, params)
+
+    elif plot_type == "pls_da":
+        fig = _pls_da_figure(df, sample_meta, dataset.feature_metadata, style, params)
+
+    elif plot_type == "opls_da":
+        fig = _opls_da_figure(df, sample_meta, dataset.feature_metadata, style, params)
+
+    elif plot_type == "biomarker":
+        fig = _biomarker_figure(df, sample_meta, dataset.feature_metadata, style, params)
+
+    elif plot_type == "permanova":
+        fig = _permanova_figure(df, sample_meta, dataset.feature_metadata, style, params)
 
     elif plot_type == "rt_mz":
         mz = [_safe_float(f.get("mz", 0)) for f in dataset.feature_metadata]
