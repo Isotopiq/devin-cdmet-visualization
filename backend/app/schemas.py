@@ -183,10 +183,19 @@ class IsotopeRequest(BaseModel):
 
 
 class PathwayRequest(BaseModel):
-    value_type: str
+    value_type: Optional[str] = "abundance"
     pathway_source: str = "kegg"
     custom_nodes: Optional[List[Dict[str, Any]]] = None
     custom_edges: Optional[List[Dict[str, Any]]] = None
+    organism: Optional[str] = "hsa"
+    group_a: Optional[str] = None
+    group_b: Optional[str] = None
+    fc_threshold: Optional[float] = 1.0
+    p_threshold: Optional[float] = 0.05
+    test: Optional[str] = "t_test"
+    multiple_testing: Optional[str] = "fdr_bh"
+    features: Optional[List[str]] = None
+    top_n: Optional[int] = 20
 
 
 class SiteSettingsUpdate(BaseModel):

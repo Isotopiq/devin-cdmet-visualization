@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { usePlotConfig, styleToBackend } from '../context/PlotConfigContext'
 import DatasetPicker from '../components/DatasetPicker'
@@ -89,6 +89,9 @@ export default function Visualize() {
   const [reportOpen, setReportOpen] = useState(false)
   const [reportSections, setReportSections] = useState<any[]>([])
   const [reportLoading, setReportLoading] = useState(false)
+  const [ocrLoading, setOcrLoading] = useState(false)
+  const [ocrStatus, setOcrStatus] = useState('')
+  const reportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setGroupA(groups[0] || '')
@@ -195,6 +198,100 @@ export default function Visualize() {
     all_lipids: allLipids,
   })
 
+  const loadScript = (src: string) =>
+    new Promise<void>((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${src}"]`)
+      if (existing) {
+        resolve()
+        return
+      }
+      const s = document.createElement('script')
+      s.src = src
+      s.async = true
+      s.onload = () => resolve()
+      s.onerror = () => reject(new Error(`Failed to load ${src}`))
+      document.body.appendChild(s)
+    })
+
+  const applyOcrLayer = async (element: HTMLElement) => {
+    setOcrLoading(true)
+    setOcrStatus('Loading OCR engine...')
+    try {
+      await Promise.all([
+        loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'),
+        loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'),
+      ])
+
+      const html2canvasLib = (window as any).html2canvas as (el: HTMLElement, opts?: any) => Promise<HTMLCanvasElement>
+      const Tesseract = (window as any).Tesseract as any
+      if (!html2canvasLib || !Tesseract) {
+        throw new Error('OCR libraries failed to load')
+      }
+
+      setOcrStatus('Capturing report for OCR...')
+      const canvas = await html2canvasLib(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
+
+      setOcrStatus('Running OCR (this may take a moment)...')
+      const worker = await Tesseract.createWorker('eng')
+      const { data } = await worker.recognize(canvas)
+      await worker.terminate()
+
+      const cWidth = canvas.width || 1
+      const cHeight = canvas.height || 1
+
+      const overlay = document.createElement('div')
+      overlay.className = 'ocr-text-layer print-only'
+      overlay.style.position = 'absolute'
+      overlay.style.top = '0'
+      overlay.style.left = '0'
+      overlay.style.width = '100%'
+      overlay.style.height = '100%'
+      overlay.style.zIndex = '9999'
+      overlay.style.pointerEvents = 'none'
+      overlay.style.overflow = 'hidden'
+
+      const cssHeight = cHeight / 2
+      for (const word of data.words || []) {
+        const bbox = word.bbox
+        const left = (bbox.x0 / cWidth) * 100
+        const top = (bbox.y0 / cHeight) * 100
+        const width = ((bbox.x1 - bbox.x0) / cWidth) * 100
+        const heightPct = ((bbox.y1 - bbox.y0) / cHeight) * 100
+        if (width <= 0 || heightPct <= 0 || !word.text?.trim()) continue
+        const pxHeight = Math.max(8, (bbox.y1 - bbox.y0) / 2)
+        const span = document.createElement('span')
+        span.textContent = word.text
+        span.style.position = 'absolute'
+        span.style.left = `${left}%`
+        span.style.top = `${top}%`
+        span.style.width = `${Math.max(width, 0.5)}%`
+        span.style.height = `${Math.max(heightPct, 0.5)}%`
+        span.style.color = 'rgba(0,0,0,0.01)'
+        span.style.fontSize = `${pxHeight}px`
+        span.style.lineHeight = `${pxHeight}px`
+        span.style.whiteSpace = 'nowrap'
+        span.style.overflow = 'hidden'
+        span.style.fontFamily = 'sans-serif'
+        overlay.appendChild(span)
+      }
+
+      element.style.position = 'relative'
+      element.appendChild(overlay)
+      setOcrStatus('Finalizing PDF...')
+      setTimeout(() => {
+        window.print()
+        setTimeout(() => overlay.remove(), 500)
+      }, 200)
+    } catch (err: any) {
+      console.error('OCR failed:', err)
+      setOcrStatus('OCR failed, printing without text layer.')
+      window.print()
+    } finally {
+      setOcrLoading(false)
+      setOcrStatus('')
+    }
+  }
+
   const exportReport = async () => {
     if (!projectId || !datasetId || !groupA || !groupB) return
     setReportLoading(true)
@@ -207,7 +304,13 @@ export default function Visualize() {
         parameters: buildReportParams(),
       })
       setReportSections(res.data)
-      setTimeout(() => window.print(), 1500)
+      setTimeout(() => {
+        if (reportRef.current) {
+          applyOcrLayer(reportRef.current)
+        } else {
+          window.print()
+        }
+      }, 1800)
     } catch (err: any) {
       console.error(err)
       setReportOpen(false)
@@ -382,11 +485,13 @@ export default function Visualize() {
           <div className="flex items-center justify-between mb-6 no-print">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">{reportTitle || 'Analysis report'}</h2>
             <div className="flex items-center gap-2">
-              <button onClick={() => window.print()} className="btn-primary"><LuPrinter /> Print / Save PDF</button>
+              {ocrStatus && <span className="text-sm text-slate-500 dark:text-slate-400">{ocrStatus}</span>}
+              {ocrLoading && <span className="inline-block w-4 h-4 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />}
+              <button onClick={() => reportRef.current ? applyOcrLayer(reportRef.current) : window.print()} disabled={ocrLoading} className="btn-primary"><LuPrinter /> Print / Save PDF</button>
               <button onClick={() => setReportOpen(false)} className="btn-secondary"><LuX /> Close</button>
             </div>
           </div>
-          <div className="max-w-6xl mx-auto space-y-6">
+          <div ref={reportRef} className="max-w-6xl mx-auto space-y-6 relative">
             <div className="flex items-center gap-4 mb-8">
               <img src="/logo.png" alt="isotopiq" className="h-10" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
               <div>

@@ -93,6 +93,8 @@ def _apply_base_layout(fig: go.Figure, style: dict, title: str | None = None):
             if isinstance(trace, (go.Scatter, go.Scattergl)) and trace.mode and "markers" in trace.mode:
                 trace.marker = trace.marker or {}
                 trace.marker.size = style.get("marker_size")
+    fig.update_xaxes(automargin=True, tickfont={"size": style.get("tick_size")}, title_font={"size": style.get("axis_label_size")})
+    fig.update_yaxes(automargin=True, tickfont={"size": style.get("tick_size")}, title_font={"size": style.get("axis_label_size")})
 
 
 def _get_feature_index(dataset, feature_arg):
@@ -126,6 +128,22 @@ def _safe_float(value, default=0.0):
         return default
     except (TypeError, ValueError):
         return default
+
+
+def _shorten_name(name: str, max_len: int = 24) -> str:
+    s = str(name)
+    m = re.search(r"Area:\s*(.+?)\.raw", s)
+    if m:
+        s = m.group(1)
+    if len(s) > max_len:
+        return s[: max_len - 1] + "…"
+    return s
+
+
+def _tick_text_step(n: int, max_labels: int = 30) -> int:
+    if n <= max_labels:
+        return 1
+    return max(1, int(np.ceil(n / max_labels)))
 
 
 def _place_labels(xs, ys, labels, x_min, x_max, y_min, y_max, plot_width_px=900, plot_height_px=520, font_px=9):
@@ -288,6 +306,7 @@ def _volcano_publication(points, fc_thresh, p_thresh, style, params):
             showgrid=True,
             gridcolor="#e5e5e5",
             zeroline=False,
+            automargin=True,
             tickfont=dict(size=style.get("tick_size")),
         ),
         yaxis=dict(
@@ -295,6 +314,7 @@ def _volcano_publication(points, fc_thresh, p_thresh, style, params):
             showgrid=True,
             gridcolor="#e5e5e5",
             zeroline=False,
+            automargin=True,
             tickfont=dict(size=style.get("tick_size")),
         ),
         legend=dict(
@@ -383,12 +403,12 @@ def _pca_publication(scores, labels, pca, sample_names, style, params):
         title=dict(text=f"<b>{title_text}</b>", font=dict(size=style.get("title_size"), color="#1e293b"), x=0.0, xanchor="left"),
         xaxis=dict(
             title=dict(text=f"PC1 ({exp1:.1f}%)", font=dict(size=style.get("axis_label_size"), color="#000")),
-            showgrid=True, gridcolor="#e5e5e5", zeroline=False,
+            showgrid=True, gridcolor="#e5e5e5", zeroline=False, automargin=True,
             tickfont=dict(size=style.get("tick_size")),
         ),
         yaxis=dict(
             title=dict(text=f"PC2 ({exp2:.1f}%)", font=dict(size=style.get("axis_label_size"), color="#000")),
-            showgrid=True, gridcolor="#e5e5e5", zeroline=False,
+            showgrid=True, gridcolor="#e5e5e5", zeroline=False, automargin=True,
             tickfont=dict(size=style.get("tick_size")),
         ),
         legend=dict(
@@ -464,13 +484,13 @@ def _outlier_plot(df, sample_meta, style, params):
         title=dict(text=f"<b>{title_text}</b>", font=dict(size=style.get("title_size"), color="#1e293b"), x=0.0, xanchor="left"),
         xaxis=dict(
             title=dict(text="Mahalanobis distance", font=dict(size=style.get("axis_label_size"), color="#000")),
-            showgrid=True, gridcolor="#e5e5e5", zeroline=False,
+            showgrid=True, gridcolor="#e5e5e5", zeroline=False, automargin=True,
             tickfont=dict(size=style.get("tick_size")),
         ),
         yaxis=dict(
             title=dict(text="Sample", font=dict(size=style.get("axis_label_size"), color="#000")),
             categoryorder="array", categoryarray=names,
-            showgrid=False, tickfont=dict(size=max(7, style.get("tick_size") - 1)),
+            showgrid=False, automargin=True, tickfont=dict(size=max(7, style.get("tick_size") - 1)),
         ),
         legend=dict(
             title=dict(text="group", font=dict(size=style.get("tick_size"))),
@@ -565,8 +585,8 @@ def _category_volcano_figure(items, title, style):
 
     _apply_base_layout(fig, style, title="")
     fig.update_layout(
-        xaxis=dict(title=dict(text="log2 fold change", font=dict(size=style.get("axis_label_size", 12))), zeroline=False, showgrid=True, gridcolor="#e5e5e5", range=[min_x, max_x]),
-        yaxis=dict(title=dict(text="-log10(adjusted P)", font=dict(size=style.get("axis_label_size", 12))), showgrid=True, gridcolor="#e5e5e5", range=[0, max(1.3, max_y) * 1.1]),
+        xaxis=dict(title=dict(text="log2 fold change", font=dict(size=style.get("axis_label_size", 12))), zeroline=False, showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[min_x, max_x]),
+        yaxis=dict(title=dict(text="-log10(adjusted P)", font=dict(size=style.get("axis_label_size", 12))), showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[0, max(1.3, max_y) * 1.1]),
         legend=dict(title=dict(text="Category"), orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
         margin=dict(l=70, r=40, t=80, b=70),
         plot_bgcolor="white",
@@ -683,7 +703,7 @@ def _heatmap_publication(df, sample_meta, style, params):
         shared_xaxes=False,
         shared_yaxes=True,
         column_widths=[0.12, 0.88],
-        row_heights=[0.12, 0.06, 0.82],
+        row_heights=[0.10, 0.08, 0.82],
         vertical_spacing=0.02,
         horizontal_spacing=0.02,
     )
@@ -713,7 +733,7 @@ def _heatmap_publication(df, sample_meta, style, params):
         y=list(range(m)),
         colorscale=colorscale,
         zmid=zmid,
-        colorbar=dict(title={"text": cbar_title, "side": "right"}, x=1.02, len=0.85),
+        colorbar=dict(title={"text": cbar_title, "side": "bottom"}, x=1.04, len=0.82, xpad=10),
         hovertemplate="Feature: %{y}<br>Sample: %{customdata}<br>Value: %{z:.3f}<extra></extra>",
         customdata=np.array([plot_df.columns.tolist()] * m),
     ), row=3, col=2)
@@ -730,15 +750,29 @@ def _heatmap_publication(df, sample_meta, style, params):
     fig.update_xaxes(autorange="reversed", range=[0, max_left], showticklabels=False, showgrid=False, zeroline=False, row=3, col=1)
     fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False, row=3, col=1)
 
-    row_tick_size = max(7, min(style.get("tick_size", 11), int(220 / max(m, 1))))
+    short_cols = [_shorten_name(c) for c in plot_df.columns]
+    short_rows = [_shorten_name(str(i)) for i in plot_df.index]
+    max_x_len = max([len(s) for s in short_cols], default=1)
+    max_y_len = max([len(s) for s in short_rows], default=1)
+
+    x_step = _tick_text_step(n, max_labels=30)
+    x_tickvals = list(range(0, n, x_step))
+    x_ticktext = [short_cols[i] for i in x_tickvals]
+    x_tick_size = max(6, min(style.get("tick_size", 11), int(260 / max(n, 1))))
+    y_tick_size = max(7, min(style.get("tick_size", 11), int(240 / max(m, 1))))
+
+    right_margin = max(140, int(max_y_len * y_tick_size * 0.55) + 90)
+    bottom_margin = max(110, int(max_x_len * x_tick_size * 0.65) + 60)
+
     fig.update_xaxes(
         range=[-0.5, n - 0.5],
         tickmode="array",
-        tickvals=list(range(n)),
-        ticktext=plot_df.columns,
+        tickvals=x_tickvals,
+        ticktext=x_ticktext,
         tickangle=-45,
         side="bottom",
-        tickfont=dict(size=max(7, style.get("tick_size", 11) - 2)),
+        tickfont=dict(size=x_tick_size),
+        automargin=True,
         showgrid=False,
         zeroline=False,
         row=3, col=2,
@@ -746,17 +780,18 @@ def _heatmap_publication(df, sample_meta, style, params):
     fig.update_yaxes(
         tickmode="array",
         tickvals=list(range(m)),
-        ticktext=plot_df.index,
-        tickfont=dict(size=row_tick_size),
+        ticktext=short_rows,
+        tickfont=dict(size=y_tick_size),
         side="right",
+        automargin=True,
         showgrid=False,
         zeroline=False,
         row=3, col=2,
     )
 
-    _apply_base_layout(fig, style, title=f"Top {m} most-variable lipids")
+    _apply_base_layout(fig, style, title=f"Top {m} most-variable features")
     fig.update_layout(
-        margin=dict(l=80, r=140, t=100, b=120),
+        margin=dict(l=80, r=right_margin, t=100, b=bottom_margin),
         paper_bgcolor=style.get("paper_bgcolor"),
         plot_bgcolor="white",
         font=dict(family=style.get("font_family"), color="#334155"),
@@ -915,10 +950,25 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             else:
                 group_colorscale = [[i / (n_groups - 1), gcolor_map[g]] for i, g in enumerate(group_order)]
 
-            fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02, row_heights=[0.06, 0.94])
+            m, n = plot_df.shape
+            short_cols = [_shorten_name(c) for c in plot_df.columns]
+            short_rows = [_shorten_name(str(i)) for i in plot_df.index]
+            max_x_len = max([len(s) for s in short_cols], default=1)
+            max_y_len = max([len(s) for s in short_rows], default=1)
+
+            x_step = _tick_text_step(n, max_labels=30)
+            x_tickvals = list(range(0, n, x_step))
+            x_ticktext = [short_cols[i] for i in x_tickvals]
+            x_tick_size = max(6, min(style.get("tick_size", 11), int(260 / max(n, 1))))
+            y_tick_size = max(7, min(style.get("tick_size", 11), int(240 / max(m, 1))))
+
+            right_margin = max(120, int(max_y_len * y_tick_size * 0.55) + 90)
+            bottom_margin = max(100, int(max_x_len * x_tick_size * 0.65) + 60)
+
+            fig = make_subplots(rows=2, cols=1, shared_xaxes=False, vertical_spacing=0.02, row_heights=[0.08, 0.92])
             fig.add_trace(go.Heatmap(
                 z=[group_codes],
-                x=plot_df.columns,
+                x=list(range(n)),
                 y=[""],
                 colorscale=group_colorscale,
                 showscale=False,
@@ -926,11 +976,13 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             ), row=1, col=1)
             fig.add_trace(go.Heatmap(
                 z=plot_df.values,
-                x=plot_df.columns,
-                y=plot_df.index,
+                x=list(range(n)),
+                y=list(range(m)),
                 colorscale=colorscale,
                 zmid=zmid,
-                colorbar=dict(title={"text": cbar_title, "side": "right"}, x=1.02, len=0.85),
+                colorbar=dict(title={"text": cbar_title, "side": "bottom"}, x=1.04, len=0.82, xpad=10),
+                hovertemplate="Feature: %{y}<br>Sample: %{customdata}<br>Value: %{z:.3f}<extra></extra>",
+                customdata=np.array([plot_df.columns.tolist()] * m),
             ), row=2, col=1)
 
             fig.update_layout(
@@ -938,7 +990,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 paper_bgcolor=style.get("paper_bgcolor"),
                 plot_bgcolor=style.get("plot_bgcolor"),
                 title={
-                    "text": f"Top {len(plot_df)} most-variable lipids",
+                    "text": f"Top {m} most-variable features",
                     "font": {"size": style.get("title_size"), "color": "#1e293b"},
                     "x": 0.5,
                     "xanchor": "center",
@@ -946,14 +998,34 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     "yanchor": "top",
                     "pad": {"b": 20},
                 },
-                margin={"l": max(80, 6 * max([len(str(i)) for i in plot_df.index])), "r": 120, "t": 100, "b": 80},
+                margin={"l": 80, "r": right_margin, "t": 100, "b": bottom_margin},
             )
-            max_label_len = max([len(str(i)) for i in plot_df.index])
-            row_tick_size = max(7, min(style.get("tick_size", 11), int(220 / max(len(plot_df.index), 1))))
-            fig.update_xaxes(side="top", tickangle=-45, automargin=True, showticklabels=False, row=1, col=1)
-            fig.update_xaxes(side="top", tickangle=-45, automargin=True, tickfont={"size": max(7, style.get("tick_size", 11) - 2)}, row=2, col=1)
+            fig.update_xaxes(range=[-0.5, n - 0.5], showticklabels=False, showgrid=False, zeroline=False, row=1, col=1)
+            fig.update_xaxes(
+                range=[-0.5, n - 0.5],
+                tickmode="array",
+                tickvals=x_tickvals,
+                ticktext=x_ticktext,
+                tickangle=-45,
+                side="bottom",
+                tickfont={"size": x_tick_size},
+                automargin=True,
+                showgrid=False,
+                zeroline=False,
+                row=2, col=1,
+            )
             fig.update_yaxes(showticklabels=False, row=1, col=1)
-            fig.update_yaxes(tickfont={"size": row_tick_size}, automargin=True, row=2, col=1)
+            fig.update_yaxes(
+                tickmode="array",
+                tickvals=list(range(m)),
+                ticktext=short_rows,
+                tickfont={"size": y_tick_size},
+                side="right",
+                automargin=True,
+                showgrid=False,
+                zeroline=False,
+                row=2, col=1,
+            )
 
     elif plot_type == "pca":
         ptype = params.get("plot", "score")

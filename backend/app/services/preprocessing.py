@@ -131,8 +131,8 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
 
     # 8. Batch correction (median-center per batch when batch labels are supplied)
     if params.batch_correction == "mean" and params.batch_labels:
-        batch_df = pd.DataFrame({col: [params.batch_labels.get(col, "unknown") for col in df.columns]}, index=["batch"]).T
-        for batch, cols in df.columns.groupby(batch_df["batch"]).items():
+        batch_df = pd.DataFrame({col: [params.batch_labels.get(col, "unknown")] for col in df.columns}, index=["batch"]).T
+        for batch, cols in df.columns.to_series().groupby(batch_df["batch"]).items():
             if not cols:
                 continue
             batch_median = df[cols].median(axis=1).replace(0, np.nan)

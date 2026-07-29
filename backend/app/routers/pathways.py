@@ -19,5 +19,5 @@ async def pathway(project_id: int, dataset_id: int, req: schemas.PathwayRequest,
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
 
-    figure = build_pathway(dataset, req)
+    figure = await build_pathway(dataset, req)
     return figure
