@@ -189,26 +189,19 @@ def _tick_text_step(n: int, max_labels: int = 30) -> int:
 
 
 def _place_labels(xs, ys, labels, x_min, x_max, y_min, y_max, plot_width_px=900, plot_height_px=520, font_px=9):
+    """Return label center coordinates, avoiding each other and the original points."""
     placed = []
     x_range = max(x_max - x_min, 1e-9)
     y_range = max(y_max - y_min, 1e-9)
-    char_w = x_range * (font_px * 0.75) / plot_width_px
-    char_h = y_range * (font_px * 2.0) / plot_height_px
-    # Build a radial set of candidate offsets
-    candidates = []
-    radii = [1.2, 2.0, 2.8, 3.6]
-    angles = [0.785, 1.571, 2.356, 3.142, 3.927, 4.712, 5.498, 6.283]
-    text_positions = {
-        0.785: "top right", 1.571: "top center", 2.356: "top left",
-        3.142: "left", 3.927: "bottom left", 4.712: "bottom center",
-        5.498: "bottom right", 6.283: "right",
-    }
-    for r in radii:
-        for a in angles:
-            dx = math.cos(a) * r * char_w
-            dy = math.sin(a) * r * char_h
-            candidates.append((text_positions.get(round(a, 3), "top center"), dx, dy))
-    margin = (x_range * 30 / plot_width_px, y_range * 30 / plot_height_px)
+    # approximate pixel-to-data scaling
+    px_to_x = x_range / plot_width_px
+    px_to_y = y_range / plot_height_px
+    # width/height of one character in data units
+    char_w = font_px * 0.55 * px_to_x
+    char_h = font_px * 1.4 * px_to_y
+    margin = (20 * px_to_x, 10 * px_to_y)
+
+    angles = [0.0, 0.524, 1.047, 1.571, 2.094, 2.618, 3.142, 3.665, 4.189, 4.712, 5.236, 5.760]
 
     def rect(x, y, w, h):
         return (x - w / 2, y - h / 2, x + w / 2, y + h / 2)
@@ -218,29 +211,36 @@ def _place_labels(xs, ys, labels, x_min, x_max, y_min, y_max, plot_width_px=900,
 
     # Use data points as obstacles so labels don't cover the markers
     for x, y in zip(xs, ys):
-        placed.append(rect(x, y, char_w * 0.6, char_h * 0.6))
+        placed.append(rect(x, y, char_w * 1.2, char_h * 1.2))
 
     for x, y, text in zip(xs, ys, labels):
-        w = max(len(text) * char_w, char_w)
-        h = char_h
+        w = max(len(text) * char_w + char_w * 0.8, char_w * 2)
+        h = char_h * 1.6
+        # candidate offsets scale with the label box so labels don't overlap
         best = None
         best_score = None
-        for pos, dx, dy in candidates:
-            nx = x + dx
-            ny = y + dy
-            r = rect(nx, ny, w, h)
-            if r[0] < x_min - margin[0] or r[2] > x_max + margin[0] or r[1] < y_min - margin[1] or r[3] > y_max + margin[1]:
-                continue
-            if any(overlaps(r, pr) for pr in placed):
-                continue
-            score = (dx ** 2 + dy ** 2) ** 0.5
-            if best is None or score < best_score:
-                best = (nx, ny, pos)
-                best_score = score
+        for r_factor in [0.9, 1.4, 2.0, 2.7, 3.4, 4.2]:
+            for a in angles:
+                dx = math.cos(a) * r_factor * (w / 2 + char_w)
+                dy = math.sin(a) * r_factor * (h / 2 + char_h)
+                nx = x + dx
+                ny = y + dy
+                r = rect(nx, ny, w, h)
+                if r[0] < x_min - margin[0] or r[2] > x_max + margin[0] or r[1] < y_min - margin[1] or r[3] > y_max + margin[1]:
+                    continue
+                if any(overlaps(r, pr) for pr in placed):
+                    continue
+                score = (dx ** 2 + dy ** 2) ** 0.5
+                if best is None or score < best_score:
+                    best = (nx, ny)
+                    best_score = score
+            if best is not None:
+                break
         if best is None:
-            best = (x, y + char_h * 1.5, "top center")
+            # Last resort: place directly above the point
+            best = (x, y + char_h * 1.5)
         placed.append(rect(best[0], best[1], w, h))
-        yield best
+        yield (best[0], best[1], "middle center")
 
 
 def _hex_to_rgba(hex_color: str, alpha: float) -> str:

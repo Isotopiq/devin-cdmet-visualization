@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+const VISUALIZE_TAB_KEY = 'visualizeTab'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { usePlotConfig, styleToBackend } from '../context/PlotConfigContext'
 import DatasetPicker from '../components/DatasetPicker'
@@ -64,7 +65,13 @@ const ALL_PLOT_KEYS = [
 export default function Visualize() {
   const { selectedDataset, projectId, datasetId } = useWorkspace()
   const { style, reportTitle, setReportTitle, includePlots, setIncludePlots } = usePlotConfig()
-  const [tab, setTab] = useState('volcano')
+  const [tab, _setTab] = useState(localStorage.getItem(VISUALIZE_TAB_KEY) || 'volcano')
+  const tabRef = useRef(tab)
+  useEffect(() => { tabRef.current = tab }, [tab])
+  const setTab = (key: string) => {
+    _setTab(key)
+    localStorage.setItem(VISUALIZE_TAB_KEY, key)
+  }
   const [figure, setFigure] = useState<any>(null)
   const [figures, setFigures] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -113,6 +120,7 @@ export default function Visualize() {
 
   const generate = async () => {
     if (!projectId || !datasetId || !groupA || !groupB) return
+    const requestTab = tabRef.current
     setLoading(true)
     setFigure(null)
     setFigures([])
@@ -120,19 +128,19 @@ export default function Visualize() {
       const base = { projectId: Number(projectId), datasetId: Number(datasetId) }
       if (tab === 'pca') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pca', parameters: { plot: 'score', title: reportTitle }, style: backendStyle })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'pls_da') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pls_da', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'opls_da') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'opls_da', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'biomarker') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'biomarker', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'permanova') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'permanova', parameters: { group_a: groupA, group_b: groupB, metric: 'braycurtis', title: reportTitle }, style: backendStyle })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'volcano') {
         const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
         const res = await generatePlot(base.projectId, base.datasetId, {
@@ -140,7 +148,7 @@ export default function Visualize() {
           parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, show_labels: showLabels, top_n: topN, group_a: groupA, group_b: groupB, title: reportTitle },
           style: backendStyle,
         })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'heatmap') {
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'heatmap',
@@ -155,7 +163,7 @@ export default function Visualize() {
           },
           style: backendStyle,
         })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'per_lipid_bars') {
         const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
         const res = await generatePlot(base.projectId, base.datasetId, {
@@ -163,38 +171,55 @@ export default function Visualize() {
           parameters: { stats: statsRes.data.results, group_a: groupA, group_b: groupB, top_n: allLipids ? 1000 : lipidsPerPage },
           style: backendStyle,
         })
-        if (Array.isArray(res.data)) setFigures(res.data)
-        else setFigure(res.data)
+        if (tabRef.current === requestTab) {
+          if (Array.isArray(res.data)) setFigures(res.data)
+          else setFigure(res.data)
+        }
       } else if (tab === 'lipid_classes') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'lipid_class', parameters: {}, style: backendStyle })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'chain_space') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'chain_space', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'outlier') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'outlier', parameters: { title: reportTitle }, style: backendStyle })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'functional') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'functional', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'food_profile') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'food_profile', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
-        setFigure(res.data)
+        if (tabRef.current === requestTab) setFigure(res.data)
       }
     } catch (err: any) {
       console.error(err)
     } finally {
-      setLoading(false)
+      if (tabRef.current === requestTab) setLoading(false)
     }
   }
 
+  // Generate when the active tab or dataset/groups change (ignore the initial ready flag flip)
+  const didInitRef = useRef(false)
   useEffect(() => {
-    if (selectedDataset && groupA && groupB) generate()
+    if (selectedDataset && groupA && groupB) {
+      if (didInitRef.current || ready) {
+        didInitRef.current = true
+        generate()
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, selectedDataset, groupA, groupB, ready])
+  }, [tab, selectedDataset, groupA, groupB])
 
   useEffect(() => {
-    if (figure || figures.length) generate()
+    if (ready && selectedDataset && groupA && groupB) {
+      didInitRef.current = true
+      generate()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
+
+  useEffect(() => {
+    if ((figure || figures.length) && !loading) generate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [style])
 
