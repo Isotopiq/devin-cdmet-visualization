@@ -55,8 +55,12 @@ def _group_color_map(style: dict, groups: list) -> dict:
 def _apply_base_layout(fig: go.Figure, style: dict, title: str | None = None, x_labels: list | None = None, y_labels: list | None = None):
     longest_x = max([len(str(l)) for l in (x_labels or [])] or [0])
     longest_y = max([len(str(l)) for l in (y_labels or [])] or [0])
-    bottom = max(80, int(longest_x * style.get("tick_size", 11) * 0.6)) if longest_x > 12 else 70
-    left = max(80, int(longest_y * style.get("tick_size", 11) * 0.55)) if longest_y > 10 else 70
+    n_x = len(x_labels or [])
+    n_y = len(y_labels or [])
+    rotate_x = (longest_x > 10) or (n_x > 12)
+    rotate_y = longest_y > 10
+    bottom = max(80, int(longest_x * style.get("tick_size", 11) * 0.6)) if (longest_x > 12 or n_x > 12) else 70
+    left = max(80, int(longest_y * style.get("tick_size", 11) * 0.55)) if (longest_y > 10 or n_y > 12) else 70
 
     layout = {
         "font": {"family": style.get("font_family"), "color": "#334155"},
@@ -103,10 +107,10 @@ def _apply_base_layout(fig: go.Figure, style: dict, title: str | None = None, x_
                 trace.marker = trace.marker or {}
                 trace.marker.size = style.get("marker_size")
     fig.update_xaxes(automargin=True, tickfont={"size": style.get("tick_size")}, title_font={"size": style.get("axis_label_size")}, title_standoff=18)
-    fig.update_yaxes(automargin=True, tickfont={"size": style.get("tick_size")}, title_font={"size": style.get("axis_label_size")}, title_standoff=18)
-    if longest_x > 10:
+    fig.update_yaxes(automargin=True, tickfont={"size": style.get("tick_size")}, title_font={"size": style.get("axis_label_size")}, title_standoff=30)
+    if rotate_x:
         fig.update_xaxes(tickangle=-45)
-    if longest_y > 10:
+    if rotate_y:
         fig.update_yaxes(tickangle=0)
 
 
@@ -345,7 +349,7 @@ def _volcano_publication(points, fc_thresh, p_thresh, style, params):
             yanchor="top",
         ),
         xaxis=dict(
-            title=dict(text=f"log2 Fold Change ({group_b} / {group_a})", font=dict(size=style.get("axis_label_size"), color="#000")),
+            title=dict(text=f"log2 Fold Change ({group_b} / {group_a})", font=dict(size=style.get("axis_label_size"), color="#000"), standoff=30),
             range=[x_min, x_max],
             showgrid=True,
             gridcolor="#e5e5e5",
@@ -354,7 +358,7 @@ def _volcano_publication(points, fc_thresh, p_thresh, style, params):
             tickfont=dict(size=style.get("tick_size")),
         ),
         yaxis=dict(
-            title=dict(text="-log10 p-value", font=dict(size=style.get("axis_label_size"), color="#000")),
+            title=dict(text="-log10 p-value", font=dict(size=style.get("axis_label_size"), color="#000"), standoff=30),
             range=[0, y_max],
             showgrid=True,
             gridcolor="#e5e5e5",
@@ -448,12 +452,12 @@ def _pca_publication(scores, labels, pca, sample_names, style, params):
     fig.update_layout(
         title=dict(text=f"<b>{title_text}</b>", font=dict(size=style.get("title_size"), color="#1e293b"), x=0.0, xanchor="left"),
         xaxis=dict(
-            title=dict(text=f"PC1 ({exp1:.1f}%)", font=dict(size=style.get("axis_label_size"), color="#000")),
+            title=dict(text=f"PC1 ({exp1:.1f}%)", font=dict(size=style.get("axis_label_size"), color="#000"), standoff=30),
             showgrid=True, gridcolor="#e5e5e5", zeroline=False, automargin=True,
             tickfont=dict(size=style.get("tick_size")),
         ),
         yaxis=dict(
-            title=dict(text=f"PC2 ({exp2:.1f}%)", font=dict(size=style.get("axis_label_size"), color="#000")),
+            title=dict(text=f"PC2 ({exp2:.1f}%)", font=dict(size=style.get("axis_label_size"), color="#000"), standoff=30),
             showgrid=True, gridcolor="#e5e5e5", zeroline=False, automargin=True,
             tickfont=dict(size=style.get("tick_size")),
         ),
@@ -530,12 +534,12 @@ def _outlier_plot(df, sample_meta, style, params):
     fig.update_layout(
         title=dict(text=f"<b>{title_text}</b>", font=dict(size=style.get("title_size"), color="#1e293b"), x=0.0, xanchor="left"),
         xaxis=dict(
-            title=dict(text="Mahalanobis distance", font=dict(size=style.get("axis_label_size"), color="#000")),
+            title=dict(text="Mahalanobis distance", font=dict(size=style.get("axis_label_size"), color="#000"), standoff=30),
             showgrid=True, gridcolor="#e5e5e5", zeroline=False, automargin=True,
             tickfont=dict(size=style.get("tick_size")),
         ),
         yaxis=dict(
-            title=dict(text="Sample", font=dict(size=style.get("axis_label_size"), color="#000")),
+            title=dict(text="Sample", font=dict(size=style.get("axis_label_size"), color="#000"), standoff=30),
             categoryorder="array", categoryarray=names,
             showgrid=False, automargin=True, tickfont=dict(size=max(7, style.get("tick_size") - 1)),
         ),
@@ -564,7 +568,7 @@ def _category_volcano_figure(items, title, style):
     fig = make_subplots(
         rows=2, cols=1,
         shared_xaxes=False,
-        vertical_spacing=0.12,
+        vertical_spacing=0.18,
         row_heights=[0.62, 0.38],
         specs=[[{"type": "scatter"}], [{"type": "table"}]],
         subplot_titles=(title, "Interpretation table (top by significance)"),
@@ -632,10 +636,10 @@ def _category_volcano_figure(items, title, style):
 
     _apply_base_layout(fig, style, title="")
     fig.update_layout(
-        xaxis=dict(title=dict(text="log2 fold change", font=dict(size=style.get("axis_label_size", 12))), zeroline=False, showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[min_x, max_x]),
-        yaxis=dict(title=dict(text="-log10(adjusted P)", font=dict(size=style.get("axis_label_size", 12))), showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[0, max(1.3, max_y) * 1.1]),
+        xaxis=dict(title=dict(text="log2 fold change", font=dict(size=style.get("axis_label_size", 12)), standoff=30), zeroline=False, showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[min_x, max_x]),
+        yaxis=dict(title=dict(text="-log10(adjusted P)", font=dict(size=style.get("axis_label_size", 12)), standoff=30), showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[0, max(1.3, max_y) * 1.1]),
         legend=dict(title=dict(text="Category"), orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-        margin=dict(l=70, r=40, t=80, b=70),
+        margin=dict(l=80, r=40, t=80, b=80),
         plot_bgcolor="white",
         paper_bgcolor="white",
         showlegend=True,
@@ -684,8 +688,8 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Chain space (carbon × double bonds)", "Chain type composition", "Chain-length distribution", "Unsaturation distribution"),
-        vertical_spacing=0.12,
-        horizontal_spacing=0.1,
+        vertical_spacing=0.18,
+        horizontal_spacing=0.12,
     )
 
     for ctype in ["acyl", "alkyl", "plasmalogen"]:
@@ -700,7 +704,7 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
             marker=dict(
                 color=[r["log2fc"] for r in sub],
                 colorscale="RdBu_r",
-                colorbar=dict(title="log2FC", x=0.47, len=0.45),
+                colorbar=dict(title="log2FC", x=1.02, xanchor="left", len=0.5, thickness=15, outlinewidth=0),
                 size=[max(5, min(35, np.log10(max(r["mean_a"] + r["mean_b"], 1e-9)) * 4 + 5)) for r in sub],
                 sizemode="diameter",
                 line=dict(width=0.5, color="white"),
@@ -729,15 +733,6 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
         vals = [by_db.get(g, {}).get(d, 0.0) for d in dbs]
         fig.add_trace(go.Bar(name=g, x=[str(d) for d in dbs], y=vals, showlegend=False), row=2, col=2)
 
-    fig.update_layout(
-        title={"text": f"Chain space: {group_b} vs {group_a}", "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
-        font={"family": style.get("font_family"), "color": "#334155"},
-        paper_bgcolor=style.get("paper_bgcolor"),
-        plot_bgcolor=style.get("plot_bgcolor"),
-        barmode="group",
-        legend={"orientation": "h", "y": -0.15},
-        margin={"l": 70, "r": 110, "t": 90, "b": 90},
-    )
     fig.update_xaxes(title_text="Carbon atoms", row=1, col=1)
     fig.update_yaxes(title_text="Double bonds", row=1, col=1)
     fig.update_xaxes(title_text="Chain type", row=1, col=2)
@@ -746,6 +741,30 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_yaxes(title_text="Total intensity", row=2, col=1)
     fig.update_xaxes(title_text="Double bonds", row=2, col=2)
     fig.update_yaxes(title_text="Total intensity", row=2, col=2)
+
+    carbon_step = _tick_text_step(len(carbons), max_labels=14)
+    db_step = _tick_text_step(len(dbs), max_labels=14)
+    fig.update_xaxes(
+        tickmode="array",
+        tickvals=[str(carbons[i]) for i in range(0, len(carbons), carbon_step)],
+        ticktext=[str(carbons[i]) for i in range(0, len(carbons), carbon_step)],
+        row=2, col=1,
+    )
+    fig.update_xaxes(
+        tickmode="array",
+        tickvals=[str(dbs[i]) for i in range(0, len(dbs), db_step)],
+        ticktext=[str(dbs[i]) for i in range(0, len(dbs), db_step)],
+        row=2, col=2,
+    )
+
+    all_x_labels = list(map(str, carbons)) + list(types) + list(map(str, dbs))
+    _apply_base_layout(fig, style, title=None, x_labels=all_x_labels)
+    fig.update_layout(
+        title={"text": f"Chain space: {group_b} vs {group_a}", "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
+        barmode="group",
+        legend={"orientation": "h", "y": -0.2},
+        margin={"l": 80, "r": 140, "t": 100, "b": 110},
+    )
     return fig
 
 
@@ -769,8 +788,8 @@ def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Score plot (LV1 vs LV2)", "Top VIP features", "Model performance", "Permutation test (R²Y)"),
-        vertical_spacing=0.12,
-        horizontal_spacing=0.1,
+        vertical_spacing=0.18,
+        horizontal_spacing=0.12,
     )
 
     # Score plot
@@ -792,13 +811,16 @@ def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_yaxes(title_text="LV2", row=1, col=1)
 
     # VIP
-    vip = result["vip_table"][:15]
+    vip = result["vip_table"][:8]
+    vip_labels = [_shorten_name(v["feature"], 18) for v in vip]
     fig.add_trace(go.Bar(
-        x=[v["feature"] for v in vip], y=[v["vip"] for v in vip],
+        x=vip_labels, y=[v["vip"] for v in vip],
         marker_color=[color_map.get(group_b, "#c44e52") if v.get("loading_pc1", 0) > 0 else color_map.get(group_a, "#2e6575") for v in vip],
+        customdata=[v["feature"] for v in vip],
+        hovertemplate="%{customdata}<br>VIP: %{y:.2f}<extra></extra>",
         showlegend=False,
     ), row=1, col=2)
-    fig.update_xaxes(tickangle=-45, row=1, col=2)
+    fig.update_xaxes(tickangle=-60, row=1, col=2)
     fig.update_yaxes(title_text="VIP score", row=1, col=2)
 
     # Performance
@@ -818,13 +840,13 @@ def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_yaxes(title_text="Count", row=2, col=2)
 
     title = f"PLS-DA: {group_b} vs {group_a} (R²Y={result['r2y']:.2f}, Q²Y={result['q2y']:.2f}, Acc={result['accuracy']:.2f})"
+    x_labels = vip_labels + [f["feature"] for f in result.get("feature_importances", [])[:15]]
+    _apply_base_layout(fig, style, title=None, x_labels=x_labels)
+    fig.update_xaxes(tickangle=-45, tickfont=dict(size=9), row=1, col=2)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
-        font={"family": style.get("font_family"), "color": "#334155"},
-        paper_bgcolor=style.get("paper_bgcolor"),
-        plot_bgcolor=style.get("plot_bgcolor"),
-        legend={"orientation": "h", "y": -0.15},
-        margin={"l": 70, "r": 80, "t": 100, "b": 90},
+        legend={"orientation": "h", "y": -0.2},
+        margin={"l": 80, "r": 80, "t": 100, "b": 110},
     )
     return fig
 
@@ -852,8 +874,8 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Score plot (predictive vs orthogonal)", "S-plot", "Top discriminant features", "Observation diagnostics"),
-        vertical_spacing=0.12,
-        horizontal_spacing=0.1,
+        vertical_spacing=0.18,
+        horizontal_spacing=0.12,
     )
 
     # Score plot
@@ -879,13 +901,16 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_yaxes(title_text="Correlation to score", row=1, col=2)
 
     # VIP top features by |p_pred|
-    top = sorted(splot, key=lambda s: abs(s["p_pred"]), reverse=True)[:15]
+    top = sorted(splot, key=lambda s: abs(s["p_pred"]), reverse=True)[:8]
+    top_labels = [_shorten_name(t["feature"], 18) for t in top]
     fig.add_trace(go.Bar(
-        x=[t["feature"] for t in top], y=[abs(t["p_pred"]) for t in top],
+        x=top_labels, y=[abs(t["p_pred"]) for t in top],
         marker_color=[color_map.get(group_b, "#c44e52") if t["p_pred"] > 0 else color_map.get(group_a, "#2e6575") for t in top],
+        customdata=[t["feature"] for t in top],
+        hovertemplate="%{customdata}<br>|p_pred|: %{y:.3f}<extra></extra>",
         showlegend=False,
     ), row=2, col=1)
-    fig.update_xaxes(tickangle=-45, row=2, col=1)
+    fig.update_xaxes(tickangle=-60, row=2, col=1)
     fig.update_yaxes(title_text="|p_pred|", row=2, col=1)
 
     # Diagnostics
@@ -901,13 +926,13 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_yaxes(title_text="Orthogonal distance", row=2, col=2)
 
     title = f"OPLS-DA: {group_b} vs {group_a} (R²Y={result['r2y']:.2f}, Q²Y={result['q2y']:.2f}, Acc={result['accuracy']:.2f})"
+    x_labels = top_labels + [t["feature"] for t in top]
+    _apply_base_layout(fig, style, title=None, x_labels=x_labels)
+    fig.update_xaxes(tickangle=-45, tickfont=dict(size=9), row=2, col=1)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
-        font={"family": style.get("font_family"), "color": "#334155"},
-        paper_bgcolor=style.get("paper_bgcolor"),
-        plot_bgcolor=style.get("plot_bgcolor"),
-        legend={"orientation": "h", "y": -0.15},
-        margin={"l": 70, "r": 80, "t": 100, "b": 90},
+        legend={"orientation": "h", "y": -0.2},
+        margin={"l": 80, "r": 80, "t": 100, "b": 110},
     )
     return fig
 
@@ -921,25 +946,28 @@ def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
         _apply_base_layout(fig, style, title=f"Biomarkers: {result['error']}")
         return fig
 
-    top = result["top_candidates"][:15]
+    top = result["top_candidates"][:8]
     mv = result["multivariate"]
     color_map = _group_color_map(style, [group_a, group_b])
 
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Top candidate AUC", "Random Forest ROC", "Top RF importances", "Top candidate table"),
-        vertical_spacing=0.12,
-        horizontal_spacing=0.1,
+        vertical_spacing=0.18,
+        horizontal_spacing=0.12,
         specs=[[{"type": "xy"}, {"type": "xy"}], [{"type": "xy"}, {"type": "table"}]],
     )
 
     # AUC bar
+    auc_labels = [_shorten_name(t["feature"], 18) for t in top]
     fig.add_trace(go.Bar(
-        x=[t["feature"] for t in top], y=[t["auc"] for t in top],
+        x=auc_labels, y=[t["auc"] for t in top],
         marker_color=[color_map.get(group_b, "#c44e52") if t["log2fc"] > 0 else color_map.get(group_a, "#2e6575") for t in top],
+        customdata=[t["feature"] for t in top],
+        hovertemplate="%{customdata}<br>AUC: %{y:.3f}<extra></extra>",
         showlegend=False,
     ), row=1, col=1)
-    fig.update_xaxes(tickangle=-45, row=1, col=1)
+    fig.update_xaxes(tickangle=-60, row=1, col=1)
     fig.update_yaxes(title_text="AUC", row=1, col=1)
 
     # ROC
@@ -955,12 +983,15 @@ def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_yaxes(title_text="True positive rate", row=1, col=2)
 
     # RF importance
-    fi = result["feature_importances"][:15]
+    fi = result["feature_importances"][:8]
+    fi_labels = [_shorten_name(f["feature"], 18) for f in fi]
     fig.add_trace(go.Bar(
-        x=[f["feature"] for f in fi], y=[f["importance"] for f in fi],
+        x=fi_labels, y=[f["importance"] for f in fi],
         marker_color="#81b29a", showlegend=False,
+        customdata=[f["feature"] for f in fi],
+        hovertemplate="%{customdata}<br>Importance: %{y:.3f}<extra></extra>",
     ), row=2, col=1)
-    fig.update_xaxes(tickangle=-45, row=2, col=1)
+    fig.update_xaxes(tickangle=-60, row=2, col=1)
     fig.update_yaxes(title_text="Importance", row=2, col=1)
 
     # Table
@@ -978,13 +1009,14 @@ def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
     ), row=2, col=2)
 
     title = f"Biomarker discovery: {group_b} vs {group_a} (RF AUC={mv['auc']:.2f})"
+    x_labels = auc_labels + fi_labels
+    _apply_base_layout(fig, style, title=None, x_labels=x_labels)
+    fig.update_xaxes(tickangle=-45, tickfont=dict(size=9), row=1, col=1)
+    fig.update_xaxes(tickangle=-45, tickfont=dict(size=9), row=2, col=1)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
-        font={"family": style.get("font_family"), "color": "#334155"},
-        paper_bgcolor=style.get("paper_bgcolor"),
-        plot_bgcolor=style.get("plot_bgcolor"),
-        legend={"orientation": "h", "y": -0.15},
-        margin={"l": 70, "r": 80, "t": 100, "b": 90},
+        legend={"orientation": "h", "y": -0.2},
+        margin={"l": 80, "r": 80, "t": 100, "b": 110},
     )
     return fig
 
@@ -1030,7 +1062,7 @@ def _permanova_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=1, cols=2,
         subplot_titles=("PERMANOVA permutation distribution", f"PCoA ({metric})"),
-        horizontal_spacing=0.12,
+        horizontal_spacing=0.15,
     )
 
     perm_f = result["perm_f"]
@@ -1053,13 +1085,11 @@ def _permanova_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_yaxes(title_text="PCoA 2", row=1, col=2)
 
     title = f"PERMANOVA: {group_b} vs {group_a} (pseudo-F={actual:.2f}, p={result['p_value']:.3f}, R²={result['r2']:.2f})"
+    _apply_base_layout(fig, style, title=None, y_labels=display_samples)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
-        font={"family": style.get("font_family"), "color": "#334155"},
-        paper_bgcolor=style.get("paper_bgcolor"),
-        plot_bgcolor=style.get("plot_bgcolor"),
-        legend={"orientation": "h", "y": -0.15},
-        margin={"l": 70, "r": 80, "t": 100, "b": 90},
+        legend={"orientation": "h", "y": -0.2},
+        margin={"l": 80, "r": 80, "t": 100, "b": 110},
     )
     return fig
 
