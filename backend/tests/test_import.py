@@ -8,9 +8,7 @@ from app import models
 from app.services.importer import import_dataset
 
 
-CD_LIPIDSET_ATTACHMENT = Path(
-    "/home/ubuntu/attachments/a3deded1-fad8-48b0-83c5-5230a93d7dda/fDownloadsexample-compound-discoverer-export-lipidset.xlsx"
-)
+CD_LIPIDSET_ATTACHMENT = Path(__file__).parent / "fixtures" / "example-compound-discoverer-export-lipidset.xlsx"
 
 
 class _FakeAsyncSession:
