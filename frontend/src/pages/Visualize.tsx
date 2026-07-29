@@ -13,6 +13,9 @@ const TABS = [
   { key: 'heatmap', label: 'Heatmap' },
   { key: 'per_lipid_bars', label: 'Per-lipid bars' },
   { key: 'lipid_classes', label: 'Lipid classes' },
+  { key: 'outlier', label: 'Outlier' },
+  { key: 'functional', label: 'Functional' },
+  { key: 'food_profile', label: 'Food profile' },
 ]
 
 const SCALES = [
@@ -43,10 +46,9 @@ const ALL_PLOT_KEYS = [
   { key: 'heatmap', label: 'Heatmap' },
   { key: 'per_lipid_bars', label: 'Per-lipid bars' },
   { key: 'lipid_classes', label: 'Lipid classes' },
-  { key: 'functional_index_bar', label: 'Functional: index bar', disabled: true },
-  { key: 'functional_shift', label: 'Functional: shift', disabled: true },
-  { key: 'functional_volcano', label: 'Functional: volcano', disabled: true },
-  { key: 'functional_circoplot', label: 'Functional: circoplot', disabled: true },
+  { key: 'outlier', label: 'Outlier' },
+  { key: 'functional', label: 'Functional lipid indices' },
+  { key: 'food_profile', label: 'Lipid food profile' },
 ]
 
 export default function Visualize() {
@@ -104,13 +106,13 @@ export default function Visualize() {
     try {
       const base = { projectId: Number(projectId), datasetId: Number(datasetId) }
       if (tab === 'pca') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pca', parameters: { plot: 'score' }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pca', parameters: { plot: 'score', title: reportTitle }, style: backendStyle })
         setFigure(res.data)
       } else if (tab === 'volcano') {
         const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'volcano',
-          parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, show_labels: showLabels, top_n: topN, group_b: groupB },
+          parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, show_labels: showLabels, top_n: topN, group_a: groupA, group_b: groupB, title: reportTitle },
           style: backendStyle,
         })
         setFigure(res.data)
@@ -140,6 +142,15 @@ export default function Visualize() {
         else setFigure(res.data)
       } else if (tab === 'lipid_classes') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'lipid_class', parameters: {}, style: backendStyle })
+        setFigure(res.data)
+      } else if (tab === 'outlier') {
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'outlier', parameters: { title: reportTitle }, style: backendStyle })
+        setFigure(res.data)
+      } else if (tab === 'functional') {
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'functional', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
+        setFigure(res.data)
+      } else if (tab === 'food_profile') {
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'food_profile', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
         setFigure(res.data)
       }
     } catch (err: any) {
@@ -189,7 +200,7 @@ export default function Visualize() {
     setReportLoading(true)
     setReportOpen(true)
     try {
-      const include = ALL_PLOT_KEYS.filter((p) => includePlots[p.key] && !p.disabled).map((p) => p.key)
+      const include = ALL_PLOT_KEYS.filter((p) => includePlots[p.key]).map((p) => p.key)
       const res = await generateReport(Number(projectId), Number(datasetId), {
         include,
         style: backendStyle,
@@ -267,6 +278,15 @@ export default function Visualize() {
         </div>
       )
     }
+    if (tab === 'functional' || tab === 'food_profile') {
+      return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+          <div><label className="label-like">Group A</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
+          <div><label className="label-like">Group B</label><select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
+          <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+        </div>
+      )
+    }
     return <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
   }
 
@@ -316,14 +336,14 @@ export default function Visualize() {
 
               <div className="card p-0 overflow-hidden">
                 <button onClick={() => setShowContents((s) => !s)} className="w-full flex items-center justify-between p-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">
-                  <span className="flex items-center gap-2"><LuFileText /> PDF report contents ({ALL_PLOT_KEYS.filter(p => includePlots[p.key] && !p.disabled).length} of {ALL_PLOT_KEYS.filter(p => !p.disabled).length} plots)</span>
+                  <span className="flex items-center gap-2"><LuFileText /> PDF report contents ({ALL_PLOT_KEYS.filter(p => includePlots[p.key]).length} of {ALL_PLOT_KEYS.length} plots)</span>
                   {showContents ? <LuChevronUp /> : <LuChevronDown />}
                 </button>
                 {showContents && (
                   <div className="border-t border-slate-200 dark:border-slate-700 p-4 grid grid-cols-1 md:grid-cols-2 gap-2">
                     {ALL_PLOT_KEYS.map((p) => (
-                      <label key={p.key} className={`flex items-center gap-2 text-sm ${p.disabled ? 'text-slate-400' : 'text-slate-700 dark:text-slate-200'}`}>
-                        <input type="checkbox" checked={!!includePlots[p.key]} disabled={p.disabled} onChange={() => toggleInclude(p.key)} />
+                      <label key={p.key} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                        <input type="checkbox" checked={!!includePlots[p.key]} onChange={() => toggleInclude(p.key)} />
                         {p.label}
                       </label>
                     ))}
