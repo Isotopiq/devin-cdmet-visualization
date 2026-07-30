@@ -194,6 +194,8 @@ class IsotopeRequest(BaseModel):
     target_node: Optional[str] = None
     map_source: Optional[str] = None  # bigg, gem
     map_id: Optional[str] = None
+    selected_groups: Optional[List[str]] = None  # compute per-group flux maps; None = all groups / overall
+    style: Optional[str] = "classic"  # classic, dark_modern, minimal, subway
 
 
 class PathwayRequest(BaseModel):

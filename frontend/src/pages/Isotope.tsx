@@ -3,7 +3,7 @@ import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import { runIsotope, searchBiGGModels, searchGEMModels, loadModelNetwork } from '../api'
-import { LuDna, LuRefreshCw, LuSearch, LuMap, LuNetwork } from 'react-icons/lu'
+import { LuDna, LuRefreshCw, LuSearch, LuMap, LuNetwork, LuPalette, LuUsers } from 'react-icons/lu'
 
 export default function Isotope() {
   const { selectedDataset, projectId, datasetId } = useWorkspace()
@@ -20,6 +20,7 @@ export default function Isotope() {
   const [k, setK] = useState(3)
   const [sourceNode, setSourceNode] = useState('')
   const [targetNode, setTargetNode] = useState('')
+  const [style, setStyle] = useState('classic')
 
   // Map source / model loading
   const [mapSource, setMapSource] = useState<'none' | 'bigg' | 'gem'>('none')
@@ -38,7 +39,31 @@ export default function Isotope() {
   }, [selectedDataset])
   const [selectedFeature, setSelectedFeature] = useState('')
 
+  const availableGroups = useMemo(() => {
+    if (!selectedDataset) return []
+    const cols = Object.keys(selectedDataset.data_matrix || {})
+    const meta = selectedDataset.sample_metadata || {}
+    const groups = new Set<string>()
+    for (const col of cols) {
+      let g: string | undefined = meta[col]
+      if (!g || g === 'unknown') {
+        const prefix = col.match(/^(.+?)_M\+\d+/)?.[1]
+        const suffix = col.match(/^M\+\d+_(.+)$/)?.[1]
+        g = prefix || suffix
+      }
+      if (g && g !== 'unknown') groups.add(g)
+    }
+    return Array.from(groups).sort()
+  }, [selectedDataset])
+
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([])
+  useEffect(() => { setSelectedGroups(availableGroups) }, [availableGroups])
+
   useEffect(() => { if (featureOptions[0]) setSelectedFeature(featureOptions[0]) }, [featureOptions])
+
+  const toggleGroup = (group: string) => {
+    setSelectedGroups((prev) => prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group])
+  }
 
   const searchModels = async () => {
     setModelLoading(true)
@@ -87,6 +112,7 @@ export default function Isotope() {
         graph_mode: graphMode,
         edge_weight: edgeWeight,
         k,
+        style,
       }
       if (circulatingEnrichment) payload.circulating_enrichment = Number(circulatingEnrichment)
       if (sourceNode) payload.source_node = sourceNode
@@ -94,6 +120,9 @@ export default function Isotope() {
       if (selectedModel) {
         payload.map_source = selectedModel.source
         payload.map_id = selectedModel.model_id
+      }
+      if (selectedGroups.length > 0 && availableGroups.length > 0) {
+        payload.selected_groups = selectedGroups
       }
       const res = await runIsotope(Number(projectId), Number(datasetId), payload)
       setResults(res.data)
@@ -112,6 +141,11 @@ export default function Isotope() {
     const values = Object.values(fractions).map((v) => Number(v))
     return { data: [{ x: labels, y: values, type: 'bar' as const, marker: { color: '#3b82f6' } }], layout: { title: `Isotopologue fractions - ${selectedFeature}`, yaxis: { title: 'Fraction' }, xaxis: { title: 'Isotopologue' } } }
   }
+
+  const groupNames = useMemo(() => {
+    if (!results || !results.groups) return []
+    return Object.keys(results.groups)
+  }, [results])
 
   return (
     <div className="space-y-6">
@@ -166,7 +200,7 @@ export default function Isotope() {
 
           <div className="card p-5">
             <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuMap /> Flux Map Options</h3>
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-end">
               <div>
                 <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Layout</label>
                 <select value={layout} onChange={(e) => setLayout(e.target.value)} className="input">
@@ -212,8 +246,32 @@ export default function Isotope() {
                   {featureOptions.map((f) => <option key={`tgt-${f}`} value={f}>{f}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Style</label>
+                <select value={style} onChange={(e) => setStyle(e.target.value)} className="input">
+                  <option value="classic">Classic network</option>
+                  <option value="dark_modern">Dark modern</option>
+                  <option value="minimal">Minimal clean</option>
+                  <option value="subway">Subway map</option>
+                </select>
+              </div>
             </div>
           </div>
+
+          {availableGroups.length > 0 && (
+            <div className="card p-5">
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuUsers /> Groups to include</h3>
+              <div className="flex flex-wrap gap-3">
+                {availableGroups.map((g) => (
+                  <label key={g} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-lg cursor-pointer">
+                    <input type="checkbox" checked={selectedGroups.includes(g)} onChange={() => toggleGroup(g)} />
+                    {g}
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Independent flux maps will be generated for each selected group.</p>
+            </div>
+          )}
 
           <div className="card p-5">
             <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuNetwork /> Metabolic Model Map</h3>
@@ -280,9 +338,25 @@ export default function Isotope() {
 
               {results.flux_map && (
                 <div className="card p-5">
-                  <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Flux Map</h3>
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Flux Map — Overall</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Network colored by mean labeled atoms, sized by total intensity, with pathway legend.</p>
                   <PlotWithDownload data={results.flux_map.data} layout={results.flux_map.layout} style={{ width: '100%', height: '600px' }} filename="isotope_flux_map" />
+                </div>
+              )}
+
+              {groupNames.length > 0 && (
+                <div className="space-y-6">
+                  {groupNames.map((group) => {
+                    const g = results.groups[group]
+                    if (!g?.flux_map) return null
+                    return (
+                      <div key={group} className="card p-5">
+                        <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Flux Map — {group}</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Per-group network colored by mean labeled atoms, sized by total intensity, with pathway legend.</p>
+                        <PlotWithDownload data={g.flux_map.data} layout={g.flux_map.layout} style={{ width: '100%', height: '600px' }} filename={`isotope_flux_map_${group}`} />
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </>

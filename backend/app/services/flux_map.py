@@ -72,6 +72,70 @@ PATHWAY_COLORS = {
 }
 
 
+FLUX_STYLES = {
+    "classic": {
+        "node_line_width": 2,
+        "edge_positive": "#10b981",
+        "edge_negative": "#64748b",
+        "edge_width_factor": 5.0,
+        "colorscale": "Viridis",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "text_color": "#334155",
+        "legend_font_color": "#334155",
+        "legend_bgcolor": "rgba(255,255,255,0.7)",
+        "marker_line": True,
+        "annotations": True,
+        "grid_color": None,
+    },
+    "dark_modern": {
+        "node_line_width": 1,
+        "edge_positive": "#22d3ee",
+        "edge_negative": "#f472b6",
+        "edge_width_factor": 4.0,
+        "colorscale": "Plasma",
+        "paper_bgcolor": "#0f172a",
+        "plot_bgcolor": "#0f172a",
+        "text_color": "#e2e8f0",
+        "legend_font_color": "#e2e8f0",
+        "legend_bgcolor": "rgba(15,23,42,0.7)",
+        "marker_line": False,
+        "annotations": True,
+        "grid_color": "#1e293b",
+    },
+    "minimal": {
+        "node_line_width": 0,
+        "edge_positive": "#94a3b8",
+        "edge_negative": "#cbd5e1",
+        "edge_width_factor": 3.0,
+        "colorscale": "Blues",
+        "paper_bgcolor": "#ffffff",
+        "plot_bgcolor": "#ffffff",
+        "text_color": "#475569",
+        "legend_font_color": "#475569",
+        "legend_bgcolor": "rgba(255,255,255,0.9)",
+        "marker_line": False,
+        "annotations": False,
+        "grid_color": None,
+    },
+    "subway": {
+        "node_line_width": 2,
+        "edge_positive": "#f59e0b",
+        "edge_negative": "#3b82f6",
+        "edge_width_factor": 5.0,
+        "colorscale": "Turbo",
+        "paper_bgcolor": "#f8fafc",
+        "plot_bgcolor": "#f8fafc",
+        "text_color": "#1e293b",
+        "legend_font_color": "#1e293b",
+        "legend_bgcolor": "rgba(248,250,252,0.9)",
+        "marker_line": True,
+        "annotations": True,
+        "grid_color": None,
+    },
+}
+
+
 # Static list of GEMs from the Metabolic Atlas / SysBioChalmers repository.
 GEM_MODELS = [
     {"id": "Human-GEM", "repo": "SysBioChalmers/Human-GEM", "path": "model/Human-GEM.yml", "organism": "Homo sapiens"},
@@ -655,7 +719,9 @@ def _make_plotly_figure(
     graph_mode: str,
     edge_weight: str,
     title: str,
+    style: str = "classic",
 ) -> dict:
+    style_cfg = FLUX_STYLES.get(style, FLUX_STYLES["classic"])
     max_mean = max((v for v in mean_map.values() if math.isfinite(v)), default=1.0) or 1.0
     max_total = max((v for v in total_map.values() if math.isfinite(v)), default=1.0) or 1.0
 
@@ -686,18 +752,17 @@ def _make_plotly_figure(
         mean_src = mean_map.get(src, 0.0)
         mean_tgt = mean_map.get(tgt, 0.0)
         gradient = mean_tgt - mean_src
-        flux_value = max(abs(gradient), 0.0)
 
         if graph_mode == "k_shortest_paths" and "color" in data:
             color = data["color"]
         else:
-            color = "#10b981" if gradient >= 0 else "#64748b"
+            color = style_cfg["edge_positive"] if gradient >= 0 else style_cfg["edge_negative"]
 
         w = data.get("weight", 1.0)
         if edge_weight == "uniform":
             width = 1.5
         else:
-            width = 1.0 + 5.0 * min(w, 1.0)
+            width = 1.0 + style_cfg["edge_width_factor"] * min(w, 1.0)
 
         edge_traces.append(
             go.Scatter(
@@ -711,23 +776,30 @@ def _make_plotly_figure(
             )
         )
 
-        annotations.append(
-            dict(
-                x=x0 + 0.88 * (x1 - x0),
-                y=y0 + 0.88 * (y1 - y0),
-                ax=x0 + 0.12 * (x1 - x0),
-                ay=y0 + 0.12 * (y1 - y0),
-                xref="x",
-                yref="y",
-                axref="x",
-                ayref="y",
-                showarrow=True,
-                arrowhead=2,
-                arrowsize=1,
-                arrowwidth=max(1, width / 2),
-                arrowcolor=color,
+        if style_cfg["annotations"]:
+            annotations.append(
+                dict(
+                    x=x0 + 0.88 * (x1 - x0),
+                    y=y0 + 0.88 * (y1 - y0),
+                    ax=x0 + 0.12 * (x1 - x0),
+                    ay=y0 + 0.12 * (y1 - y0),
+                    xref="x",
+                    yref="y",
+                    axref="x",
+                    ayref="y",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=max(1, width / 2),
+                    arrowcolor=color,
+                )
             )
-        )
+
+    marker_line = (
+        dict(width=style_cfg["node_line_width"], color=node_line_color)
+        if style_cfg["marker_line"]
+        else dict(width=0)
+    )
 
     node_trace = go.Scatter(
         x=node_x,
@@ -735,14 +807,19 @@ def _make_plotly_figure(
         mode="markers+text",
         text=node_text,
         textposition="top center",
-        textfont=dict(size=9, color="#334155"),
+        textfont=dict(size=9, color=style_cfg["text_color"]),
         marker=dict(
             showscale=True,
-            colorscale="Viridis",
+            colorscale=style_cfg["colorscale"],
             color=node_color,
             size=node_size,
-            colorbar=dict(title="Mean<br>labeled<br>atoms", thickness=12, x=1.06),
-            line=dict(width=2, color=node_line_color),
+            colorbar=dict(
+                title=dict(text="Mean<br>labeled<br>atoms", font=dict(color=style_cfg["text_color"])),
+                thickness=12,
+                x=1.06,
+                tickfont=dict(color=style_cfg["text_color"]),
+            ),
+            line=marker_line,
         ),
         hovertemplate="%{text}<br>Mean labeled atoms: %{marker.color:.3f}<extra></extra>",
         showlegend=False,
@@ -757,15 +834,29 @@ def _make_plotly_figure(
                     x=[None],
                     y=[None],
                     mode="markers",
-                    marker=dict(size=10, color=color, symbol="circle"),
+                    marker=dict(size=10, color=color, symbol="circle", line=dict(width=0)),
                     name=pway,
                     showlegend=True,
                 )
             )
 
+    xaxis = dict(
+        showgrid=style_cfg["grid_color"] is not None,
+        gridcolor=style_cfg["grid_color"],
+        zeroline=False,
+        showticklabels=False,
+        scaleanchor="y",
+    )
+    yaxis = dict(
+        showgrid=style_cfg["grid_color"] is not None,
+        gridcolor=style_cfg["grid_color"],
+        zeroline=False,
+        showticklabels=False,
+    )
+
     fig = go.Figure(data=edge_traces + [node_trace] + legend_traces)
     fig.update_layout(
-        title=dict(text=title, x=0.5),
+        title=dict(text=title, x=0.5, font=dict(color=style_cfg["text_color"])),
         showlegend=True,
         legend=dict(
             orientation="h",
@@ -773,17 +864,18 @@ def _make_plotly_figure(
             y=1.02,
             xanchor="left",
             x=0,
-            bgcolor="rgba(255,255,255,0.7)",
-            font=dict(size=9),
+            bgcolor=style_cfg["legend_bgcolor"],
+            font=dict(size=9, color=style_cfg["legend_font_color"]),
         ),
         autosize=True,
         hovermode="closest",
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, scaleanchor="y"),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        xaxis=xaxis,
+        yaxis=yaxis,
         margin=dict(l=60, r=120, t=100, b=60),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor=style_cfg["plot_bgcolor"],
+        paper_bgcolor=style_cfg["paper_bgcolor"],
         annotations=annotations,
+        font=dict(color=style_cfg["text_color"]),
     )
     return json.loads(fig.to_json())
 
@@ -809,6 +901,7 @@ async def build_flux_map(
     map_source = options.get("map_source")
     map_id = options.get("map_id")
     title = options.get("title", "Flux map")
+    style = options.get("style", "classic")
 
     feature_names = _feature_names(dataset, feature_ids)
 
@@ -852,4 +945,5 @@ async def build_flux_map(
         graph_mode,
         edge_weight,
         title,
+        style,
     )
