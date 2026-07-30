@@ -275,7 +275,7 @@ def _build_volcano_points(stats_data, fc_thresh, p_thresh, up_color, down_color,
     return points
 
 
-def _volcano_publication(points, fc_thresh, p_thresh, style, params):
+def _volcano_publication(points, fc_thresh, padj_thresh, style, params):
     fig = go.Figure()
     xs = [p["lfc"] for p in points]
     ys = [p["neglogp"] for p in points]
@@ -283,7 +283,7 @@ def _volcano_publication(points, fc_thresh, p_thresh, style, params):
     x_max = max(xs) if xs else 1
     y_min = 0
     y_max = max(ys) if ys else 1
-    y_thr = -np.log10(p_thresh)
+    y_thr = -np.log10(padj_thresh)
     x_abs = max(abs(x_min), abs(x_max), fc_thresh)
     x_min, x_max = -x_abs, x_abs
     x_pad = max((x_max - x_min) * 0.05, 0.1)
@@ -315,7 +315,7 @@ def _volcano_publication(points, fc_thresh, p_thresh, style, params):
         ))
 
     if bool(params.get("show_labels", False)) and points:
-        candidates = [p for p in points if abs(p["lfc"]) >= fc_thresh and p["padj"] < p_thresh]
+        candidates = [p for p in points if abs(p["lfc"]) >= fc_thresh and p["padj"] < padj_thresh]
         candidates.sort(key=lambda p: p["padj"])
         top_n = max(0, int(params.get("top_n", 10)))
         top = candidates[:top_n]
@@ -1580,17 +1580,17 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
     elif plot_type == "volcano":
         fc_thresh = float(params.get("fc_threshold", 0.5))
-        p_thresh = float(params.get("p_threshold", 0.05))
+        padj_thresh = float(params.get("padj_threshold") or params.get("p_threshold", 0.05))
         show_labels = bool(params.get("show_labels", False))
         top_n = max(0, int(params.get("top_n", 10)))
         up_color = style.get("up_color", "#c44e52")
         down_color = style.get("down_color", "#2e6575")
         ns_color = style.get("non_significant_color", "#a0aec0")
 
-        points = _build_volcano_points(params.get("stats", []), fc_thresh, p_thresh, up_color, down_color, ns_color)
+        points = _build_volcano_points(params.get("stats", []), fc_thresh, padj_thresh, up_color, down_color, ns_color)
 
         if style.get("engine") == "publication":
-            fig = _volcano_publication(points, fc_thresh, p_thresh, style, params)
+            fig = _volcano_publication(points, fc_thresh, padj_thresh, style, params)
             return json.loads(fig.to_json())
 
         fig = go.Figure()
@@ -1611,7 +1611,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     hovertemplate="%{text}<br>log2FC: %{x:.3f}<br>-log10 padj: %{y:.3f}<extra></extra>",
                 ))
 
-        y_thr = -np.log10(p_thresh)
+        y_thr = -np.log10(padj_thresh)
         x_abs = max(abs(min([p["lfc"] for p in points] or [-1], default=-1)), abs(max([p["lfc"] for p in points] or [1], default=1)), fc_thresh)
         y_max = max(max([p["neglogp"] for p in points] or [0], default=0), y_thr) * 1.15
         fig.add_hline(y=y_thr, line_dash="dash", line_color=ns_color)
@@ -1623,7 +1623,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         fig.update_yaxes(range=[0, y_max])
 
         if show_labels and top_n > 0 and points:
-            candidates = [p for p in points if abs(p["lfc"]) >= fc_thresh and p["padj"] < p_thresh]
+            candidates = [p for p in points if abs(p["lfc"]) >= fc_thresh and p["padj"] < padj_thresh]
             candidates.sort(key=lambda p: p["padj"])
             top = candidates[:top_n]
             if top:

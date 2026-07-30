@@ -44,7 +44,7 @@ export default function Statistics() {
       const data = res.data
       data.results.sort((a: any, b: any) => (a.pvalue || 1) - (b.pvalue || 1))
       setResults(data)
-      const vres = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: data.results, fc_threshold: fcThreshold, p_threshold: pvalueFilter } })
+      const vres = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: data.results, fc_threshold: fcThreshold, p_threshold: pvalueFilter, group_a: groupA, group_b: groupB } })
       setVolcano(vres.data)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Statistics failed')
@@ -52,6 +52,19 @@ export default function Statistics() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!results || !projectId || !datasetId) return
+    const updateVolcano = async () => {
+      try {
+        const vres = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: results.results, fc_threshold: fcThreshold, p_threshold: pvalueFilter, group_a: groupA, group_b: groupB } })
+        setVolcano(vres.data)
+      } catch {
+        /* ignore plot refresh errors */
+      }
+    }
+    updateVolcano()
+  }, [results, fcThreshold, pvalueFilter, projectId, datasetId, groupA, groupB])
 
   const displayResults = useMemo(() => {
     if (!results) return []
