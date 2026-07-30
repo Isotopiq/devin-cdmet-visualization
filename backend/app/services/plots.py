@@ -1122,7 +1122,7 @@ def _dendrogram_coords(link, n_leaves, orientation="top"):
     return xs, ys
 
 
-def _heatmap_publication(df, sample_meta, style, params):
+def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     top_n = int(params.get("top_n", 50))
     metric = params.get("metric", "euclidean")
     method = params.get("method", "average")
@@ -1178,11 +1178,12 @@ def _heatmap_publication(df, sample_meta, style, params):
         group_colorscale = [[i / (n_groups - 1), gcolor_map[g]] for i, g in enumerate(group_order)]
 
     m, n = plot_df.shape
+    feature_ids = [feature_metadata[i].get("feature_id", i) if i < len(feature_metadata) else i for i in plot_df.index]
     fig = make_subplots(
         rows=3, cols=2,
         specs=[[None, {}], [None, {}], [{}, {}]],
         shared_xaxes=False,
-        shared_yaxes=True,
+        shared_yaxes=False,
         column_widths=[0.12, 0.88],
         row_heights=[0.10, 0.08, 0.82],
         vertical_spacing=0.02,
@@ -1215,8 +1216,8 @@ def _heatmap_publication(df, sample_meta, style, params):
         colorscale=colorscale,
         zmid=zmid,
         colorbar=dict(title={"text": cbar_title, "side": "bottom"}, x=1.04, len=0.82, xpad=10),
-        hovertemplate="Feature: %{y}<br>Sample: %{customdata}<br>Value: %{z:.3f}<extra></extra>",
-        customdata=np.array([plot_df.columns.tolist()] * m),
+        hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
+        customdata=np.array([[[feature_ids[i], c] for c in plot_df.columns] for i in range(m)]),
     ), row=3, col=2)
 
     max_top = max(np.nanmax(np.abs(y_dend)) if (col_link is not None and y_dend) else 1.0, 1.0)
@@ -1229,10 +1230,10 @@ def _heatmap_publication(df, sample_meta, style, params):
     fig.update_yaxes(range=[-0.5, 0.5], showticklabels=False, showgrid=False, zeroline=False, row=2, col=2)
 
     fig.update_xaxes(autorange="reversed", range=[0, max_left], showticklabels=False, showgrid=False, zeroline=False, row=3, col=1)
-    fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False, row=3, col=1)
+    fig.update_yaxes(range=[-0.5, m - 0.5], showticklabels=False, showgrid=False, zeroline=False, row=3, col=1)
 
     short_cols = [_shorten_name(c) for c in plot_df.columns]
-    short_rows = [_shorten_name(str(i)) for i in plot_df.index]
+    short_rows = [_shorten_name(str(fid)) for fid in feature_ids]
     max_x_len = max([len(s) for s in short_cols], default=1)
     max_y_len = max([len(s) for s in short_rows], default=1)
 
@@ -1241,8 +1242,9 @@ def _heatmap_publication(df, sample_meta, style, params):
     x_ticktext = [short_cols[i] for i in x_tickvals]
     x_tick_size = max(6, min(style.get("tick_size", 11), int(260 / max(n, 1))))
     y_tick_size = max(7, min(style.get("tick_size", 11), int(240 / max(m, 1))))
+    y_step = _tick_text_step(m, max_labels=40)
 
-    right_margin = max(140, int(max_y_len * y_tick_size * 0.55) + 90)
+    right_margin = max(160, int(max_y_len * y_tick_size * 0.55) + 110)
     bottom_margin = max(110, int(max_x_len * x_tick_size * 0.65) + 60)
 
     _apply_base_layout(fig, style, title=f"Top {m} most-variable features", x_labels=short_cols, y_labels=short_rows)
@@ -1260,9 +1262,10 @@ def _heatmap_publication(df, sample_meta, style, params):
         row=3, col=2,
     )
     fig.update_yaxes(
+        range=[-0.5, m - 0.5],
         tickmode="array",
-        tickvals=list(range(m)),
-        ticktext=short_rows,
+        tickvals=list(range(0, m, y_step)),
+        ticktext=short_rows[::y_step],
         tickfont=dict(size=y_tick_size),
         side="right",
         automargin=True,
@@ -1307,6 +1310,7 @@ def _group_stats(values_by_group: dict) -> tuple:
 def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
     df = to_dataframe(dataset)
     sample_meta = dataset.sample_metadata
+    feature_metadata = dataset.feature_metadata
     plot_type = req.plot_type
     params = req.parameters or {}
     style = _merge_style(req.style)
@@ -1369,7 +1373,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
     elif plot_type == "heatmap":
         heatmap_type = params.get("heatmap_type", "abundance")
         if heatmap_type != "correlation" and style.get("engine") == "publication":
-            fig = _heatmap_publication(df, sample_meta, style, params)
+            fig = _heatmap_publication(df, sample_meta, feature_metadata, style, params)
             return json.loads(fig.to_json())
         top_n = int(params.get("top_n", 50))
         metric = params.get("metric", "euclidean")
@@ -1444,8 +1448,9 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 group_colorscale = [[i / (n_groups - 1), gcolor_map[g]] for i, g in enumerate(group_order)]
 
             m, n = plot_df.shape
+            feature_ids = [feature_metadata[i].get("feature_id", i) if i < len(feature_metadata) else i for i in plot_df.index]
             short_cols = [_shorten_name(c) for c in plot_df.columns]
-            short_rows = [_shorten_name(str(i)) for i in plot_df.index]
+            short_rows = [_shorten_name(str(fid)) for fid in feature_ids]
             max_x_len = max([len(s) for s in short_cols], default=1)
             max_y_len = max([len(s) for s in short_rows], default=1)
 
@@ -1454,8 +1459,11 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             x_ticktext = [short_cols[i] for i in x_tickvals]
             x_tick_size = max(6, min(style.get("tick_size", 11), int(260 / max(n, 1))))
             y_tick_size = max(7, min(style.get("tick_size", 11), int(240 / max(m, 1))))
+            y_step = _tick_text_step(m, max_labels=40)
+            y_tickvals = feature_ids[::y_step]
+            y_ticktext = short_rows[::y_step]
 
-            right_margin = max(120, int(max_y_len * y_tick_size * 0.55) + 90)
+            right_margin = max(140, int(max_y_len * y_tick_size * 0.55) + 100)
             bottom_margin = max(100, int(max_x_len * x_tick_size * 0.65) + 60)
 
             fig = make_subplots(rows=2, cols=1, shared_xaxes=False, vertical_spacing=0.02, row_heights=[0.08, 0.92])
@@ -1474,8 +1482,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 colorscale=colorscale,
                 zmid=zmid,
                 colorbar=dict(title={"text": cbar_title, "side": "bottom"}, x=1.04, len=0.82, xpad=10),
-                hovertemplate="Feature: %{y}<br>Sample: %{customdata}<br>Value: %{z:.3f}<extra></extra>",
-                customdata=np.array([plot_df.columns.tolist()] * m),
+                hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
+                customdata=np.array([[[feature_ids[i], c] for c in plot_df.columns] for i in range(m)]),
             ), row=2, col=1)
 
             fig.update_layout(
@@ -1510,8 +1518,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             fig.update_yaxes(showticklabels=False, row=1, col=1)
             fig.update_yaxes(
                 tickmode="array",
-                tickvals=list(range(m)),
-                ticktext=short_rows,
+                tickvals=list(range(0, m, y_step)),
+                ticktext=short_rows[::y_step],
                 tickfont={"size": y_tick_size},
                 side="right",
                 automargin=True,
