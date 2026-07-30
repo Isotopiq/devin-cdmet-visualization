@@ -15,6 +15,40 @@ KNOWN_FORMATS = {
 SAMPLE_REGEX = re.compile(r"area|intensity|abundance|sample|ctrl|control|treat|rep|replicate|_[0-9]+$", re.I)
 GROUP_REGEX = re.compile(r"^(?P<group>.+?)_(?P<idx>[0-9]+)$")
 
+# Map common Compound Discoverer "Sample Type" values to a clean control/QC group label.
+CONTROL_TYPE_LABELS = {
+    "blank": "Blank",
+    "qc": "QC",
+    "quality control": "QC",
+    "solvent": "Solvent",
+    "standard": "Standard",
+    "std": "Standard",
+    "pool": "Pool",
+    "ntc": "NTC",
+}
+
+
+def _control_group_label(sample_type: str) -> str | None:
+    """Return a canonical control/QC group label if sample_type is a QC/Blank/etc."""
+    st = str(sample_type).strip().lower()
+    return CONTROL_TYPE_LABELS.get(st)
+
+
+def _sample_group_from_meta(meta: Dict[str, Any], fallback: str) -> str:
+    """Choose the best group label from parsed CD metadata.
+
+    Prefer a control/QC label from Sample Type so Blanks and QCs are not
+    accidentally merged into a biological Condition (e.g. Non-Exercise).
+    """
+    sample_type = str(meta.get("sample_type") or "").strip()
+    control_label = _control_group_label(sample_type)
+    if control_label:
+        return control_label
+    condition = str(meta.get("condition") or "").strip()
+    if condition and condition.lower() not in CONTROL_TYPE_LABELS:
+        return condition
+    return sample_type or fallback
+
 # LipidSearch 5.x bracketed area columns, e.g. OrgMeanArea[s01], NormArea[s01-1]
 LIPIDSEARCH_AREA_RE = re.compile(
     r"^(?P<type>OrgMeanArea|NormArea|OriginalArea|NormHeight|OriginalHeight|Conc)"
@@ -218,10 +252,14 @@ def _detect_compound_discoverer_samples(columns: List[str], metadata: Dict[str, 
             sample_columns.append(col)
             filecode = m.group("filecode").upper()
             raw_base = _base_raw_name(m.group("raw"))
-            if metadata and filecode in metadata:
-                sample_groups[col] = metadata[filecode].get("condition", raw_base)
-            elif metadata and raw_base.lower() in metadata:
-                sample_groups[col] = metadata[raw_base.lower()].get("condition", raw_base)
+            meta = None
+            if metadata:
+                if filecode in metadata:
+                    meta = metadata[filecode]
+                elif raw_base.lower() in metadata:
+                    meta = metadata[raw_base.lower()]
+            if meta:
+                sample_groups[col] = _sample_group_from_meta(meta, raw_base)
             else:
                 sample_groups[col] = raw_base
     return sample_columns, sample_groups
