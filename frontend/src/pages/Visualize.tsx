@@ -185,10 +185,10 @@ export default function Visualize() {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'outlier', parameters: { title: reportTitle }, style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'functional') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'functional', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'functional', parameters: { group_a: groupA, group_b: groupB, title: reportTitle, fc_threshold: fcThreshold, p_threshold: pThreshold }, style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'food_profile') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'food_profile', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'food_profile', parameters: { group_a: groupA, group_b: groupB, title: reportTitle, fc_threshold: fcThreshold, p_threshold: pThreshold }, style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       }
     } catch (err: any) {
@@ -510,7 +510,12 @@ export default function Visualize() {
 
               {figure && !figures.length && (
                 <div className="card p-5">
-                  <PlotWithDownload data={figure.data} layout={figure.layout} style={{ width: '100%', height: tab === 'heatmap' ? '650px' : '550px' }} filename={`${tab}_${reportTitle.replace(/\s+/g, '_')}`} />
+                  <PlotWithDownload
+                    data={figure.data}
+                    layout={figure.layout}
+                    style={{ width: '100%', height: tab === 'heatmap' ? '650px' : ['pls_da','opls_da','biomarker','permanova','chain_space'].includes(tab) ? '700px' : ['functional','food_profile'].includes(tab) ? '650px' : '550px' }}
+                    filename={`${tab}_${reportTitle.replace(/\s+/g, '_')}`}
+                  />
                 </div>
               )}
 

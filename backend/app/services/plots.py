@@ -558,7 +558,10 @@ def _outlier_plot(df, sample_meta, style, params):
     return fig
 
 
-def _category_volcano_figure(items, title, style):
+def _category_volcano_figure(items, title, style, params=None):
+    params = params or {}
+    fc_thresh = float(params.get("fc_threshold", 1.0))
+    p_thresh = float(params.get("p_threshold", 0.05))
     cat_order = sorted({it["category"] for it in items})
     cat_colors = {}
     palette = style.get("group_colors", ["#2e6575", "#e9a47f", "#81b29a", "#9d8189", "#f2cc8f", "#7eb5c9"])
@@ -574,10 +577,11 @@ def _category_volcano_figure(items, title, style):
         subplot_titles=(title, "Interpretation table (top by significance)"),
     )
 
+    y_thr = -np.log10(p_thresh)
     plot_width_px = max(style.get("width", 700), 500)
-    max_y = max([max(0.0, -np.log10(max(it["padj"], 1e-300))) for it in items] + [-np.log10(0.05)], default=1.0)
-    min_x = min([it["log2fc"] for it in items] + [-1.5, 1.5], default=-1.5)
-    max_x = max([it["log2fc"] for it in items] + [-1.5, 1.5], default=1.5)
+    max_y = max([max(0.0, -np.log10(max(it["padj"], 1e-300))) for it in items] + [y_thr], default=1.0)
+    min_x = min([it["log2fc"] for it in items] + [-1.5 * fc_thresh, 1.5 * fc_thresh], default=-1.5 * fc_thresh)
+    max_x = max([it["log2fc"] for it in items] + [-1.5 * fc_thresh, 1.5 * fc_thresh], default=1.5 * fc_thresh)
     plot_x_range = max_x - min_x
     for c in cat_order:
         sub = [it for it in items if it["category"] == c]
@@ -610,11 +614,12 @@ def _category_volcano_figure(items, title, style):
             hovertext=hovertext,
         ), row=1, col=1)
 
-    fig.add_hline(y=-np.log10(0.05), line_dash="dash", line_color="#94a3b8", line_width=1, row=1, col=1)
-    fig.add_vline(x=1, line_dash="dash", line_color="#94a3b8", line_width=1, row=1, col=1)
-    fig.add_vline(x=-1, line_dash="dash", line_color="#94a3b8", line_width=1, row=1, col=1)
+    fig.add_hline(y=y_thr, line_dash="dash", line_color="#94a3b8", line_width=1, row=1, col=1)
+    fig.add_vline(x=fc_thresh, line_dash="dash", line_color="#94a3b8", line_width=1, row=1, col=1)
+    fig.add_vline(x=-fc_thresh, line_dash="dash", line_color="#94a3b8", line_width=1, row=1, col=1)
 
-    top_items = sorted(items, key=lambda it: (it["padj"], -abs(it["log2fc"])))[:max(10, len(items) // 2 + 1)]
+    top_items = sorted(items, key=lambda it: (it["padj"], -abs(it["log2fc"])))
+    top_items = [it for it in top_items if abs(it["log2fc"]) >= fc_thresh and it["padj"] < p_thresh][:max(10, len(top_items) // 2 + 1)]
     top_items = sorted(top_items, key=lambda it: it["padj"])
     table_colors = [cat_colors[it["category"]] for it in top_items]
     fig.add_trace(go.Table(
@@ -636,9 +641,9 @@ def _category_volcano_figure(items, title, style):
 
     _apply_base_layout(fig, style, title="")
     fig.update_layout(
-        xaxis=dict(title=dict(text="log2 fold change", font=dict(size=style.get("axis_label_size", 12)), standoff=30), zeroline=False, showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[min_x, max_x]),
+        xaxis=dict(title=dict(text="log2 fold change", font=dict(size=style.get("axis_label_size", 12)), standoff=18), zeroline=False, showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[min_x, max_x]),
         yaxis=dict(title=dict(text="-log10(adjusted P)", font=dict(size=style.get("axis_label_size", 12)), standoff=30), showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[0, max(1.3, max_y) * 1.1]),
-        legend=dict(title=dict(text="Category"), orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        legend=dict(title=dict(text="Category"), orientation="h", yanchor="top", y=0.99, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.85)"),
         margin=dict(l=80, r=40, t=80, b=80),
         plot_bgcolor="white",
         paper_bgcolor="white",
@@ -655,7 +660,7 @@ def _functional_volcano(df, sample_meta, feature_metadata, style, params):
         fig = go.Figure()
         _apply_base_layout(fig, style, title="Functional lipid indices")
         return fig
-    return _category_volcano_figure(indices, f"Functional lipid indices: {group_b} vs {group_a}", style)
+    return _category_volcano_figure(indices, f"Functional lipid indices: {group_b} vs {group_a}", style, params)
 
 
 def _food_profile(df, sample_meta, feature_metadata, style, params):
@@ -666,7 +671,7 @@ def _food_profile(df, sample_meta, feature_metadata, style, params):
         fig = go.Figure()
         _apply_base_layout(fig, style, title="Lipid food profile")
         return fig
-    return _category_volcano_figure(indices, f"Lipid food profile: {group_b} vs {group_a}", style)
+    return _category_volcano_figure(indices, f"Lipid food profile: {group_b} vs {group_a}", style, params)
 
 
 def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
@@ -688,8 +693,8 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Chain space (carbon × double bonds)", "Chain type composition", "Chain-length distribution", "Unsaturation distribution"),
-        vertical_spacing=0.18,
-        horizontal_spacing=0.12,
+        vertical_spacing=0.22,
+        horizontal_spacing=0.16,
     )
 
     for ctype in ["acyl", "alkyl", "plasmalogen"]:
@@ -788,8 +793,8 @@ def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Score plot (LV1 vs LV2)", "Top VIP features", "Model performance", "Permutation test (R²Y)"),
-        vertical_spacing=0.18,
-        horizontal_spacing=0.12,
+        vertical_spacing=0.22,
+        horizontal_spacing=0.14,
     )
 
     # Score plot
@@ -874,8 +879,8 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Score plot (predictive vs orthogonal)", "S-plot", "Top discriminant features", "Observation diagnostics"),
-        vertical_spacing=0.18,
-        horizontal_spacing=0.12,
+        vertical_spacing=0.22,
+        horizontal_spacing=0.14,
     )
 
     # Score plot
@@ -953,8 +958,8 @@ def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Top candidate AUC", "Random Forest ROC", "Top RF importances", "Top candidate table"),
-        vertical_spacing=0.18,
-        horizontal_spacing=0.12,
+        vertical_spacing=0.22,
+        horizontal_spacing=0.14,
         specs=[[{"type": "xy"}, {"type": "xy"}], [{"type": "xy"}, {"type": "table"}]],
     )
 
@@ -1240,6 +1245,7 @@ def _heatmap_publication(df, sample_meta, style, params):
     right_margin = max(140, int(max_y_len * y_tick_size * 0.55) + 90)
     bottom_margin = max(110, int(max_x_len * x_tick_size * 0.65) + 60)
 
+    _apply_base_layout(fig, style, title=f"Top {m} most-variable features", x_labels=short_cols, y_labels=short_rows)
     fig.update_xaxes(
         range=[-0.5, n - 0.5],
         tickmode="array",
@@ -1264,8 +1270,6 @@ def _heatmap_publication(df, sample_meta, style, params):
         zeroline=False,
         row=3, col=2,
     )
-
-    _apply_base_layout(fig, style, title=f"Top {m} most-variable features")
     fig.update_layout(
         margin=dict(l=80, r=right_margin, t=100, b=bottom_margin),
         paper_bgcolor=style.get("paper_bgcolor"),
@@ -1726,7 +1730,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     showlegend=False,
                     hoverinfo="skip",
                 ))
-            title = f"{fid}"
+            title = f"{_shorten_name(fid, 45)}"
             if s.get("padj", 1) < 0.01:
                 title += " **"
             elif s.get("padj", 1) < 0.05:
