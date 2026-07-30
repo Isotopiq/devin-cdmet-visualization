@@ -5,6 +5,22 @@ import PlotWithDownload from '../components/PlotWithDownload'
 import { runIsotope, searchBiGGModels, searchGEMModels, loadModelNetwork } from '../api'
 import { LuDna, LuRefreshCw, LuSearch, LuMap, LuNetwork, LuPalette, LuUsers } from 'react-icons/lu'
 
+function FluxMapView({ map, filename }: { map: any; filename: string }) {
+  if (map?.type === 'escher') {
+    return (
+      <div className="w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700" style={{ height: '600px' }}>
+        <iframe
+          title={filename}
+          srcDoc={map.html}
+          sandbox="allow-scripts allow-same-origin"
+          style={{ width: '100%', height: '100%', border: 'none' }}
+        />
+      </div>
+    )
+  }
+  return <PlotWithDownload data={map.data} layout={map.layout} style={{ width: '100%', height: '600px' }} filename={filename} />
+}
+
 export default function Isotope() {
   const { selectedDataset, projectId, datasetId } = useWorkspace()
   const [tracer, setTracer] = useState('13C')
@@ -139,7 +155,8 @@ export default function Isotope() {
     if (!fractions) return null
     const labels = Object.keys(fractions)
     const values = Object.values(fractions).map((v) => Number(v))
-    return { data: [{ x: labels, y: values, type: 'bar' as const, marker: { color: '#3b82f6' } }], layout: { title: `Isotopologue fractions - ${selectedFeature}`, yaxis: { title: 'Fraction' }, xaxis: { title: 'Isotopologue' } } }
+    const palette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16', '#14b8a6', '#f97316', '#6366f1', '#22c55e']
+    return { data: [{ x: labels, y: values, type: 'bar' as const, marker: { color: labels.map((_, i) => palette[i % palette.length]) } }], layout: { title: `Isotopologue fractions - ${selectedFeature}`, yaxis: { title: 'Fraction' }, xaxis: { title: 'Isotopologue' } } }
   }
 
   const groupNames = useMemo(() => {
@@ -208,6 +225,7 @@ export default function Isotope() {
                   <option value="curated">Curated pathways</option>
                   <option value="circular">Circular</option>
                   <option value="kamada_kawai">Kamada-Kawai</option>
+                  <option value="escher">Escher map</option>
                 </select>
               </div>
               <div>
@@ -340,7 +358,7 @@ export default function Isotope() {
                 <div className="card p-5">
                   <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Flux Map — Overall</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Network colored by mean labeled atoms, sized by total intensity, with pathway legend.</p>
-                  <PlotWithDownload data={results.flux_map.data} layout={results.flux_map.layout} style={{ width: '100%', height: '600px' }} filename="isotope_flux_map" />
+                  <FluxMapView map={results.flux_map} filename="isotope_flux_map" />
                 </div>
               )}
 
@@ -353,7 +371,7 @@ export default function Isotope() {
                       <div key={group} className="card p-5">
                         <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Flux Map — {group}</h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Per-group network colored by mean labeled atoms, sized by total intensity, with pathway legend.</p>
-                        <PlotWithDownload data={g.flux_map.data} layout={g.flux_map.layout} style={{ width: '100%', height: '600px' }} filename={`isotope_flux_map_${group}`} />
+                        <FluxMapView map={g.flux_map} filename={`isotope_flux_map_${group}`} />
                       </div>
                     )
                   })}

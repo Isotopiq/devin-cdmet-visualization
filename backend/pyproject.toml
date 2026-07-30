@@ -26,6 +26,8 @@ dependencies = [
     "httpx>=0.27",
     "aiofiles>=23.2",
     "networkx>=3.2",
+    "escher>=1.8.1",
+    "cobra>=0.31",
     "pytest>=8.2",
     "pytest-asyncio>=0.23",
 ]

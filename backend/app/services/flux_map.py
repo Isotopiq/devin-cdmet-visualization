@@ -90,18 +90,18 @@ FLUX_STYLES = {
     },
     "dark_modern": {
         "node_line_width": 1,
-        "edge_positive": "#22d3ee",
+        "edge_positive": "#38bdf8",
         "edge_negative": "#f472b6",
-        "edge_width_factor": 4.0,
-        "colorscale": "Plasma",
-        "paper_bgcolor": "#0f172a",
-        "plot_bgcolor": "#0f172a",
-        "text_color": "#e2e8f0",
-        "legend_font_color": "#e2e8f0",
-        "legend_bgcolor": "rgba(15,23,42,0.7)",
+        "edge_width_factor": 3.0,
+        "colorscale": "Cividis",
+        "paper_bgcolor": "#1e293b",
+        "plot_bgcolor": "#1e293b",
+        "text_color": "#f8fafc",
+        "legend_font_color": "#f8fafc",
+        "legend_bgcolor": "rgba(30,41,59,0.7)",
         "marker_line": False,
         "annotations": True,
-        "grid_color": "#1e293b",
+        "grid_color": "#334155",
     },
     "minimal": {
         "node_line_width": 0,
@@ -706,8 +706,143 @@ def _curated_layout(G: nx.DiGraph) -> Dict[str, Tuple[float, float]]:
 
 
 # ---------------------------------------------------------------------------
+# Escher map builder
+# ---------------------------------------------------------------------------
+
+
+def _build_escher_map(
+    G: nx.DiGraph,
+    pos: Dict[str, Tuple[float, float]],
+    mean_map: Dict[str, float],
+    total_map: Dict[str, float],
+    title: str,
+) -> Optional[dict]:
+    try:
+        import escher
+    except Exception:
+        return None
+
+    import json
+    import os
+    import tempfile
+
+    scale = 600
+    offset = 2.0
+    node_to_id: Dict[str, str] = {}
+    nodes: Dict[str, Any] = {}
+    for i, n in enumerate(G.nodes(), start=1):
+        nid = str(i)
+        node_to_id[n] = nid
+        x, y = pos.get(n, (0, 0))
+        nodes[nid] = {
+            "x": int((x + offset) * scale),
+            "y": int((y + offset) * scale),
+            "node_type": "metabolite",
+            "name": str(n),
+            "bigg_id": str(n),
+            "node_is_primary": True,
+            "label_x": int((x + offset) * scale),
+            "label_y": int((y + offset) * scale) - 25,
+        }
+
+    metabolite_data: Dict[str, float] = {str(n): float(mean_map.get(n, 0.0)) for n in G.nodes()}
+    reaction_data: Dict[str, float] = {}
+    reactions: Dict[str, Any] = {}
+
+    counter = len(nodes) + 100
+    for src, tgt, data in G.edges(data=True):
+        weight = float(data.get("weight", 1.0))
+        reaction_id = f"{src}_to_{tgt}"
+        reaction_data[reaction_id] = weight
+
+        mid_id = str(counter)
+        counter += 1
+        nodes[mid_id] = {
+            "x": int(((pos.get(src, (0, 0))[0] + pos.get(tgt, (0, 0))[0]) / 2 + offset) * scale),
+            "y": int(((pos.get(src, (0, 0))[1] + pos.get(tgt, (0, 0))[1]) / 2 + offset) * scale),
+            "node_type": "midmarker",
+        }
+
+        seg1 = str(counter)
+        counter += 1
+        seg2 = str(counter)
+        counter += 1
+        reactions[str(counter)] = {
+            "name": f"{src} → {tgt}",
+            "bigg_id": reaction_id,
+            "metabolites": [
+                {"coefficient": -1.0, "bigg_id": str(src)},
+                {"coefficient": 1.0, "bigg_id": str(tgt)},
+            ],
+            "segments": {
+                seg1: {"from_node_id": node_to_id[src], "to_node_id": mid_id, "b1": None, "b2": None},
+                seg2: {"from_node_id": mid_id, "to_node_id": node_to_id[tgt], "b1": None, "b2": None},
+            },
+            "reversibility": False,
+        }
+        counter += 1
+
+    xs = [n["x"] for n in nodes.values()]
+    ys = [n["y"] for n in nodes.values()]
+    min_x, max_x = min(xs) - 100, max(xs) + 100
+    min_y, max_y = min(ys) - 100, max(ys) + 100
+    header = {
+        "map_name": title,
+        "map_id": "isotope_flux_map",
+        "map_description": "Isotope flux map from measured metabolites",
+        "homepage": "",
+        "schema": "https://escher.github.io/escher/jsonschema/1-0-0#",
+    }
+    escher_map = [header, {
+        "nodes": nodes,
+        "reactions": reactions,
+        "canvas": {"x": min_x, "y": min_y, "height": max_y - min_y, "width": max_x - min_x},
+        "text_labels": {},
+    }]
+
+
+    builder = escher.Builder(
+        map_json=json.dumps(escher_map),
+        metabolite_data=metabolite_data,
+        reaction_data=reaction_data,
+        height=600,
+        enable_editing=False,
+    )
+
+    fd, path = tempfile.mkstemp(suffix=".html")
+    os.close(fd)
+    try:
+        builder.save_html(path)
+        with open(path, "r", encoding="utf-8") as f:
+            html = f.read()
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+    # Make sure the Escher container fills the iframe body and hide editing chrome.
+    css = """
+    <style>
+      html,body{height:100%;margin:0;}
+      .map-menu,.map-tools-container,.search-menu-container,.button-panel,.full-screen-button,.notification-container,#status{display:none !important;}
+      .escher-container .scale-legend{right:10px !important;}
+    </style>
+    """
+    html = html.replace("</head>", f"{css}</head>")
+
+    return {
+        "type": "escher",
+        "html": html,
+        "data": [],
+        "layout": {"title": {"text": title, "x": 0.5}},
+    }
+
+
+# ---------------------------------------------------------------------------
 # Plotly figure builder
 # ---------------------------------------------------------------------------
+
 
 def _make_plotly_figure(
     G: nx.DiGraph,
@@ -934,7 +1069,12 @@ async def build_flux_map(
     if G.number_of_nodes() == 0:
         return None
 
-    pos = _compute_positions(G, layout)
+    pos_layout = "curated" if layout == "escher" else layout
+    pos = _compute_positions(G, pos_layout)
+
+    if layout == "escher":
+        return _build_escher_map(G, pos, mean_map, total_map, title)
+
     return _make_plotly_figure(
         G,
         pos,
