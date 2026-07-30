@@ -283,11 +283,12 @@ def _volcano_publication(points, fc_thresh, padj_thresh, style, params):
     x_max = max(xs) if xs else 1
     y_min = 0
     y_max = max(ys) if ys else 1
+    padj_thresh = max(padj_thresh, 1e-300)
     y_thr = -np.log10(padj_thresh)
     x_abs = max(abs(x_min), abs(x_max), fc_thresh)
     x_min, x_max = -x_abs, x_abs
     x_pad = max((x_max - x_min) * 0.05, 0.1)
-    y_max = max(y_max, y_thr) * 1.15
+    y_max = max(y_max, y_thr * 1.25) * 1.15
     x_min -= x_pad
     x_max += x_pad
 
@@ -296,9 +297,10 @@ def _volcano_publication(points, fc_thresh, padj_thresh, style, params):
     if fc_thresh < x_max:
         fig.add_vrect(x0=fc_thresh, x1=x_max, fillcolor="rgba(250,219,216,0.35)", line_width=0, layer="below")
 
-    fig.add_vline(x=-fc_thresh, line_dash="dash", line_color="#7f8c8d", line_width=1)
-    fig.add_vline(x=fc_thresh, line_dash="dash", line_color="#7f8c8d", line_width=1)
-    fig.add_hline(y=y_thr, line_dash="dash", line_color="#7f8c8d", line_width=1)
+    line_color = "#475569"
+    fig.add_vline(x=-fc_thresh, line_dash="dash", line_color=line_color, line_width=1.5)
+    fig.add_vline(x=fc_thresh, line_dash="dash", line_color=line_color, line_width=1.5)
+    fig.add_hline(y=y_thr, line_dash="dash", line_color=line_color, line_width=1.5)
 
     for label, name in [("DOWN", "DOWN"), ("NS", "nonSIG"), ("UP", "UP")]:
         pts = [p for p in points if p["label"] == label]
@@ -1227,6 +1229,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         y=[0],
         colorscale=group_colorscale,
         showscale=False,
+        showlegend=False,
         hoverinfo="skip",
     ), row=2, col=2)
 
@@ -1241,7 +1244,16 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         y=list(range(m)),
         colorscale=colorscale,
         zmid=zmid,
-        colorbar=dict(title={"text": cbar_title, "side": "bottom"}, x=1.04, len=0.82, xpad=10),
+        showlegend=False,
+        colorbar=dict(
+            title={"text": cbar_title, "side": "right"},
+            x=1.0,
+            xanchor="left",
+            xpad=15,
+            len=0.75,
+            thickness=12,
+            outlinewidth=0,
+        ),
         hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
         customdata=np.array([[[feature_ids[i], c] for c in plot_df.columns] for i in range(m)]),
     ), row=3, col=2)
@@ -1259,21 +1271,31 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     fig.update_yaxes(range=[-0.5, m - 0.5], showticklabels=False, showgrid=False, zeroline=False, row=3, col=1)
 
     short_cols = [_shorten_name(c) for c in plot_df.columns]
-    short_rows = [_shorten_name(str(fid)) for fid in feature_ids]
+    short_rows = [_shorten_name(str(fid), 18) for fid in feature_ids]
     max_x_len = max([len(s) for s in short_cols], default=1)
     max_y_len = max([len(s) for s in short_rows], default=1)
 
-    x_step = _tick_text_step(n, max_labels=30)
+    x_step = _tick_text_step(n, max_labels=20)
     x_tickvals = list(range(0, n, x_step))
     x_ticktext = [short_cols[i] for i in x_tickvals]
-    x_tick_size = max(6, min(style.get("tick_size", 11), int(260 / max(n, 1))))
-    y_tick_size = max(7, min(style.get("tick_size", 11), int(240 / max(m, 1))))
-    y_step = _tick_text_step(m, max_labels=40)
+    x_tick_size = max(6, min(10, int(240 / max(n, 1))))
+    y_tick_size = max(6, min(10, int(220 / max(m, 1))))
+    y_step = _tick_text_step(m, max_labels=30)
 
-    right_margin = max(160, int(max_y_len * y_tick_size * 0.55) + 110)
-    bottom_margin = max(110, int(max_x_len * x_tick_size * 0.65) + 60)
+    max_group_len = max([len(str(g)) for g in group_order], default=0)
+    group_legend_width = max_group_len * 8 + 55
+    right_margin = max(200, int(max_y_len * y_tick_size * 0.55) + 120 + group_legend_width)
+    bottom_margin = max(120, int(max_x_len * x_tick_size * 0.65) + 70)
 
     _apply_base_layout(fig, style, title=f"Top {m} most-variable features", x_labels=short_cols, y_labels=short_rows)
+
+    for g in group_order:
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None], mode="markers",
+            marker=dict(size=10, color=gcolor_map[g]),
+            name=str(g), showlegend=True, hoverinfo="skip", visible="legendonly",
+        ), row=3, col=2)
+
     fig.update_xaxes(
         range=[-0.5, n - 0.5],
         tickmode="array",
@@ -1300,6 +1322,18 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         row=3, col=2,
     )
     fig.update_layout(
+        showlegend=True,
+        legend=dict(
+            x=1.06,
+            y=0.98,
+            xanchor="left",
+            yanchor="top",
+            orientation="v",
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="#e2e8f0",
+            borderwidth=1,
+            font=dict(size=10),
+        ),
         margin=dict(l=80, r=right_margin, t=100, b=bottom_margin),
         paper_bgcolor=style.get("paper_bgcolor"),
         plot_bgcolor="white",
@@ -1476,21 +1510,23 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             m, n = plot_df.shape
             feature_ids = [feature_metadata[i].get("feature_id", i) if i < len(feature_metadata) else i for i in plot_df.index]
             short_cols = [_shorten_name(c) for c in plot_df.columns]
-            short_rows = [_shorten_name(str(fid)) for fid in feature_ids]
+            short_rows = [_shorten_name(str(fid), 18) for fid in feature_ids]
             max_x_len = max([len(s) for s in short_cols], default=1)
             max_y_len = max([len(s) for s in short_rows], default=1)
 
-            x_step = _tick_text_step(n, max_labels=30)
+            x_step = _tick_text_step(n, max_labels=20)
             x_tickvals = list(range(0, n, x_step))
             x_ticktext = [short_cols[i] for i in x_tickvals]
-            x_tick_size = max(6, min(style.get("tick_size", 11), int(260 / max(n, 1))))
-            y_tick_size = max(7, min(style.get("tick_size", 11), int(240 / max(m, 1))))
-            y_step = _tick_text_step(m, max_labels=40)
+            x_tick_size = max(6, min(10, int(240 / max(n, 1))))
+            y_tick_size = max(6, min(10, int(220 / max(m, 1))))
+            y_step = _tick_text_step(m, max_labels=30)
             y_tickvals = feature_ids[::y_step]
             y_ticktext = short_rows[::y_step]
 
-            right_margin = max(140, int(max_y_len * y_tick_size * 0.55) + 100)
-            bottom_margin = max(100, int(max_x_len * x_tick_size * 0.65) + 60)
+            max_group_len = max([len(str(g)) for g in group_order], default=0)
+            group_legend_width = max_group_len * 8 + 55
+            right_margin = max(180, int(max_y_len * y_tick_size * 0.55) + 100 + group_legend_width)
+            bottom_margin = max(110, int(max_x_len * x_tick_size * 0.65) + 70)
 
             fig = make_subplots(rows=2, cols=1, shared_xaxes=False, vertical_spacing=0.02, row_heights=[0.08, 0.92])
             fig.add_trace(go.Heatmap(
@@ -1499,6 +1535,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 y=[""],
                 colorscale=group_colorscale,
                 showscale=False,
+                showlegend=False,
                 hoverinfo="skip",
             ), row=1, col=1)
             fig.add_trace(go.Heatmap(
@@ -1507,12 +1544,40 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 y=list(range(m)),
                 colorscale=colorscale,
                 zmid=zmid,
-                colorbar=dict(title={"text": cbar_title, "side": "bottom"}, x=1.04, len=0.82, xpad=10),
+                showlegend=False,
+                colorbar=dict(
+                    title={"text": cbar_title, "side": "right"},
+                    x=1.0,
+                    xanchor="left",
+                    xpad=15,
+                    len=0.75,
+                    thickness=12,
+                    outlinewidth=0,
+                ),
                 hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
                 customdata=np.array([[[feature_ids[i], c] for c in plot_df.columns] for i in range(m)]),
             ), row=2, col=1)
 
+            for g in group_order:
+                fig.add_trace(go.Scatter(
+                    x=[None], y=[None], mode="markers",
+                    marker=dict(size=10, color=gcolor_map[g]),
+                    name=str(g), showlegend=True, hoverinfo="skip", visible="legendonly",
+                ), row=2, col=1)
+
             fig.update_layout(
+                showlegend=True,
+                legend=dict(
+                    x=1.06,
+                    y=0.98,
+                    xanchor="left",
+                    yanchor="top",
+                    orientation="v",
+                    bgcolor="rgba(255,255,255,0.85)",
+                    bordercolor="#e2e8f0",
+                    borderwidth=1,
+                    font=dict(size=10),
+                ),
                 font={"family": style.get("font_family"), "color": "#334155"},
                 paper_bgcolor=style.get("paper_bgcolor"),
                 plot_bgcolor=style.get("plot_bgcolor"),
@@ -1624,8 +1689,9 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             _apply_base_layout(fig, style, title="PCA Score Plot")
 
     elif plot_type == "volcano":
-        fc_thresh = float(params.get("fc_threshold", 0.5))
-        padj_thresh = float(params.get("padj_threshold") or params.get("p_threshold", 0.05))
+        fc_thresh = float(params.get("fc_threshold")) if params.get("fc_threshold") is not None else 0.5
+        padj_thresh = float(params.get("padj_threshold")) if params.get("padj_threshold") is not None else float(params.get("p_threshold", 0.05))
+        padj_thresh = max(padj_thresh, 1e-300)
         show_labels = bool(params.get("show_labels", False))
         top_n = max(0, int(params.get("top_n", 10)))
         up_color = style.get("up_color", "#c44e52")
@@ -1658,10 +1724,11 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
         y_thr = -np.log10(padj_thresh)
         x_abs = max(abs(min([p["lfc"] for p in points] or [-1], default=-1)), abs(max([p["lfc"] for p in points] or [1], default=1)), fc_thresh)
-        y_max = max(max([p["neglogp"] for p in points] or [0], default=0), y_thr) * 1.15
-        fig.add_hline(y=y_thr, line_dash="dash", line_color=ns_color)
-        fig.add_vline(x=fc_thresh, line_dash="dash", line_color=ns_color)
-        fig.add_vline(x=-fc_thresh, line_dash="dash", line_color=ns_color)
+        y_max = max(max([p["neglogp"] for p in points] or [0], default=0), y_thr * 1.25) * 1.15
+        line_color = "#475569"
+        fig.add_hline(y=y_thr, line_dash="dash", line_color=line_color, line_width=1.5)
+        fig.add_vline(x=fc_thresh, line_dash="dash", line_color=line_color, line_width=1.5)
+        fig.add_vline(x=-fc_thresh, line_dash="dash", line_color=line_color, line_width=1.5)
         fig.update_layout(xaxis_title="log2 fold change", yaxis_title="-log10 p-value")
         _apply_base_layout(fig, style, title="Volcano Plot")
         fig.update_xaxes(range=[-x_abs, x_abs])
