@@ -68,6 +68,7 @@ async def create_user(
         raise HTTPException(status_code=400, detail="Email already registered")
     user = models.User(
         email=user_in.email,
+        name=user_in.name.strip() if user_in.name else None,
         hashed_password=get_password_hash(user_in.password),
         is_active=user_in.is_active,
         is_admin=user_in.is_admin,
@@ -75,7 +76,7 @@ async def create_user(
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    await _log(db, "create_user", admin, target_user_id=user.id, details={"email": user.email})
+    await _log(db, "create_user", admin, target_user_id=user.id, details={"email": user.email, "name": user.name})
     return user
 
 
@@ -93,7 +94,13 @@ async def update_user(
     if user.email == admin.email and user_in.is_admin is False:
         raise HTTPException(status_code=400, detail="Cannot remove your own admin role")
     if user_in.email is not None:
+        result = await db.execute(select(models.User).where(models.User.email == user_in.email))
+        existing = result.scalar_one_or_none()
+        if existing and existing.id != user_id:
+            raise HTTPException(status_code=400, detail="Email already in use")
         user.email = user_in.email
+    if user_in.name is not None:
+        user.name = user_in.name.strip() or None
     if user_in.is_active is not None:
         user.is_active = user_in.is_active
     if user_in.is_admin is not None:
@@ -164,7 +171,10 @@ async def get_logo(logo_type: str, db: AsyncSession = Depends(get_db)):
     setting = await _get_setting(db, f"{logo_type}_logo")
     if not setting or not setting.value:
         raise HTTPException(status_code=404, detail="Logo not set")
-    path = os.path.join(_logo_dir(), setting.value)
+    filename = os.path.basename(setting.value)
+    if not filename or filename != setting.value or ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid logo filename")
+    path = os.path.join(_logo_dir(), filename)
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Logo file not found")
     return FileResponse(path)

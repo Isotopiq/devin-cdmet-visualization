@@ -14,6 +14,8 @@ class UserCreate(UserBase):
 class UserOut(UserBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
     is_active: bool
     is_admin: bool
     created_at: dt.datetime
@@ -21,11 +23,13 @@ class UserOut(UserBase):
 
 class UserUpdate(BaseModel):
     email: Optional[str] = None
+    name: Optional[str] = None
     password: Optional[str] = None
 
 
 class UserAdminCreate(BaseModel):
     email: str
+    name: Optional[str] = None
     password: str
     is_admin: bool = False
     is_active: bool = True
@@ -33,6 +37,7 @@ class UserAdminCreate(BaseModel):
 
 class UserAdminUpdate(BaseModel):
     email: Optional[str] = None
+    name: Optional[str] = None
     is_admin: Optional[bool] = None
     is_active: Optional[bool] = None
 

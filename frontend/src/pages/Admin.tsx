@@ -5,6 +5,7 @@ import type { User, AdminLog } from '../types'
 export default function Admin() {
   const [users, setUsers] = useState<User[]>([])
   const [logs, setLogs] = useState<AdminLog[]>([])
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
@@ -31,8 +32,9 @@ export default function Admin() {
     setError('')
     setSuccess('')
     try {
-      await createUser({ email, password, is_admin: isAdmin, is_active: true })
+      await createUser({ name: name || undefined, email, password, is_admin: isAdmin, is_active: true })
       setSuccess('User created')
+      setName('')
       setEmail('')
       setPassword('')
       setIsAdmin(false)
@@ -103,7 +105,11 @@ export default function Admin() {
         <div className="space-y-6">
           <div className="card p-6">
             <h3 className="text-lg font-medium mb-4 text-slate-900 dark:text-white">Create User</h3>
-            <form onSubmit={create} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <form onSubmit={create} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="Display name" />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" required />
@@ -124,6 +130,7 @@ export default function Admin() {
             <table className="min-w-full text-sm text-left">
               <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                 <tr>
+                  <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Email</th>
                   <th className="px-4 py-3 font-medium">Active</th>
                   <th className="px-4 py-3 font-medium">Admin</th>
@@ -134,6 +141,7 @@ export default function Admin() {
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {users.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{u.name || '-'}</td>
                     <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{u.email}</td>
                     <td className="px-4 py-3">
                       <button onClick={() => toggleActive(u)} className={`px-2 py-1 rounded text-xs ${u.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>

@@ -1,12 +1,29 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import datetime as dt
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
 from app import schemas, models
 from app.auth import verify_password, get_password_hash, create_access_token, get_current_active_user
+from app.config import settings
 
 router = APIRouter()
+
+
+def _avatar_dir():
+    path = Path(settings.UPLOAD_DIR) / "avatars"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _allowed_image(content_type: str, ext: str) -> bool:
+    allowed_types = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
+    allowed_exts = {"png", "jpg", "jpeg", "webp"}
+    return content_type in allowed_types and ext in allowed_exts
 
 
 @router.post("/register", response_model=schemas.UserOut)
@@ -49,8 +66,59 @@ async def update_me(
         if existing and existing.id != current_user.id:
             raise HTTPException(status_code=400, detail="Email already in use")
         current_user.email = user_in.email
+    if user_in.name is not None:
+        current_user.name = user_in.name.strip() or None
     if user_in.password is not None:
         current_user.hashed_password = get_password_hash(user_in.password)
     await db.commit()
     await db.refresh(current_user)
     return current_user
+
+
+@router.post("/me/avatar", response_model=schemas.UserOut)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not file.content_type:
+        raise HTTPException(status_code=400, detail="Could not determine file type")
+    ext = Path(file.filename or "").suffix.lstrip(".").lower() if file.filename and "." in file.filename else "png"
+    if not _allowed_image(file.content_type, ext):
+        raise HTTPException(status_code=400, detail="Only PNG, JPEG, or WebP images are allowed")
+    MAX_AVATAR_SIZE = 2 * 1024 * 1024
+    contents = await file.read()
+    if len(contents) > MAX_AVATAR_SIZE:
+        raise HTTPException(status_code=413, detail="Avatar must be under 2 MB")
+    avatar_dir = _avatar_dir()
+    # Clean up any previous avatar for this user
+    for existing in avatar_dir.glob(f"user_{current_user.id}_*"):
+        try:
+            existing.unlink()
+        except OSError:
+            pass
+    stored_name = f"user_{current_user.id}_{dt.datetime.utcnow().strftime('%Y%m%d%H%M%S')}.{ext}"
+    dest_path = avatar_dir / stored_name
+    with open(dest_path, "wb") as buffer:
+        buffer.write(contents)
+    current_user.avatar_url = f"/api/auth/avatar/{current_user.id}"
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.get("/avatar/{user_id}")
+async def get_avatar(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user or not user.avatar_url:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    avatar_dir = _avatar_dir()
+    matches = list(avatar_dir.glob(f"user_{user_id}_*"))
+    if not matches:
+        raise HTTPException(status_code=404, detail="Avatar file not found")
+    return FileResponse(matches[0])

@@ -13,7 +13,8 @@ router = APIRouter()
 
 
 def _uploaded_file_path(uploaded: models.UploadedFile) -> str:
-    return os.path.join("uploads", uploaded.stored_name)
+    from app.config import settings
+    return os.path.join(settings.UPLOAD_DIR, uploaded.stored_name)
 
 
 @router.get("/{file_id}/preview", response_model=schemas.ImportPreview)

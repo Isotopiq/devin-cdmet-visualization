@@ -3,6 +3,7 @@ import math
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import models
+from app.config import settings
 from app.services.detection import (
     read_file_to_df,
     detect_columns,
@@ -84,7 +85,7 @@ async def import_dataset(
     feature_type: str = "metabolite",
     metadata_path: str = None,
 ):
-    path = os.path.join("uploads", uploaded.stored_name)
+    path = os.path.join(settings.UPLOAD_DIR, uploaded.stored_name)
     df = read_file_to_df(path, uploaded.selected_sheet)
 
     metadata = None

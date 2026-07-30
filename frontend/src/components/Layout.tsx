@@ -9,7 +9,7 @@ import {
 import { useWorkspace } from '../context/WorkspaceContext'
 import { useAuth } from '../context/AuthContext'
 import type { SiteSettings, User } from '../types'
-import { getSettings } from '../api'
+import { getSettings, getAvatar } from '../api'
 
 interface NavItem {
   to: string
@@ -74,6 +74,7 @@ function WorkspaceBadge() {
 
 function UserMenu({ user, onLogout }: { user: User | null; onLogout: () => void }) {
   const [open, setOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -84,11 +85,32 @@ function UserMenu({ user, onLogout }: { user: User | null; onLogout: () => void 
     return () => document.removeEventListener('mousedown', handle)
   }, [])
 
+  useEffect(() => {
+    let url: string | null = null
+    if (user?.avatar_url && user.id) {
+      getAvatar(user.id)
+        .then((res) => {
+          url = URL.createObjectURL(res.data)
+          setAvatarUrl(url)
+        })
+        .catch(() => setAvatarUrl(null))
+    } else {
+      setAvatarUrl(null)
+    }
+    return () => { if (url) URL.revokeObjectURL(url) }
+  }, [user?.avatar_url, user?.id])
+
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(!open)} className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm">
-        <span className="hidden sm:inline max-w-[8rem] truncate">{user?.email || 'User'}</span>
-        <LuUser className="text-lg" />
+        <span className="hidden sm:inline max-w-[8rem] truncate">{user?.name || user?.email || 'User'}</span>
+        <span className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <LuUser className="text-sm" />
+          )}
+        </span>
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">

@@ -7,6 +7,7 @@ interface AuthCtx {
   ready: boolean
   login: (token: string) => Promise<void>
   logout: () => void
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined)
@@ -46,10 +47,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/'
   }
 
+  const refreshUser = async () => {
+    try {
+      const res = await me()
+      setUser(res.data)
+    } catch {
+      logout()
+    }
+  }
+
   useEffect(() => { validate() }, [])
 
   return (
-    <AuthContext.Provider value={{ user, ready, login, logout }}>
+    <AuthContext.Provider value={{ user, ready, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )
