@@ -113,7 +113,7 @@ async def build_pathway(dataset: models.Dataset, req: schemas.PathwayRequest, pr
         return {"bar": fig_bar, "table": fig_table, "pathways": data["pathways"], "source": "kegg"}
 
     if source == "reactome":
-        data = await reactome_enrichment(significant_names, top_n=req.top_n or 20, progress=progress)
+        data = await reactome_enrichment(significant_names, organism=req.organism or "hsa", top_n=req.top_n or 20, progress=progress)
         if "error" in data:
             return {"error": data["error"], "source": "reactome"}
         fig_bar = enrichment_bar_figure(data["pathways"], "Reactome pathway enrichment", style)

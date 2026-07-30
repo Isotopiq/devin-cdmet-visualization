@@ -134,7 +134,17 @@ export default function Pathway() {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Organism</label>
-                <input type="text" value={organism} onChange={(e) => setOrganism(e.target.value)} className="input" placeholder="hsa / hsapiens" />
+                <select value={organism} onChange={(e) => setOrganism(e.target.value)} className="input">
+                  <option value="hsa">Human (hsa)</option>
+                  <option value="mmu">Mouse (mmu)</option>
+                  <option value="rno">Rat (rno)</option>
+                  <option value="dre">Zebrafish (dre)</option>
+                  <option value="dme">Fruit fly (dme)</option>
+                  <option value="cel">C. elegans (cel)</option>
+                  <option value="sce">Yeast (sce)</option>
+                  <option value="ath">Arabidopsis (ath)</option>
+                  <option value="eco">E. coli (eco)</option>
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Group A</label>

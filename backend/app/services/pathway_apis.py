@@ -26,6 +26,18 @@ GPROFILER_ORG_MAP = {
 }
 GPROFILER_TO_KEGG_ORG = {v: k for k, v in GPROFILER_ORG_MAP.items()}
 
+REACTOME_SPECIES_MAP = {
+    "hsa": "Homo sapiens",
+    "mmu": "Mus musculus",
+    "rno": "Rattus norvegicus",
+    "dre": "Danio rerio",
+    "dme": "Drosophila melanogaster",
+    "cel": "Caenorhabditis elegans",
+    "sce": "Saccharomyces cerevisiae",
+    "ath": "Arabidopsis thaliana",
+    "eco": "Escherichia coli",
+}
+
 # Curated lipid class -> common KEGG compound name used as a search fallback.
 LIPID_CLASS_KEGG_NAME = {
     "PC": "Phosphatidylcholine",
@@ -412,7 +424,12 @@ async def kegg_enrichment(
         return {"pathways": top, "n_mapped": n, "n_significant": len(significant_names), "n_background": N}
 
 
-async def reactome_enrichment(feature_names: List[str], top_n: int = 20, progress: ProgressCallback = None) -> Dict[str, Any]:
+async def reactome_enrichment(
+    feature_names: List[str],
+    organism: str = "hsa",
+    top_n: int = 20,
+    progress: ProgressCallback = None,
+) -> Dict[str, Any]:
     if not feature_names:
         return {"error": "No features provided for Reactome enrichment."}
 
@@ -425,7 +442,9 @@ async def reactome_enrichment(feature_names: List[str], top_n: int = 20, progres
         payload = "\n".join(payload_terms)
 
     await _notify(progress, "Querying Reactome database...", 35)
-    url = f"{REACTOME_BASE}/identifiers/projection?pageSize={max(top_n, 100)}&page=1"
+    species = REACTOME_SPECIES_MAP.get((organism or "hsa").lower())
+    species_q = f"&species={quote(species)}" if species else ""
+    url = f"{REACTOME_BASE}/identifiers/projection?pageSize={max(top_n, 100)}&page=1{species_q}"
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(
