@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
 import { WorkspaceProvider } from './context/WorkspaceContext'
 import { PlotConfigProvider } from './context/PlotConfigContext'
+import { useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -23,16 +23,18 @@ import Profile from './pages/Profile'
 import Admin from './pages/Admin'
 
 function App() {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
+  const { user, ready, login } = useAuth()
 
-  useEffect(() => {
-    const onStorage = () => setToken(localStorage.getItem('token'))
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [])
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-slate-500 text-sm">Loading…</span>
+      </div>
+    )
+  }
 
-  if (!token) {
-    return <Login onLogin={(t) => { localStorage.setItem('token', t); setToken(t) }} />
+  if (!user) {
+    return <Login onLogin={login} />
   }
 
   return (

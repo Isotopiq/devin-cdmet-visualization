@@ -12,6 +12,20 @@ API.interceptors.request.use((config) => {
   return config
 })
 
+API.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    const status = error?.response?.status
+    const url = error?.config?.url
+    if (status === 401 && url && !['/auth/me', '/auth/token'].includes(url.split('?')[0])) {
+      localStorage.removeItem('token')
+      delete API.defaults.headers.common['Authorization']
+      window.location.href = '/'
+    }
+    return Promise.reject(error)
+  }
+)
+
 export default API
 
 export const health = () => API.get('/health')

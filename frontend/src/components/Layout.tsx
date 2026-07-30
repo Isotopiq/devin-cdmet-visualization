@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { NavLink, Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, Link } from 'react-router-dom'
 import {
   LuLayoutDashboard, LuFolderOpen, LuUploadCloud, LuTable,
   LuSlidersHorizontal, LuCalculator, LuBarChart3, LuPieChart, LuLayers, LuDna,
@@ -7,8 +7,9 @@ import {
   LuLogOut, LuMenu, LuChevronLeft, LuMicroscope, LuUsers, LuUser
 } from 'react-icons/lu'
 import { useWorkspace } from '../context/WorkspaceContext'
-import type { User, SiteSettings } from '../types'
-import { me, getSettings } from '../api'
+import { useAuth } from '../context/AuthContext'
+import type { SiteSettings, User } from '../types'
+import { getSettings } from '../api'
 
 interface NavItem {
   to: string
@@ -109,24 +110,16 @@ function UserMenu({ user, onLogout }: { user: User | null; onLogout: () => void 
 }
 
 export default function Layout() {
-  const navigate = useNavigate()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
+  const { user, logout } = useAuth()
   const [logoUrl, setLogoUrl] = useState('/logo-white.png')
 
   useEffect(() => {
-    me().then((res) => setUser(res.data)).catch(() => { })
     getSettings().then((res: { data: SiteSettings }) => {
       if (res.data.dashboard_logo_url) setLogoUrl(res.data.dashboard_logo_url)
     }).catch(() => { })
   }, [])
-
-  const logout = () => {
-    localStorage.removeItem('token')
-    navigate('/')
-    window.location.reload()
-  }
 
   const navItems: NavItem[] = [...baseNavItems]
   if (user?.is_admin) {
