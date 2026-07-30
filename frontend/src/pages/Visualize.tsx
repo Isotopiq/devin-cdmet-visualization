@@ -6,7 +6,7 @@ import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import PlotStyling from '../components/PlotStyling'
 import { generatePlot, runStats, generateReport } from '../api'
-import { LuRefreshCw, LuFileDown, LuPrinter, LuChevronDown, LuChevronUp, LuX, LuDownload, LuFileText } from 'react-icons/lu'
+import { LuRefreshCw, LuFileDown, LuPrinter, LuChevronDown, LuChevronUp, LuX, LuDownload, LuFileText, LuFilter } from 'react-icons/lu'
 
 const TABS = [
   { key: 'pca', label: 'PCA' },
@@ -86,6 +86,7 @@ export default function Visualize() {
 
   const [groupA, setGroupA] = useState('')
   const [groupB, setGroupB] = useState('')
+  const [includedGroups, setIncludedGroups] = useState<Set<string>>(new Set())
   const [fcThreshold, setFcThreshold] = useState(1)
   const [pThreshold, setPThreshold] = useState(0.05)
   const [showLabels, setShowLabels] = useState(true)
@@ -103,6 +104,7 @@ export default function Visualize() {
   const [allLipids, setAllLipids] = useState(false)
 
   const [showContents, setShowContents] = useState(false)
+  const [groupFilterOpen, setGroupFilterOpen] = useState(true)
   const [reportOpen, setReportOpen] = useState(false)
   const [reportSections, setReportSections] = useState<any[]>([])
   const [reportLoading, setReportLoading] = useState(false)
@@ -113,10 +115,16 @@ export default function Visualize() {
   useEffect(() => {
     setGroupA(groups[0] || '')
     setGroupB(groups[1] || '')
+    setIncludedGroups(new Set(groups))
     setReady(true)
   }, [groups])
 
+  useEffect(() => {
+    setIncludedGroups((prev) => new Set([...Array.from(prev), groupA, groupB].filter(Boolean)))
+  }, [groupA, groupB])
+
   const backendStyle = styleToBackend(style)
+  const excludedGroups = useMemo(() => groups.filter((g) => !includedGroups.has(g)), [groups, includedGroups])
 
   const generate = async () => {
     if (!projectId || !datasetId || !groupA || !groupB) return
@@ -126,33 +134,34 @@ export default function Visualize() {
     setFigures([])
     try {
       const base = { projectId: Number(projectId), datasetId: Number(datasetId) }
+      const withExcluded = (p: any) => ({ ...p, excluded_groups: excludedGroups })
       if (tab === 'pca') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pca', parameters: { plot: 'score', title: reportTitle }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pca', parameters: withExcluded({ plot: 'score', title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'pls_da') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pls_da', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pls_da', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'opls_da') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'opls_da', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'opls_da', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'biomarker') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'biomarker', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'biomarker', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'permanova') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'permanova', parameters: { group_a: groupA, group_b: groupB, metric: 'braycurtis', title: reportTitle }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'permanova', parameters: withExcluded({ group_a: groupA, group_b: groupB, metric: 'braycurtis', title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'volcano') {
         const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'volcano',
-          parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, show_labels: showLabels, top_n: topN, group_a: groupA, group_b: groupB, title: reportTitle },
+          parameters: withExcluded({ stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, show_labels: showLabels, top_n: topN, group_a: groupA, group_b: groupB, title: reportTitle }),
           style: backendStyle,
         })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'heatmap') {
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'heatmap',
-          parameters: {
+          parameters: withExcluded({
             heatmap_type: heatmapType,
             top_n: heatmapTopN,
             scale: heatmapScale,
@@ -160,7 +169,7 @@ export default function Visualize() {
             method: heatmapMethod,
             cluster_rows: rowCluster,
             cluster_cols: colCluster,
-          },
+          }),
           style: backendStyle,
         })
         if (tabRef.current === requestTab) setFigure(res.data)
@@ -168,7 +177,7 @@ export default function Visualize() {
         const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'per_lipid_bars',
-          parameters: { stats: statsRes.data.results, group_a: groupA, group_b: groupB, top_n: allLipids ? 1000 : lipidsPerPage },
+          parameters: withExcluded({ stats: statsRes.data.results, group_a: groupA, group_b: groupB, top_n: allLipids ? 1000 : lipidsPerPage }),
           style: backendStyle,
         })
         if (tabRef.current === requestTab) {
@@ -176,19 +185,19 @@ export default function Visualize() {
           else setFigure(res.data)
         }
       } else if (tab === 'lipid_classes') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'lipid_class', parameters: {}, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'lipid_class', parameters: withExcluded({}), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'chain_space') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'chain_space', parameters: { group_a: groupA, group_b: groupB, title: reportTitle }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'chain_space', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'outlier') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'outlier', parameters: { title: reportTitle }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'outlier', parameters: withExcluded({ title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'functional') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'functional', parameters: { group_a: groupA, group_b: groupB, title: reportTitle, fc_threshold: fcThreshold, p_threshold: pThreshold }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'functional', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle, fc_threshold: fcThreshold, p_threshold: pThreshold }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'food_profile') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'food_profile', parameters: { group_a: groupA, group_b: groupB, title: reportTitle, fc_threshold: fcThreshold, p_threshold: pThreshold }, style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'food_profile', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle, fc_threshold: fcThreshold, p_threshold: pThreshold }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       }
     } catch (err: any) {
@@ -198,7 +207,7 @@ export default function Visualize() {
     }
   }
 
-  // Generate when the active tab or dataset/groups change (ignore the initial ready flag flip)
+  // Generate when the active tab, dataset, groups, or included groups change (ignore the initial ready flag flip)
   const didInitRef = useRef(false)
   useEffect(() => {
     if (selectedDataset && groupA && groupB) {
@@ -208,7 +217,7 @@ export default function Visualize() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, selectedDataset, groupA, groupB])
+  }, [tab, selectedDataset, groupA, groupB, includedGroups])
 
   useEffect(() => {
     if (ready && selectedDataset && groupA && groupB) {
@@ -225,6 +234,19 @@ export default function Visualize() {
 
   const toggleInclude = (key: string) => {
     setIncludePlots((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const toggleGroup = (g: string) => {
+    setIncludedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(g)) next.delete(g)
+      else next.add(g)
+      return next
+    })
+  }
+
+  const setAllGroups = (include: boolean) => {
+    setIncludedGroups(include ? new Set(groups) : new Set([groupA, groupB].filter(Boolean)))
   }
 
   const buildReportParams = () => ({
@@ -246,6 +268,7 @@ export default function Visualize() {
     cluster_cols: colCluster,
     per_lipid_top_n: lipidsPerPage,
     all_lipids: allLipids,
+    excluded_groups: excludedGroups,
   })
 
   const loadScript = (src: string) =>
@@ -500,6 +523,34 @@ export default function Visualize() {
                         {p.label}
                       </label>
                     ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="card p-0 overflow-hidden">
+                <button onClick={() => setGroupFilterOpen((s) => !s)} className="w-full flex items-center justify-between p-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">
+                  <span className="flex items-center gap-2"><LuFilter /> Groups to include ({includedGroups.size} of {groups.length})</span>
+                  {groupFilterOpen ? <LuChevronUp /> : <LuChevronDown />}
+                </button>
+                {groupFilterOpen && (
+                  <div className="border-t border-slate-200 dark:border-slate-700 p-4 space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => setAllGroups(true)} className="btn-secondary text-xs px-2 py-1">Select all</button>
+                      <button onClick={() => setAllGroups(false)} className="btn-secondary text-xs px-2 py-1">Comparison only</button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {groups.map((g) => {
+                        const disabled = g === groupA || g === groupB
+                        const checked = includedGroups.has(g) || disabled
+                        return (
+                          <label key={g} className={`flex items-center gap-2 text-sm ${disabled ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'}`}>
+                            <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleGroup(g)} />
+                            {g} {disabled && <span className="text-xs">(selected)</span>}
+                          </label>
+                        )
+                      })}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Unchecked groups are excluded from plots and PDF reports. Selected comparison groups cannot be excluded.</p>
                   </div>
                 )}
               </div>

@@ -36,6 +36,7 @@ async def report(project_id: int, dataset_id: int, req: schemas.ReportRequest,
 
     style = _merge_style(req.style)
     params = req.parameters or {}
+    base_params = {"excluded_groups": params.get("excluded_groups") or []}
     stats_data = []
     if any(k in req.include for k in ("volcano", "per_lipid_bars")):
         stats_req = schemas.StatsRequest(
@@ -51,30 +52,34 @@ async def report(project_id: int, dataset_id: int, req: schemas.ReportRequest,
     sections = []
     for key in req.include:
         if key == "pca":
-            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="pca", parameters={"plot": "score"}, style=style))
+            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="pca", parameters={"plot": "score", **base_params}, style=style))
             sections.append({"key": key, "title": "PCA Score Plot", "figure": fig})
         elif key == "pls_da":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="pls_da", parameters={
                 "group_a": params.get("group_a"),
                 "group_b": params.get("group_b"),
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "PLS-DA", "figure": fig})
         elif key == "opls_da":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="opls_da", parameters={
                 "group_a": params.get("group_a"),
                 "group_b": params.get("group_b"),
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "OPLS-DA", "figure": fig})
         elif key == "biomarker":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="biomarker", parameters={
                 "group_a": params.get("group_a"),
                 "group_b": params.get("group_b"),
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "Biomarker discovery", "figure": fig})
         elif key == "permanova":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="permanova", parameters={
                 "group_a": params.get("group_a"),
                 "group_b": params.get("group_b"),
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "PERMANOVA", "figure": fig})
         elif key == "volcano":
@@ -85,6 +90,7 @@ async def report(project_id: int, dataset_id: int, req: schemas.ReportRequest,
                 "show_labels": params.get("show_labels", False),
                 "top_n": params.get("top_n", 15),
                 "group_b": params.get("group_b"),
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "Volcano Plot", "figure": fig})
         elif key == "heatmap":
@@ -96,6 +102,7 @@ async def report(project_id: int, dataset_id: int, req: schemas.ReportRequest,
                 "method": params.get("method", "average"),
                 "cluster_rows": params.get("cluster_rows", True),
                 "cluster_cols": params.get("cluster_cols", True),
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "Heatmap", "figure": fig})
         elif key == "per_lipid_bars":
@@ -107,33 +114,38 @@ async def report(project_id: int, dataset_id: int, req: schemas.ReportRequest,
                 "group_a": params.get("group_a"),
                 "group_b": params.get("group_b"),
                 "top_n": top_n,
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "Per-lipid bars", "figures": figs})
         elif key == "lipid_classes":
-            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="lipid_class", parameters={}, style=style))
+            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="lipid_class", parameters={**base_params}, style=style))
             sections.append({"key": key, "title": "Lipid class analysis", "figure": fig})
         elif key == "outlier":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="outlier", parameters={
                 "group_a": params.get("group_a"),
                 "group_b": params.get("group_b"),
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "Outlier analysis", "figure": fig})
         elif key == "functional":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="functional", parameters={
                 "group_a": params.get("group_a"),
                 "group_b": params.get("group_b"),
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "Functional lipid indices", "figure": fig})
         elif key == "food_profile":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="food_profile", parameters={
                 "group_a": params.get("group_a"),
                 "group_b": params.get("group_b"),
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "Lipid food profile", "figure": fig})
         elif key == "chain_space":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="chain_space", parameters={
                 "group_a": params.get("group_a"),
                 "group_b": params.get("group_b"),
+                **base_params,
             }, style=style))
             sections.append({"key": key, "title": "Chain space", "figure": fig})
 

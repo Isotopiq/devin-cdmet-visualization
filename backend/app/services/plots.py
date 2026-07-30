@@ -1311,6 +1311,17 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
     params = req.parameters or {}
     style = _merge_style(req.style)
 
+    excluded_groups = set(params.get("excluded_groups") or [])
+    if excluded_groups:
+        keep_cols = [c for c in df.columns if sample_meta.get(c) not in excluded_groups]
+        df = df[keep_cols]
+        sample_meta = {c: g for c, g in sample_meta.items() if c in keep_cols}
+    if df.shape[1] == 0:
+        fig = go.Figure()
+        fig.update_layout(title="No samples remain after excluding groups")
+        _apply_base_layout(fig, style)
+        return json.loads(fig.to_json())
+
     if plot_type in ("bar", "box", "violin", "dot"):
         feature = _get_feature_index(dataset, params.get("feature"))
         title = f"{dataset.feature_metadata[feature].get('feature_id', feature)}"
