@@ -48,6 +48,7 @@ export const generateReport = (projectId: number, datasetId: number, params: any
 
 export const runIsotope = (projectId: number, datasetId: number, params: any) => API.post(`/isotope/${projectId}/dataset/${datasetId}/isotope`, params)
 export const buildPathway = (projectId: number, datasetId: number, params: any) => API.post(`/pathways/${projectId}/dataset/${datasetId}/pathway`, params)
+export const getPathwayJob = (jobId: string) => API.get(`/pathways/job/${jobId}`)
 
 export const getSettings = () => API.get('/admin/settings')
 export const uploadLogo = (logoType: 'login' | 'dashboard', file: File) => {

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
-import { buildPathway } from '../api'
+import { buildPathway, getPathwayJob } from '../api'
 import { LuGitMerge, LuRefreshCw } from 'react-icons/lu'
 
 export default function Pathway() {
@@ -17,7 +17,9 @@ export default function Pathway() {
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState<string>('')
+  const [percent, setPercent] = useState<number>(0)
   const [error, setError] = useState<string>('')
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const groups = useMemo(() => {
     const meta = selectedDataset?.sample_metadata || {}
@@ -30,13 +32,29 @@ export default function Pathway() {
     if (groups.length >= 2 && !groupB) setGroupB(groups[1])
   }, [groups])
 
-  useEffect(() => { setResult(null) }, [selectedDataset, pathwaySource])
+  useEffect(() => { setResult(null); setError('') }, [selectedDataset, pathwaySource])
+
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [])
+
+  const clearPoll = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }
 
   const generate = async () => {
     if (!projectId || !datasetId) return
+    clearPoll()
     setLoading(true)
     setError('')
-    setProgress('Identifying significant features...')
+    setResult(null)
+    setProgress('Submitting pathway job...')
+    setPercent(0)
     try {
       const params: any = {
         pathway_source: pathwaySource,
@@ -49,16 +67,39 @@ export default function Pathway() {
         params.fc_threshold = fcThreshold
         params.p_threshold = pThreshold
       }
-      setProgress(`Querying ${pathwaySource.toUpperCase()} database...`)
-      const res = await buildPathway(Number(projectId), Number(datasetId), params)
-      setResult(res.data)
+      const startRes = await buildPathway(Number(projectId), Number(datasetId), params)
+      const jobId = startRes.data?.job_id
+      if (!jobId) {
+        throw new Error('No job id returned')
+      }
+      setProgress('Queued')
+      setPercent(2)
+      pollRef.current = setInterval(async () => {
+        try {
+          const jobRes = await getPathwayJob(jobId)
+          const job = jobRes.data
+          setProgress(job.progress || 'Running...')
+          setPercent(job.percent ?? 0)
+          if (job.status === 'completed') {
+            clearPoll()
+            setResult(job.result)
+            setLoading(false)
+          } else if (job.status === 'failed') {
+            clearPoll()
+            setError(job.error || 'Pathway analysis failed')
+            setLoading(false)
+          }
+        } catch (pollErr: any) {
+          clearPoll()
+          setError(pollErr?.response?.data?.detail || pollErr?.message || 'Polling failed')
+          setLoading(false)
+        }
+      }, 500)
     } catch (err: any) {
       const msg = err?.response?.data?.detail || err?.message || 'Pathway request failed'
       setError(String(msg))
-      setResult(null)
-    } finally {
       setLoading(false)
-      setProgress('')
+      clearPoll()
     }
   }
 
@@ -129,7 +170,10 @@ export default function Pathway() {
             {loading && (
               <div className="mt-4">
                 <div className="w-full bg-slate-200 dark:bg-slate-700 rounded h-2 overflow-hidden">
-                  <div className="bg-blue-500 h-2 w-full animate-pulse rounded" />
+                  <div
+                    className="bg-blue-500 h-2 rounded transition-all duration-300"
+                    style={{ width: `${Math.max(2, Math.min(100, percent))}%` }}
+                  />
                 </div>
                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
                   <span className="inline-block w-3 h-3 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
@@ -138,7 +182,7 @@ export default function Pathway() {
               </div>
             )}
             <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-              Significant features (|log2FC| and adjusted p-value) are submitted to the selected database. If no groups are selected, all feature names are used.
+              Significant features (|log2FC| and adjusted p-value) are submitted to the selected database. Results are fetched as a background job; the progress bar updates as each external API step completes.
             </p>
           </div>
 

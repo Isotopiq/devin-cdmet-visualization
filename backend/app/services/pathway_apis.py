@@ -1,7 +1,7 @@
 import re
 import math
 import asyncio
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Set
 from urllib.parse import quote
 import httpx
 import numpy as np
@@ -64,8 +64,18 @@ _CPD_FIND_CACHE: Dict[str, Optional[str]] = {}
 _CLASS_CPD_CACHE: Dict[str, Optional[str]] = {}
 _class_lock = asyncio.Lock()
 
+ProgressCallback = Optional[Callable[[str, float], Awaitable[None]]]
 
-async def _kegg_text(client: httpx.AsyncClient, path: str, timeout: float = 20.0) -> str:
+
+async def _notify(progress: ProgressCallback, message: str, percent: float):
+    if progress:
+        try:
+            await progress(message, min(100.0, max(0.0, percent)))
+        except Exception:
+            pass
+
+
+async def _kegg_text(client: httpx.AsyncClient, path: str, timeout: float = 15.0) -> str:
     try:
         r = await client.get(f"{KEGG_BASE}/{path}", timeout=timeout)
         r.raise_for_status()
@@ -146,14 +156,29 @@ def _safe_url(value: str) -> str:
     return quote(value, safe="")
 
 
-async def _map_features_to_kegg_cpds(client: httpx.AsyncClient, feature_names: List[str]) -> Dict[str, Optional[str]]:
+async def _map_features_to_kegg_cpds(
+    client: httpx.AsyncClient,
+    feature_names: List[str],
+    progress: ProgressCallback = None,
+    start_pct: float = 0,
+    end_pct: float = 30,
+) -> Dict[str, Optional[str]]:
     """Map each feature name to a KEGG compound id using the class fallback."""
-    unique = sorted(set(feature_names))
-    sem = asyncio.Semaphore(3)
+    unique = sorted({n for n in feature_names if n})
+    if not unique:
+        return {}
+    sem = asyncio.Semaphore(5)
+    completed = 0
+    total = len(unique)
 
     async def _wrapped(name: str):
+        nonlocal completed
         async with sem:
-            return await _kegg_find_compound(client, name)
+            res = await _kegg_find_compound(client, name)
+        completed += 1
+        pct = start_pct + (end_pct - start_pct) * (completed / total)
+        await _notify(progress, f"Mapping feature {completed}/{total} to KEGG...", pct)
+        return res
 
     tasks = [asyncio.create_task(_wrapped(n)) for n in unique]
     results = await asyncio.gather(*tasks)
@@ -206,18 +231,23 @@ async def _kegg_cpds_to_organism_genes(
     client: httpx.AsyncClient,
     cpd_ids: List[str],
     organism: str = "hsa",
-    max_cpds: int = 8,
-    max_rxns_per_cpd: int = 15,
-    max_ecs_total: int = 30,
-    max_genes: int = 500,
+    progress: ProgressCallback = None,
+    start_pct: float = 30,
+    end_pct: float = 70,
+    max_cpds: int = 5,
+    max_rxns_per_cpd: int = 10,
+    max_ecs_total: int = 20,
+    max_genes: int = 250,
 ) -> List[str]:
     """Map KEGG compounds to organism Entrez gene ids via reaction -> EC -> gene."""
     seen_ecs: Set[str] = set()
     genes: Set[str] = set()
     sem = asyncio.Semaphore(5)
+    total = min(len(cpd_ids), max_cpds)
 
-    for cpd_id in cpd_ids[:max_cpds]:
+    for i, cpd_id in enumerate(cpd_ids[:max_cpds]):
         rns = await _kegg_reactions_for_compound(client, cpd_id)
+        await _notify(progress, f"Resolving genes for compound {i + 1}/{total}...", start_pct + (end_pct - start_pct) * (i / total))
         for rn_id in rns[:max_rxns_per_cpd]:
             ecs = await _kegg_ecs_for_reaction(client, rn_id)
             for ec in ecs:
@@ -229,47 +259,61 @@ async def _kegg_cpds_to_organism_genes(
                 genes.update(g)
                 if len(genes) >= max_genes:
                     return sorted(genes)[:max_genes]
+    await _notify(progress, "Gene list resolved", end_pct)
     return sorted(genes)[:max_genes]
 
 
-async def _kegg_pathways_for_compounds(client: httpx.AsyncClient, compound_ids: List[str]) -> Dict[str, List[str]]:
+async def _kegg_pathways_for_compounds(client: httpx.AsyncClient, compound_ids: List[str], chunk_size: int = 100) -> Dict[str, List[str]]:
     """Return mapping pathway_id -> list of compound_ids."""
     if not compound_ids:
         return {}
-    ids = "+".join(sorted(set(compound_ids)))
-    text = await _kegg_text(client, f"link/pathway/{ids}")
+    unique = sorted(set(compound_ids))
     mapping: Dict[str, List[str]] = {}
-    for line in text.splitlines():
-        parts = line.split("\t")
-        if len(parts) < 2:
-            continue
-        cpd = parts[0].replace("cpd:", "").strip()
-        pathway = parts[1].replace("path:", "").strip()
-        if pathway.startswith("map"):
-            mapping.setdefault(pathway, []).append(cpd)
+    for i in range(0, len(unique), chunk_size):
+        ids = "+".join(unique[i : i + chunk_size])
+        text = await _kegg_text(client, f"link/pathway/{ids}")
+        for line in text.splitlines():
+            parts = line.split("\t")
+            if len(parts) < 2:
+                continue
+            cpd = parts[0].replace("cpd:", "").strip()
+            pathway = parts[1].replace("path:", "").strip()
+            if pathway.startswith("map"):
+                mapping.setdefault(pathway, []).append(cpd)
     return mapping
 
 
 async def _kegg_pathway_compound_count(client: httpx.AsyncClient, pathway_id: str) -> int:
     text = await _kegg_text(client, f"link/compound/{pathway_id}")
-    cpds = {line.split("\t")[0].replace("cpd:", "").strip() for line in text.splitlines() if "\t" in line}
+    cpds = set()
+    for line in text.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2 and parts[1].startswith("cpd:"):
+            cpds.add(parts[1].replace("cpd:", "").strip())
     return len(cpds)
 
 
+async def _kegg_pathway_name(client: httpx.AsyncClient, pid: str, organism: str) -> tuple:
+    if pid.startswith("map") and organism and organism != "map":
+        org_pid = f"{organism}{pid[3:]}"
+        text = await _kegg_text(client, f"get/{org_pid}")
+        name = _parse_kegg_name(text)
+        if name:
+            return pid, name
+    text = await _kegg_text(client, f"get/{pid}")
+    name = _parse_kegg_name(text, pid)
+    return pid, name
+
+
 async def _kegg_pathway_names(client: httpx.AsyncClient, pathway_ids: List[str], organism: str) -> Dict[str, str]:
-    names = {}
-    for pid in pathway_ids:
-        if pid.startswith("map") and organism and organism != "map":
-            org_pid = f"{organism}{pid[3:]}"
-            text = await _kegg_text(client, f"get/{org_pid}")
-            name = _parse_kegg_name(text)
-            if name:
-                names[pid] = name
-                continue
-        text = await _kegg_text(client, f"get/{pid}")
-        name = _parse_kegg_name(text, pid)
-        names[pid] = name
-    return names
+    sem = asyncio.Semaphore(5)
+
+    async def _name(pid: str) -> tuple:
+        async with sem:
+            return await _kegg_pathway_name(client, pid, organism)
+
+    results = await asyncio.gather(*[asyncio.create_task(_name(pid)) for pid in pathway_ids])
+    return {pid: name for pid, name in results}
 
 
 def _fdr_adjust(pvalues: List[float]) -> List[float]:
@@ -282,13 +326,37 @@ def _fdr_adjust(pvalues: List[float]) -> List[float]:
         return pvalues[:]
 
 
-async def kegg_enrichment(feature_names: List[str], significant_names: List[str], organism: str = "hsa", top_n: int = 20) -> Dict[str, Any]:
+async def _kegg_pathway_counts(client: httpx.AsyncClient, pathway_ids: List[str]) -> Dict[str, int]:
+    sem = asyncio.Semaphore(5)
+
+    async def _count(pid: str) -> tuple:
+        async with sem:
+            text = await _kegg_text(client, f"link/compound/{pid}")
+        cpds = set()
+        for line in text.splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 2 and parts[1].startswith("cpd:"):
+                cpds.add(parts[1].replace("cpd:", "").strip())
+        return pid, len(cpds)
+
+    results = await asyncio.gather(*[asyncio.create_task(_count(pid)) for pid in pathway_ids])
+    return {pid: count for pid, count in results if count > 0}
+
+
+async def kegg_enrichment(
+    feature_names: List[str],
+    significant_names: List[str],
+    organism: str = "hsa",
+    top_n: int = 20,
+    progress: ProgressCallback = None,
+) -> Dict[str, Any]:
     if not significant_names:
         return {"error": "No significant features provided for KEGG enrichment."}
 
+    await _notify(progress, "Mapping features to KEGG compounds...", 0)
     async with httpx.AsyncClient() as client:
-        all_names = list(set(feature_names or []) | set(significant_names))
-        name_to_cpd = await _map_features_to_kegg_cpds(client, all_names)
+        all_names = sorted(set(feature_names or []) | set(significant_names))
+        name_to_cpd = await _map_features_to_kegg_cpds(client, all_names, progress=progress, start_pct=0, end_pct=25)
 
         sig_cpd_map = {name: name_to_cpd.get(name) for name in significant_names}
         cpd_to_name = {v: k for k, v in sig_cpd_map.items() if v}
@@ -298,7 +366,9 @@ async def kegg_enrichment(feature_names: List[str], significant_names: List[str]
         if not sig_cpds or not bg_cpds:
             return {"error": "No KEGG compound mappings found for the selected features."}
 
-        all_cpds = list(sig_cpds | bg_cpds)[:200]
+        await _notify(progress, "Querying KEGG pathways...", 30)
+        # Use all background + significant compounds so pathway compound counts are derived from the measured universe
+        all_cpds = sorted(sig_cpds | bg_cpds)
         pathway_to_cpds = await _kegg_pathways_for_compounds(client, all_cpds)
         if not pathway_to_cpds:
             return {"error": "No KEGG pathways found for the mapped compounds."}
@@ -307,11 +377,12 @@ async def kegg_enrichment(feature_names: List[str], significant_names: List[str]
         n = len(sig_cpds)
         pvalues = []
         rows = []
-        for pid, cpds in pathway_to_cpds.items():
+        total_pids = len(pathway_to_cpds)
+        for idx, (pid, cpds) in enumerate(pathway_to_cpds.items()):
             cpd_set = set(cpds)
             k = len(cpd_set & sig_cpds)
             K = len(cpd_set & bg_cpds)
-            if k == 0 or K == 0 or n == 0 or N == 0:
+            if K <= 0 or k <= 0 or n <= 0 or N <= 0 or k > K or n > N:
                 continue
             p = float(scipy_stats.hypergeom.sf(k - 1, N, K, n))
             pvalues.append(p)
@@ -322,6 +393,8 @@ async def kegg_enrichment(feature_names: List[str], significant_names: List[str]
                 "pathway_compound_count": K,
                 "pvalue": p,
             })
+            if idx % 20 == 0:
+                await _notify(progress, f"Testing {idx + 1}/{total_pids} pathways...", 45 + 25 * (idx / total_pids))
 
         padj = _fdr_adjust(pvalues)
         for r, q in zip(rows, padj):
@@ -329,24 +402,29 @@ async def kegg_enrichment(feature_names: List[str], significant_names: List[str]
 
         rows.sort(key=lambda r: (r["padj"], r["pvalue"]))
         top = rows[:top_n]
+
+        await _notify(progress, "Fetching pathway names...", 75)
         names = await _kegg_pathway_names(client, [r["pathway_id"] for r in top], organism)
         for r in top:
             r["name"] = names.get(r["pathway_id"], r["pathway_id"])
 
+        await _notify(progress, "KEGG enrichment complete", 95)
         return {"pathways": top, "n_mapped": n, "n_significant": len(significant_names), "n_background": N}
 
 
-async def reactome_enrichment(feature_names: List[str], top_n: int = 20) -> Dict[str, Any]:
+async def reactome_enrichment(feature_names: List[str], top_n: int = 20, progress: ProgressCallback = None) -> Dict[str, Any]:
     if not feature_names:
         return {"error": "No features provided for Reactome enrichment."}
 
+    await _notify(progress, "Mapping features to KEGG compounds...", 0)
     async with httpx.AsyncClient() as client:
-        name_to_cpd = await _map_features_to_kegg_cpds(client, feature_names)
+        name_to_cpd = await _map_features_to_kegg_cpds(client, feature_names, progress=progress, start_pct=0, end_pct=30)
         cpd_ids = sorted({v for v in name_to_cpd.values() if v})
         # Reactome accepts KEGG compound IDs; if mapping failed fall back to original names
         payload_terms = cpd_ids if cpd_ids else feature_names
         payload = "\n".join(payload_terms)
 
+    await _notify(progress, "Querying Reactome database...", 35)
     url = f"{REACTOME_BASE}/identifiers/projection?pageSize={max(top_n, 100)}&page=1"
     try:
         async with httpx.AsyncClient() as client:
@@ -354,7 +432,7 @@ async def reactome_enrichment(feature_names: List[str], top_n: int = 20) -> Dict
                 url,
                 content=payload,
                 headers={"Content-Type": "text/plain", "Accept": "application/json"},
-                timeout=60.0,
+                timeout=45.0,
             )
             r.raise_for_status()
             data = r.json()
@@ -376,26 +454,37 @@ async def reactome_enrichment(feature_names: List[str], top_n: int = 20) -> Dict
             "source": "Reactome",
         })
     rows.sort(key=lambda r: (r["pvalue"] if r["pvalue"] is not None else 1.0, r["fdr"] if r["fdr"] is not None else 1.0))
+    await _notify(progress, "Reactome enrichment complete", 95)
     return {"pathways": rows[:top_n], "identifiers_not_found": data.get("identifiersNotFound"), "pathways_found": data.get("pathwaysFound"), "n_mapped": len(cpd_ids)}
 
 
-async def go_enrichment(feature_names: List[str], organism: str = "hsapiens", top_n: int = 20) -> Dict[str, Any]:
+async def go_enrichment(
+    feature_names: List[str],
+    organism: str = "hsapiens",
+    top_n: int = 20,
+    progress: ProgressCallback = None,
+) -> Dict[str, Any]:
     if not feature_names:
         return {"error": "No features provided for GO enrichment."}
 
     kegg_org = organism if organism not in GPROFILER_ORG_MAP.values() else GPROFILER_TO_KEGG_ORG.get(organism, "hsa")
     gprofiler_org = GPROFILER_ORG_MAP.get(organism, organism)
 
+    await _notify(progress, "Mapping features to KEGG compounds...", 0)
     async with httpx.AsyncClient() as client:
-        name_to_cpd = await _map_features_to_kegg_cpds(client, feature_names)
+        name_to_cpd = await _map_features_to_kegg_cpds(client, feature_names, progress=progress, start_pct=0, end_pct=20)
         cpd_ids = sorted({v for v in name_to_cpd.values() if v})
         if not cpd_ids:
             return {"error": "No KEGG compound mappings found for GO gene derivation."}
 
-        genes = await _kegg_cpds_to_organism_genes(client, cpd_ids, organism=kegg_org)
+        await _notify(progress, "Resolving KEGG compounds to genes...", 25)
+        genes = await _kegg_cpds_to_organism_genes(
+            client, cpd_ids, organism=kegg_org, progress=progress, start_pct=30, end_pct=70
+        )
         if not genes:
             return {"error": "No organism genes could be derived from the mapped KEGG compounds."}
 
+    await _notify(progress, "Querying g:Profiler GO database...", 75)
     payload = {
         "organism": gprofiler_org,
         "query": genes,
@@ -406,7 +495,7 @@ async def go_enrichment(feature_names: List[str], organism: str = "hsapiens", to
     }
     try:
         async with httpx.AsyncClient() as client:
-            r = await client.post(GPROFILER_BASE, json=payload, headers={"User-Agent": "isotopiq-devin"}, timeout=60.0)
+            r = await client.post(GPROFILER_BASE, json=payload, headers={"User-Agent": "isotopiq-devin"}, timeout=45.0)
             r.raise_for_status()
             data = r.json()
     except httpx.HTTPStatusError as exc:
@@ -428,6 +517,7 @@ async def go_enrichment(feature_names: List[str], organism: str = "hsapiens", to
             "query_size": term.get("query_size"),
         })
     rows.sort(key=lambda r: r["pvalue"] if r["pvalue"] is not None else 1.0)
+    await _notify(progress, "GO enrichment complete", 95)
     return {"pathways": rows[:top_n], "n_mapped_compounds": len(cpd_ids), "n_genes": len(genes)}
 
 
@@ -442,8 +532,9 @@ def enrichment_bar_figure(rows: List[Dict[str, Any]], title: str, style: Dict[st
         return fig.to_dict()
 
     labels = [r.get("name", r.get("pathway_id", r.get("term_id", "")))[:60] for r in rows]
-    scores = [-math.log10(max(r.get("padj", r.get("pvalue", 1.0)), 1e-300)) for r in rows]
-    colors = ["#c44e52" if s < 0.05 else "#2e6575" for s in [r.get("padj", r.get("pvalue", 1.0)) for r in rows]]
+    pvals = [r.get("padj") or r.get("fdr") or r.get("pvalue") or 1.0 for r in rows]
+    scores = [max(0.0, -math.log10(max(p, 1e-300))) for p in pvals]
+    colors = ["#c44e52" if p < 0.05 else "#2e6575" for p in pvals]
 
     fig = go.Figure(go.Bar(
         x=scores,
@@ -474,10 +565,10 @@ def enrichment_table_figure(rows: List[Dict[str, Any]], title: str, style: Dict[
     headers = ["Pathway / Term", "p-value", "adj. p-value", "Found", "Total"]
     values = [
         [r.get("name", r.get("pathway_id", r.get("term_id", "")))[:60] for r in rows],
-        [f"{r.get('pvalue', 1.0):.3e}" for r in rows],
-        [f"{r.get('padj', r.get('pvalue', 1.0)):.3e}" for r in rows],
-        [str(r.get("found", r.get("compound_count", r.get("intersection_size", 0)))) for r in rows],
-        [str(r.get("total", r.get("pathway_compound_count", r.get("term_size", 0)))) for r in rows],
+        [f"{r.get('pvalue') or r.get('padj') or 1.0:.3e}" for r in rows],
+        [f"{r.get('padj') or r.get('fdr') or r.get('pvalue') or 1.0:.3e}" for r in rows],
+        [str(r.get("found") or r.get("compound_count") or r.get("intersection_size") or 0) for r in rows],
+        [str(r.get("total") or r.get("pathway_compound_count") or r.get("term_size") or 0) for r in rows],
     ]
     fig = go.Figure(go.Table(
         header=dict(values=headers, fill_color="#f1f5f9", align="left", font=dict(size=11, color="#1e293b")),
