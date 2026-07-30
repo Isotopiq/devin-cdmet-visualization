@@ -20,7 +20,8 @@ export default function Login({ onLogin }: { onLogin: (t: string) => void }) {
       const res = await login({ username: email, password })
       onLogin(res.data.access_token)
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed')
+      const detail = err.response?.data?.detail
+      setError(typeof detail === 'string' ? detail : JSON.stringify(detail || 'Login failed'))
     }
   }
 

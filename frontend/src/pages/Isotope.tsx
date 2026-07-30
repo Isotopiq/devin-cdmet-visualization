@@ -3,7 +3,7 @@ import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import { runIsotope, searchBiGGModels, searchGEMModels, loadModelNetwork } from '../api'
-import { LuDna, LuRefreshCw, LuSearch, LuMap, LuNetwork, LuPalette, LuUsers } from 'react-icons/lu'
+import { LuDna, LuRefreshCw, LuMap, LuNetwork, LuPalette, LuUsers } from 'react-icons/lu'
 
 function FluxMapView({ map, filename }: { map: any; filename: string }) {
   if (map?.type === 'escher') {
@@ -37,6 +37,12 @@ export default function Isotope() {
   const [sourceNode, setSourceNode] = useState('')
   const [targetNode, setTargetNode] = useState('')
   const [style, setStyle] = useState('classic')
+  const [showLabels, setShowLabels] = useState(false)
+
+  // Default labels on for Plotly maps, off for Escher maps.
+  useEffect(() => {
+    setShowLabels(layout !== 'escher')
+  }, [layout])
 
   // Map source / model loading
   const [mapSource, setMapSource] = useState<'none' | 'bigg' | 'gem'>('none')
@@ -81,17 +87,18 @@ export default function Isotope() {
     setSelectedGroups((prev) => prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group])
   }
 
-  const searchModels = async () => {
+  const fetchModelList = async (q = '') => {
     setModelLoading(true)
     setModelError('')
-    setModelResults([])
     try {
       if (mapSource === 'bigg') {
-        const res = await searchBiGGModels(modelQuery)
+        const res = await searchBiGGModels(q, 100)
         setModelResults(res.data.models || [])
       } else if (mapSource === 'gem') {
-        const res = await searchGEMModels(modelQuery)
+        const res = await searchGEMModels(q, 100)
         setModelResults(res.data.models || [])
+      } else {
+        setModelResults([])
       }
     } catch (err: any) {
       setModelError(err.response?.data?.detail || 'Model search failed')
@@ -99,6 +106,11 @@ export default function Isotope() {
       setModelLoading(false)
     }
   }
+
+  useEffect(() => {
+    setModelQuery('')
+    if (mapSource !== 'none') fetchModelList()
+  }, [mapSource])
 
   const loadNetwork = async (model: any) => {
     setModelLoading(true)
@@ -129,6 +141,7 @@ export default function Isotope() {
         edge_weight: edgeWeight,
         k,
         style,
+        show_labels: showLabels,
       }
       if (circulatingEnrichment) payload.circulating_enrichment = Number(circulatingEnrichment)
       if (sourceNode) payload.source_node = sourceNode
@@ -136,6 +149,7 @@ export default function Isotope() {
       if (selectedModel) {
         payload.map_source = selectedModel.source
         payload.map_id = selectedModel.model_id
+        payload.map_organism = selectedModel.organism || ''
       }
       if (selectedGroups.length > 0 && availableGroups.length > 0) {
         payload.selected_groups = selectedGroups
@@ -273,6 +287,10 @@ export default function Isotope() {
                   <option value="subway">Subway map</option>
                 </select>
               </div>
+              <div className="flex items-center gap-2 pb-2 md:col-span-2">
+                <input id="showLabels" type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} className="rounded border-slate-300" />
+                <label htmlFor="showLabels" className="text-sm text-slate-700 dark:text-slate-200">Show metabolite & reaction labels</label>
+              </div>
             </div>
           </div>
 
@@ -306,10 +324,34 @@ export default function Isotope() {
               {mapSource !== 'none' && (
                 <>
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Search models</label>
-                    <input type="text" value={modelQuery} onChange={(e) => setModelQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && searchModels()} className="input" placeholder={mapSource === 'bigg' ? 'e_coli_core' : 'Human'} />
+                    <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Filter models</label>
+                    <input
+                      type="text"
+                      value={modelQuery}
+                      onChange={(e) => { setModelQuery(e.target.value); fetchModelList(e.target.value) }}
+                      className="input"
+                      placeholder={mapSource === 'bigg' ? 'Type to filter BiGG models' : 'Type to filter GEM models'}
+                    />
                   </div>
-                  <button onClick={searchModels} disabled={modelLoading} className="btn-secondary flex items-center gap-2"><LuSearch /> Search</button>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Select a model</label>
+                    <select
+                      value={selectedModel ? (selectedModel.bigg_id || selectedModel.id) : ''}
+                      onChange={(e) => {
+                        const m = modelResults.find((x: any) => (x.bigg_id || x.id) === e.target.value)
+                        if (m) loadNetwork(m)
+                      }}
+                      disabled={modelLoading || modelResults.length === 0}
+                      className="input"
+                    >
+                      <option value="">-- Pick a model --</option>
+                      {modelResults.map((m: any) => (
+                        <option key={m.bigg_id || m.id} value={m.bigg_id || m.id}>
+                          {m.bigg_id || m.id} — {m.organism} {m.reaction_count ? `(${m.reaction_count} rxn)` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </>
               )}
             </div>

@@ -129,8 +129,10 @@ async def _build_flux_map_for_group(
         "target_node": getattr(req, "target_node", None),
         "map_source": getattr(req, "map_source", None),
         "map_id": getattr(req, "map_id", None),
+        "map_organism": getattr(req, "map_organism", None),
         "title": title,
         "style": getattr(req, "style", "classic"),
+        "show_labels": getattr(req, "show_labels", False),
     }
     return await build_flux_map(
         dataset,

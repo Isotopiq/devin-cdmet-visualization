@@ -30,7 +30,12 @@ export default API
 
 export const health = () => API.get('/health')
 export const register = (data: { email: string; password: string }) => API.post('/auth/register', data)
-export const login = (data: { username: string; password: string }) => API.post('/auth/token', data, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
+export const login = (data: { username: string; password: string }) => {
+  const params = new URLSearchParams()
+  params.append('username', data.username)
+  params.append('password', data.password)
+  return API.post('/auth/token', params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
+}
 export const me = () => API.get('/auth/me')
 export const updateMe = (data: { email?: string; name?: string; password?: string }) => API.patch('/auth/me', data)
 export const uploadAvatar = (file: File) => {

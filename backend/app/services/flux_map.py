@@ -710,19 +710,227 @@ def _curated_layout(G: nx.DiGraph) -> Dict[str, Tuple[float, float]]:
 # ---------------------------------------------------------------------------
 
 
-def _build_escher_map(
+# Mapping from common human-readable metabolite names to cytosolic BiGG IDs.
+_ESCHER_NAME_TO_BIGG: Dict[str, str] = {
+    "glucose 6 phosphate": "g6p_c",
+    "glucose-6-phosphate": "g6p_c",
+    "g6p": "g6p_c",
+    "fructose 6 phosphate": "f6p_c",
+    "fructose-6-phosphate": "f6p_c",
+    "f6p": "f6p_c",
+    "3 phosphoglycerate": "3pg_c",
+    "3-phosphoglycerate": "3pg_c",
+    "3pg": "3pg_c",
+    "phosphoglycerate": "3pg_c",
+    "phosphoenolpyruvate": "pep_c",
+    "pep": "pep_c",
+    "pyruvate": "pyr_c",
+    "pyr": "pyr_c",
+    "acetyl coa": "accoa_c",
+    "acetyl-coa": "accoa_c",
+    "acetyl coenzyme a": "accoa_c",
+    "citrate": "cit_c",
+    "cit": "cit_c",
+    "alpha ketoglutarate": "akg_c",
+    "a ketoglutarate": "akg_c",
+    "ketoglutarate": "akg_c",
+    "akg": "akg_c",
+    "2 oxoglutarate": "akg_c",
+    "succinate": "succ_c",
+    "succ": "succ_c",
+    "malate": "mal__L_c",
+    "mal": "mal__L_c",
+    "l malate": "mal__L_c",
+    "aspartate": "asp__L_c",
+    "asp": "asp__L_c",
+    "l aspartate": "asp__L_c",
+    "alanine": "ala__L_c",
+    "ala": "ala__L_c",
+    "l alanine": "ala__L_c",
+    "lactate": "lac__L_c",
+    "lac": "lac__L_c",
+    "l lactate": "lac__L_c",
+}
+
+_BIGG_ID_RE = re.compile(r"^[a-z][a-z0-9_]*_[a-z]$")
+
+
+def _normalize_met_name(name: str) -> str:
+    return re.sub(r"\s+", " ", name.lower().replace("-", " ").replace("_", " ")).strip()
+
+
+def _node_to_bigg(name: str) -> Optional[str]:
+    """Convert a feature/node name to a cytosolic BiGG ID when possible."""
+    if _BIGG_ID_RE.match(name):
+        return name
+    norm = _normalize_met_name(name)
+    return _ESCHER_NAME_TO_BIGG.get(norm)
+
+
+def _bigg_base(bigg_id: str) -> str:
+    """Return the metabolite base name without the one-letter compartment suffix."""
+    if not bigg_id:
+        return ""
+    return bigg_id.rsplit("_", 1)[0] if "_" in bigg_id else bigg_id
+
+
+def _node_to_bigg_candidates(name: str, map_bigg_ids: set) -> List[str]:
+    """Return all BiGG IDs in the map that match this feature (any compartment)."""
+    if _BIGG_ID_RE.match(name) and name in map_bigg_ids:
+        return [name]
+    canonical = _node_to_bigg(name)
+    if not canonical:
+        return []
+    base = _bigg_base(canonical)
+    return [b for b in map_bigg_ids if _bigg_base(b).lower() == base.lower()]
+
+
+def _pick_escher_map(mean_map: Dict[str, float], options: Dict[str, Any]) -> Optional[str]:
+    """Choose a curated Escher map based on the selected model/organism or the data."""
+    explicit = options.get("map_name")
+    if explicit:
+        return explicit
+    map_id = options.get("map_id")
+    organism = (options.get("map_organism") or "").lower()
+    if map_id:
+        if map_id == "e_coli_core":
+            return "e_coli_core.Core metabolism"
+        if map_id in ("iJO1366",):
+            return "iJO1366.Central metabolism"
+    if "sapiens" in organism or "homo" in organism:
+        return "RECON1.Glycolysis TCA PPP"
+    if "coli" in organism or "escherich" in organism:
+        return "e_coli_core.Core metabolism"
+    if "cerevisiae" in organism or "yeast" in organism or "saccharomyces" in organism:
+        return "iMM904.Central carbon metabolism"
+    # Fallback: if the measured nodes look like central carbon, use the human map.
+    bigg_ids = {_node_to_bigg(n) for n in mean_map.keys()}
+    if "g6p_c" in bigg_ids or "pyr_c" in bigg_ids or "cit_c" in bigg_ids:
+        return "RECON1.Glycolysis TCA PPP"
+    return None
+
+
+def _escher_css_injection(html: str) -> str:
+    css = """
+    <style>
+      html,body{height:100%;margin:0;background:#ffffff;}
+      .map-menu,.menu-bar,.dropdown,.dropdownButton,.map-tools-container,.search-menu-container,.search-menu-container-inline,.button-panel,.full-screen-button,.notification-container,#status,.logo-container{display:none !important;}
+      .escher-container .scale-legend{right:10px !important;bottom:10px !important;background:rgba(255,255,255,0.9) !important;border:1px solid #e2e8f0 !important;border-radius:0.5rem !important;padding:6px !important;}
+      .metabolite-node circle{stroke:#475569;stroke-width:1.5px;}
+      .reaction{stroke-linecap:round;}
+      .label{fill:#1e293b !important;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif !important;}
+    </style>
+    """
+    return html.replace("</head>", f"{css}</head>")
+
+
+def _build_escher_html(builder: Any, title: str) -> dict:
+    """Save an Escher Builder to a temporary HTML file and inject custom CSS."""
+    import os
+    import tempfile
+
+    fd, path = tempfile.mkstemp(suffix=".html")
+    os.close(fd)
+    try:
+        builder.save_html(path)
+        with open(path, "r", encoding="utf-8") as f:
+            html = f.read()
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    html = _escher_css_injection(html)
+    return {
+        "type": "escher",
+        "html": html,
+        "data": [],
+        "layout": {"title": {"text": title, "x": 0.5}},
+    }
+
+
+def _build_curated_escher_map(mean_map: Dict[str, float], title: str, map_name: str, show_labels: bool = False) -> Optional[dict]:
+    """Render the measured data on a curated Escher map with a modern color scale."""
+    try:
+        import escher
+        import escher.plots
+    except Exception:
+        return None
+
+    try:
+        map_json = escher.plots.map_json_for_name(map_name)
+    except Exception:
+        return None
+
+    try:
+        data = json.loads(map_json)
+        if not isinstance(data, list) or len(data) < 2:
+            return None
+        escher_map = data[1]
+    except Exception:
+        return None
+
+    nodes = escher_map.get("nodes", {})
+    reactions = escher_map.get("reactions", {})
+    map_bigg_ids = {
+        str(attrs.get("bigg_id"))
+        for attrs in nodes.values()
+        if attrs.get("node_type") == "metabolite" and attrs.get("bigg_id")
+    }
+
+    metabolite_data: Dict[str, float] = {}
+    for nid, value in mean_map.items():
+        for bigg in _node_to_bigg_candidates(nid, map_bigg_ids):
+            metabolite_data[bigg] = float(value)
+
+    if not metabolite_data:
+        return None
+
+    reaction_data: Dict[str, float] = {}
+    for rxn_id, rxn in reactions.items():
+        mets = rxn.get("metabolites", [])
+        values = [metabolite_data.get(str(m.get("bigg_id"))) for m in mets if m.get("bigg_id") in metabolite_data]
+        values = [v for v in values if v is not None and math.isfinite(v)]
+        if values:
+            reaction_value = max(values) - min(values)
+            key = rxn.get("bigg_id") or rxn_id
+            reaction_data[str(key)] = float(reaction_value)
+
+    builder = escher.Builder(
+        map_json=map_json,
+        metabolite_data=metabolite_data,
+        reaction_data=reaction_data,
+        metabolite_scale_preset="WhYlRd",
+        reaction_scale_preset="WhYlRd",
+        metabolite_no_data_color="#94a3b8",
+        metabolite_no_data_size=9,
+        reaction_no_data_color="#94a3b8",
+        hide_all_labels=not show_labels,
+        identifiers_on_map="name" if show_labels else "bigg_id",
+        enable_editing=False,
+        enable_keys=False,
+        enable_tooltips=False,
+        scroll_behavior="none",
+        height=600,
+    )
+
+    return _build_escher_html(builder, title)
+
+
+def _build_manual_escher_map(
     G: nx.DiGraph,
     pos: Dict[str, Tuple[float, float]],
     mean_map: Dict[str, float],
     total_map: Dict[str, float],
     title: str,
+    show_labels: bool = False,
 ) -> Optional[dict]:
+    """Fallback: build a custom Escher map from the computed graph layout."""
     try:
         import escher
     except Exception:
         return None
 
-    import json
     import os
     import tempfile
 
@@ -800,43 +1008,42 @@ def _build_escher_map(
         "text_labels": {},
     }]
 
-
     builder = escher.Builder(
         map_json=json.dumps(escher_map),
         metabolite_data=metabolite_data,
         reaction_data=reaction_data,
-        height=600,
+        metabolite_scale_preset="WhYlRd",
+        reaction_scale_preset="WhYlRd",
+        metabolite_no_data_color="#94a3b8",
+        metabolite_no_data_size=9,
+        reaction_no_data_color="#94a3b8",
+        hide_all_labels=not show_labels,
         enable_editing=False,
+        enable_keys=False,
+        enable_tooltips=False,
+        scroll_behavior="none",
+        height=600,
     )
 
-    fd, path = tempfile.mkstemp(suffix=".html")
-    os.close(fd)
-    try:
-        builder.save_html(path)
-        with open(path, "r", encoding="utf-8") as f:
-            html = f.read()
-    finally:
-        try:
-            os.remove(path)
-        except OSError:
-            pass
+    return _build_escher_html(builder, title)
 
-    # Make sure the Escher container fills the iframe body and hide editing chrome.
-    css = """
-    <style>
-      html,body{height:100%;margin:0;}
-      .map-menu,.map-tools-container,.search-menu-container,.button-panel,.full-screen-button,.notification-container,#status{display:none !important;}
-      .escher-container .scale-legend{right:10px !important;}
-    </style>
-    """
-    html = html.replace("</head>", f"{css}</head>")
 
-    return {
-        "type": "escher",
-        "html": html,
-        "data": [],
-        "layout": {"title": {"text": title, "x": 0.5}},
-    }
+def _build_escher_map(
+    G: nx.DiGraph,
+    pos: Dict[str, Tuple[float, float]],
+    mean_map: Dict[str, float],
+    total_map: Dict[str, float],
+    options: Dict[str, Any],
+) -> Optional[dict]:
+    """Build an Escher flux map, preferring a curated BiGG map when available."""
+    title = options.get("title", "Flux map")
+    show_labels = options.get("show_labels", False)
+    map_name = _pick_escher_map(mean_map, options)
+    if map_name:
+        curated = _build_curated_escher_map(mean_map, title, map_name, show_labels=show_labels)
+        if curated:
+            return curated
+    return _build_manual_escher_map(G, pos, mean_map, total_map, title, show_labels=show_labels)
 
 
 # ---------------------------------------------------------------------------
@@ -855,6 +1062,7 @@ def _make_plotly_figure(
     edge_weight: str,
     title: str,
     style: str = "classic",
+    show_labels: bool = True,
 ) -> dict:
     style_cfg = FLUX_STYLES.get(style, FLUX_STYLES["classic"])
     max_mean = max((v for v in mean_map.values() if math.isfinite(v)), default=1.0) or 1.0
@@ -939,9 +1147,9 @@ def _make_plotly_figure(
     node_trace = go.Scatter(
         x=node_x,
         y=node_y,
-        mode="markers+text",
+        mode="markers+text" if show_labels else "markers",
         text=node_text,
-        textposition="top center",
+        textposition="top center" if show_labels else "none",
         textfont=dict(size=9, color=style_cfg["text_color"]),
         marker=dict(
             showscale=True,
@@ -1038,6 +1246,11 @@ async def build_flux_map(
     title = options.get("title", "Flux map")
     style = options.get("style", "classic")
 
+    # Default labels: off for Escher (clean by default), on for Plotly maps.
+    show_labels = options.get("show_labels")
+    if show_labels is None:
+        show_labels = False if layout == "escher" else True
+
     feature_names = _feature_names(dataset, feature_ids)
 
     G, feature_to_node = await load_network_for_isotope(map_source, map_id, feature_ids, feature_names, dataset=dataset)
@@ -1073,7 +1286,8 @@ async def build_flux_map(
     pos = _compute_positions(G, pos_layout)
 
     if layout == "escher":
-        return _build_escher_map(G, pos, mean_map, total_map, title)
+        escher_options = {**options, "title": title, "show_labels": show_labels}
+        return _build_escher_map(G, pos, mean_map, total_map, escher_options)
 
     return _make_plotly_figure(
         G,
@@ -1086,4 +1300,5 @@ async def build_flux_map(
         edge_weight,
         title,
         style,
+        show_labels=show_labels,
     )
