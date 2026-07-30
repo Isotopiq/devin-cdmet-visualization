@@ -100,11 +100,12 @@ def test_generate_box_plot():
     assert "data" in fig
 
 
-def test_isotope_no_isotopologue_columns_returns_clear_error():
+@pytest.mark.asyncio
+async def test_isotope_no_isotopologue_columns_returns_clear_error():
     df = pd.DataFrame({"S1": [1, 2], "S2": [3, 4]})
     ds = _make_dataset(df)
     req = schemas.IsotopeRequest(tracer="13C", max_label=6)
-    result = run_isotope_analysis(ds, req)
+    result = await run_isotope_analysis(ds, req)
     assert "error" in result
 
 

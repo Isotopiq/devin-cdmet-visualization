@@ -1,30 +1,9 @@
 import math
-import json
 import numpy as np
 import pandas as pd
-import networkx as nx
-import plotly.graph_objects as go
 from app import models, schemas
 from app.services.preprocessing import to_dataframe, _to_json_safe
-
-
-# Simplified central carbon metabolism edges used for the example flux map.
-FLUX_EDGES = [
-    ("Glucose-6-phosphate", "Fructose-6-phosphate"),
-    ("Fructose-6-phosphate", "3-Phosphoglycerate"),
-    ("Glucose-6-phosphate", "3-Phosphoglycerate"),
-    ("3-Phosphoglycerate", "Phosphoenolpyruvate"),
-    ("Phosphoenolpyruvate", "Pyruvate"),
-    ("Pyruvate", "Acetyl-CoA"),
-    ("Pyruvate", "Lactate"),
-    ("Pyruvate", "Alanine"),
-    ("Acetyl-CoA", "Citrate"),
-    ("Citrate", "alpha-Ketoglutarate"),
-    ("alpha-Ketoglutarate", "Succinate"),
-    ("Succinate", "Malate"),
-    ("Malate", "Citrate"),
-    ("Malate", "Aspartate"),
-]
+from app.services.flux_map import build_flux_map
 
 
 def _sanitize_series(s):
@@ -56,119 +35,7 @@ def _series_by_feature(series: pd.Series, feature_ids) -> dict:
     return out
 
 
-def _flux_map(
-    feature_ids,
-    mean_labeled_atoms: pd.Series,
-    total_intensity: pd.Series,
-    title: str = "Flux map",
-):
-    """Build a Plotly network graph from isotope labeling data."""
-    mean_map = {fid: float(mean_labeled_atoms.iloc[i]) if i < len(mean_labeled_atoms) else 0.0 for i, fid in enumerate(feature_ids)}
-    total_map = {fid: float(total_intensity.iloc[i]) if i < len(total_intensity) else 0.0 for i, fid in enumerate(feature_ids)}
-
-    G = nx.DiGraph()
-    nodes = set()
-    for src, tgt in FLUX_EDGES:
-        if src in mean_map and tgt in mean_map:
-            G.add_edge(src, tgt)
-            nodes.add(src)
-            nodes.add(tgt)
-
-    if len(nodes) == 0:
-        return None
-
-    pos = nx.spring_layout(G, seed=42, k=4, iterations=300)
-
-    max_mean = max((v for v in mean_map.values() if math.isfinite(v)), default=1) or 1
-    max_total = max((v for v in total_map.values() if math.isfinite(v)), default=1) or 1
-
-    node_x, node_y, node_text, node_color, node_size = [], [], [], [], []
-    for n in nodes:
-        x, y = pos[n]
-        node_x.append(x)
-        node_y.append(y)
-        node_text.append(n)
-        node_color.append(mean_map.get(n, 0))
-        node_size.append(15 + 25 * (total_map.get(n, 0) / max_total))
-
-    edge_traces = []
-    annotations = []
-    for src, tgt in G.edges():
-        x0, y0 = pos[src]
-        x1, y1 = pos[tgt]
-        mean_src = mean_map.get(src, 0)
-        mean_tgt = mean_map.get(tgt, 0)
-        gradient = mean_tgt - mean_src
-        flux_value = max(abs(gradient), 0)
-        width = 1 + 5 * min(flux_value / max(1, max_mean), 1.0)
-        color = "#10b981" if gradient >= 0 else "#64748b"
-
-        edge_traces.append(
-            go.Scatter(
-                x=[x0, x1, None],
-                y=[y0, y1, None],
-                mode="lines",
-                line=dict(color=color, width=width),
-                hoverinfo="text",
-                text=f"{src} → {tgt}<br>Δ mean labels: {gradient:.3f}",
-                showlegend=False,
-            )
-        )
-
-        annotations.append(
-            dict(
-                x=x0 + 0.9 * (x1 - x0),
-                y=y0 + 0.9 * (y1 - y0),
-                ax=x0 + 0.1 * (x1 - x0),
-                ay=y0 + 0.1 * (y1 - y0),
-                xref="x",
-                yref="y",
-                axref="x",
-                ayref="y",
-                showarrow=True,
-                arrowhead=2,
-                arrowsize=1,
-                arrowwidth=max(1, width / 2),
-                arrowcolor=color,
-            )
-        )
-
-    node_trace = go.Scatter(
-        x=node_x,
-        y=node_y,
-        mode="markers+text",
-        text=node_text,
-        textposition="top center",
-        textfont=dict(size=9, color="#334155"),
-        marker=dict(
-            showscale=True,
-            colorscale="Viridis",
-            color=node_color,
-            size=node_size,
-            colorbar=dict(title="Mean<br>labeled<br>atoms", thickness=12, x=1.04),
-            line=dict(width=1, color="DarkSlateGrey"),
-        ),
-        hovertemplate="%{text}<br>Mean labeled atoms: %{marker.color:.3f}<extra></extra>",
-        showlegend=False,
-    )
-
-    fig = go.Figure(data=edge_traces + [node_trace])
-    fig.update_layout(
-        title=dict(text=title, x=0.5),
-        showlegend=False,
-        autosize=True,
-        hovermode="closest",
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, scaleanchor="y"),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        margin=dict(l=60, r=120, t=60, b=60),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        annotations=annotations,
-    )
-    return json.loads(fig.to_json())
-
-
-def run_isotope_analysis(dataset: models.Dataset, req: schemas.IsotopeRequest):
+async def run_isotope_analysis(dataset: models.Dataset, req: schemas.IsotopeRequest):
     df = to_dataframe(dataset)
     feature_ids = _feature_lookup(dataset, df)
     tracer = req.tracer
@@ -219,6 +86,26 @@ def run_isotope_analysis(dataset: models.Dataset, req: schemas.IsotopeRequest):
         else:
             fractions_by_feature[fid] = {}
 
+    flux_map_options = {
+        "layout": getattr(req, "layout", "spring"),
+        "graph_mode": getattr(req, "graph_mode", "full"),
+        "edge_weight": getattr(req, "edge_weight", "label_gradient"),
+        "k": getattr(req, "k", 3),
+        "source_node": getattr(req, "source_node", None),
+        "target_node": getattr(req, "target_node", None),
+        "map_source": getattr(req, "map_source", None),
+        "map_id": getattr(req, "map_id", None),
+        "title": "Flux map",
+    }
+
+    flux_map = await build_flux_map(
+        dataset,
+        feature_ids,
+        mean_labeled_atoms,
+        row_sums.fillna(0),
+        options=flux_map_options,
+    )
+
     results = {
         "tracer": tracer,
         "max_label": max_label,
@@ -227,6 +114,6 @@ def run_isotope_analysis(dataset: models.Dataset, req: schemas.IsotopeRequest):
         "fractional_enrichment": _series_by_feature(fractional_enrichment, feature_ids),
         "mean_labeled_atoms": _series_by_feature(mean_labeled_atoms, feature_ids),
         "pooled_labeling": _series_by_feature(pooled_labeling, feature_ids),
-        "flux_map": _flux_map(feature_ids, mean_labeled_atoms, row_sums.fillna(0)),
+        "flux_map": flux_map,
     }
     return results

@@ -185,6 +185,15 @@ class IsotopeRequest(BaseModel):
     natural_abundance_correction: bool = False
     circulating_enrichment: Optional[float] = None
     normalization: str = "none"
+    # flux map options
+    layout: Optional[str] = "spring"  # spring, curated, circular, kamada_kawai
+    graph_mode: Optional[str] = "full"  # full, spanning_tree, k_shortest_paths, bipartite
+    edge_weight: Optional[str] = "label_gradient"  # label_gradient, intensity, flux, uniform
+    k: Optional[int] = 3
+    source_node: Optional[str] = None
+    target_node: Optional[str] = None
+    map_source: Optional[str] = None  # bigg, gem
+    map_id: Optional[str] = None
 
 
 class PathwayRequest(BaseModel):

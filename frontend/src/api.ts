@@ -67,6 +67,9 @@ export const generatePlot = (projectId: number, datasetId: number, params: any) 
 export const generateReport = (projectId: number, datasetId: number, params: any) => API.post(`/plots/${projectId}/dataset/${datasetId}/report`, params)
 
 export const runIsotope = (projectId: number, datasetId: number, params: any) => API.post(`/isotope/${projectId}/dataset/${datasetId}/isotope`, params)
+export const searchBiGGModels = (q?: string, limit: number = 20) => API.get('/isotope/bigg_models', { params: { q, limit } })
+export const searchGEMModels = (q?: string, limit: number = 20) => API.get('/isotope/gem_models', { params: { q, limit } })
+export const loadModelNetwork = (source: string, modelId: string) => API.get(`/isotope/models/${source}/${modelId}/network`)
 export const buildPathway = (projectId: number, datasetId: number, params: any) => API.post(`/pathways/${projectId}/dataset/${datasetId}/pathway`, params)
 export const getPathwayJob = (jobId: string) => API.get(`/pathways/job/${jobId}`)
 
