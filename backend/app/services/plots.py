@@ -674,10 +674,11 @@ def _food_profile(df, sample_meta, feature_metadata, style, params):
     return _category_volcano_figure(indices, f"Lipid food profile: {group_b} vs {group_a}", style, params)
 
 
-def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
+def _chain_space_figure(df, sample_meta, feature_metadata, style, params, history=None):
     group_a = params.get("group_a", "")
     group_b = params.get("group_b", "")
-    result = compute_building_blocks(df, feature_metadata, sample_meta, group_a, group_b)
+    int_df = _intensity_df(df, history)
+    result = compute_building_blocks(int_df, feature_metadata, sample_meta, group_a, group_b)
     rows = result.get("rows", [])
     if not rows:
         fig = go.Figure()
@@ -693,28 +694,40 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Chain space (carbon × double bonds)", "Chain type composition", "Chain-length distribution", "Unsaturation distribution"),
-        vertical_spacing=0.22,
-        horizontal_spacing=0.16,
+        vertical_spacing=0.24,
+        horizontal_spacing=0.14,
     )
 
-    for ctype in ["acyl", "alkyl", "plasmalogen"]:
+    for i, ctype in enumerate(["acyl", "alkyl", "plasmalogen"]):
         sub = [r for r in rows if r["chain_type"] == ctype]
         if not sub:
             continue
+        showscale = i == 0
+        marker = dict(
+            color=[r["log2fc"] for r in sub],
+            colorscale="RdBu_r",
+            size=[max(5, min(35, np.log10(max(r["mean_a"] + r["mean_b"], 1e-9)) * 4 + 5)) for r in sub],
+            sizemode="diameter",
+            line=dict(width=0.5, color="white"),
+            showscale=showscale,
+        )
+        if showscale:
+            marker["colorbar"] = dict(
+                title={"text": "log2FC", "side": "right"},
+                x=1.04,
+                xanchor="left",
+                y=0.82,
+                yanchor="middle",
+                len=0.45,
+                thickness=12,
+                outlinewidth=0,
+            )
         fig.add_trace(go.Scatter(
             x=[r["carbon"] for r in sub],
             y=[r["db"] for r in sub],
             mode="markers",
             name=ctype,
-            marker=dict(
-                color=[r["log2fc"] for r in sub],
-                colorscale="RdBu_r",
-                colorbar=dict(title="log2FC", x=1.02, xanchor="left", len=0.5, thickness=15, outlinewidth=0),
-                size=[max(5, min(35, np.log10(max(r["mean_a"] + r["mean_b"], 1e-9)) * 4 + 5)) for r in sub],
-                sizemode="diameter",
-                line=dict(width=0.5, color="white"),
-                showscale=True,
-            ),
+            marker=marker,
             text=[f"{r['name']}<br>log2FC: {r['log2fc']:.2f}<br>p-adj: {r['padj']:.3f}" for r in sub],
             hovertemplate="%{text}<extra></extra>",
         ), row=1, col=1)
@@ -723,19 +736,19 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
     by_type = summary.get("by_type", {})
     types = sorted({k for d in by_type.values() for k in d.keys()})
     for g in [group_a, group_b]:
-        vals = [by_type.get(g, {}).get(t, 0.0) for t in types]
+        vals = [max(by_type.get(g, {}).get(t, 0.0), 0.0) for t in types]
         fig.add_trace(go.Bar(name=g, x=types, y=vals), row=1, col=2)
 
     by_carbon = summary.get("by_carbon", {})
     carbons = sorted({k for d in by_carbon.values() for k in d.keys()})
     for g in [group_a, group_b]:
-        vals = [by_carbon.get(g, {}).get(c, 0.0) for c in carbons]
+        vals = [max(by_carbon.get(g, {}).get(c, 0.0), 0.0) for c in carbons]
         fig.add_trace(go.Bar(name=g, x=[str(c) for c in carbons], y=vals, showlegend=False), row=2, col=1)
 
     by_db = summary.get("by_db", {})
     dbs = sorted({k for d in by_db.values() for k in d.keys()})
     for g in [group_a, group_b]:
-        vals = [by_db.get(g, {}).get(d, 0.0) for d in dbs]
+        vals = [max(by_db.get(g, {}).get(d, 0.0), 0.0) for d in dbs]
         fig.add_trace(go.Bar(name=g, x=[str(d) for d in dbs], y=vals, showlegend=False), row=2, col=2)
 
     fig.update_xaxes(title_text="Carbon atoms", row=1, col=1)
@@ -747,18 +760,22 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_xaxes(title_text="Double bonds", row=2, col=2)
     fig.update_yaxes(title_text="Total intensity", row=2, col=2)
 
-    carbon_step = _tick_text_step(len(carbons), max_labels=14)
-    db_step = _tick_text_step(len(dbs), max_labels=14)
+    carbon_step = _tick_text_step(len(carbons), max_labels=10)
+    db_step = _tick_text_step(len(dbs), max_labels=10)
     fig.update_xaxes(
         tickmode="array",
         tickvals=[str(carbons[i]) for i in range(0, len(carbons), carbon_step)],
         ticktext=[str(carbons[i]) for i in range(0, len(carbons), carbon_step)],
+        tickangle=0,
+        tickfont={"size": 9},
         row=2, col=1,
     )
     fig.update_xaxes(
         tickmode="array",
         tickvals=[str(dbs[i]) for i in range(0, len(dbs), db_step)],
         ticktext=[str(dbs[i]) for i in range(0, len(dbs), db_step)],
+        tickangle=0,
+        tickfont={"size": 9},
         row=2, col=2,
     )
 
@@ -767,9 +784,18 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_layout(
         title={"text": f"Chain space: {group_b} vs {group_a}", "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
         barmode="group",
-        legend={"orientation": "h", "y": -0.2},
-        margin={"l": 80, "r": 140, "t": 100, "b": 110},
+        legend={"orientation": "h", "y": -0.18},
+        margin={"l": 100, "r": 160, "t": 100, "b": 120},
     )
+    fig.update_xaxes(tickangle=0, tickfont={"size": 9}, row=1, col=2)
+    fig.update_yaxes(title_standoff=45, row=1, col=1)
+    fig.update_yaxes(title_standoff=45, row=1, col=2)
+    fig.update_yaxes(title_standoff=45, row=2, col=1)
+    fig.update_yaxes(title_standoff=45, row=2, col=2)
+    fig.update_xaxes(title_standoff=15, row=1, col=1)
+    fig.update_xaxes(title_standoff=15, row=1, col=2)
+    fig.update_xaxes(title_standoff=15, row=2, col=1)
+    fig.update_xaxes(title_standoff=15, row=2, col=2)
     return fig
 
 
@@ -1771,7 +1797,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         fig = _food_profile(df, sample_meta, dataset.feature_metadata, style, params)
 
     elif plot_type == "chain_space":
-        fig = _chain_space_figure(df, sample_meta, dataset.feature_metadata, style, params)
+        fig = _chain_space_figure(df, sample_meta, dataset.feature_metadata, style, params, history=dataset.processing_history)
 
     elif plot_type == "pls_da":
         fig = _pls_da_figure(df, sample_meta, dataset.feature_metadata, style, params)
