@@ -1,0 +1,14 @@
+Name,Formula,M+0,M+1,M+2,M+3,M+4,M+5,M+6
+Glucose-6-phosphate,C6H13O9P,50,5,8,4,3,10,220
+Fructose-6-phosphate,C6H13O9P,60,4,9,5,6,12,180
+3-Phosphoglycerate,C3H7O7P,120,5,60,3,0,0,0
+Phosphoenolpyruvate,C3H5O6P,130,6,70,4,0,0,0
+Pyruvate,C3H4O3,100,8,10,90,0,0,0
+Acetyl-CoA,C23H38N7O17P3S,500,20,20,120,0,0,0
+Citrate,C6H8O7,80,10,30,20,25,15,40
+alpha-Ketoglutarate,C5H6O5,90,12,25,30,20,10,15
+Succinate,C4H6O4,85,11,20,22,25,12,10
+Malate,C4H6O5,80,10,18,20,22,15,12
+Aspartate,C4H7NO4,90,9,25,30,15,10,8
+Alanine,C3H7NO2,100,8,15,80,0,0,0
+Lactate,C3H6O3,95,9,18,85,0,0,0

@@ -13,7 +13,7 @@ KNOWN_FORMATS = {
     "lipidsearch": ["LipidMolec", "ClassKey", "FAKey", "CalcMass", "BaseRt", "TotalGrade", "Area"],
 }
 
-SAMPLE_REGEX = re.compile(r"area|intensity|abundance|sample|ctrl|control|treat|rep|replicate|_[0-9]+$", re.I)
+SAMPLE_REGEX = re.compile(r"area|intensity|abundance|sample|ctrl|control|treat|rep|replicate|isotopolog|m\+\d+|_[0-9]+$", re.I)
 GROUP_REGEX = re.compile(r"^(?P<group>.+?)_(?P<idx>[0-9]+)$")
 
 # Map common Compound Discoverer "Sample Type" values to a clean control/QC group label.
