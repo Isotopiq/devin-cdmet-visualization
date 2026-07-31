@@ -70,7 +70,13 @@ export default function Profile() {
       await refreshUser()
     } catch (err: any) {
       const detail = err.response?.data?.detail
-      setError(typeof detail === 'string' ? detail : 'Avatar upload failed. Please use PNG, JPEG, or WebP under 20 MB.')
+      if (typeof detail === 'string') {
+        setError(detail)
+      } else {
+        const status = err.response?.status
+        const text = err.response?.statusText || err.message || 'Upload failed'
+        setError(`Avatar upload failed${status ? ` (${status})` : ''}: ${text}. Please use PNG, JPEG, or WebP under 20 MB.`)
+      }
     } finally {
       setLoading(false)
     }
