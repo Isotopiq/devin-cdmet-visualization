@@ -2,9 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/api/admin/settings/favicon" />
+    <link id="favicon" rel="icon" href="/api/admin/settings/favicon" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Metabolomics Platform</title>
+    <script>
+      (function () {
+        try {
+          fetch('/api/admin/settings')
+            .then(r => r.json())
+            .then(s => {
+              if (s && s.favicon_url) {
+                const link = document.getElementById('favicon')
+                if (link) link.href = s.favicon_url + '?t=' + Date.now()
+              }
+            })
+            .catch(() => {})
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body class="bg-gray-50 dark:bg-gray-900">
     <div id="root"></div>
