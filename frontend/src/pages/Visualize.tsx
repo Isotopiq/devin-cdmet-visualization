@@ -5,7 +5,7 @@ import { usePlotConfig, styleToBackend } from '../context/PlotConfigContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import PlotStyling from '../components/PlotStyling'
-import { generatePlot, runStats, generateReport } from '../api'
+import { generatePlot, runStats, generatePDFReport } from '../api'
 import { LuRefreshCw, LuFileDown, LuPrinter, LuChevronDown, LuChevronUp, LuX, LuDownload, LuFileText, LuFilter } from 'react-icons/lu'
 
 const TABS = [
@@ -370,28 +370,56 @@ export default function Visualize() {
     }
   }
 
+  const PDF_SECTIONS: Record<string, string[]> = {
+    pca: ['pca_score', 'pca_loadings', 'pca_scree'],
+    pls_da: ['pls_da'],
+    opls_da: ['opls_da'],
+    biomarker: ['biomarker'],
+    permanova: ['permanova'],
+    volcano: ['volcano'],
+    heatmap: ['heatmap_clustered', 'heatmap_unclustered'],
+    per_lipid_bars: ['per_lipid_bars'],
+    lipid_classes: ['lipid_class'],
+    chain_space: ['chain_space'],
+    outlier: ['outlier'],
+    functional: ['functional'],
+    food_profile: ['food_profile'],
+  }
+
   const exportReport = async () => {
     if (!projectId || !datasetId || !groupA || !groupB) return
     setReportLoading(true)
-    setReportOpen(true)
     try {
-      const include = ALL_PLOT_KEYS.filter((p) => includePlots[p.key]).map((p) => p.key)
-      const res = await generateReport(Number(projectId), Number(datasetId), {
-        include,
+      const reportParams = buildReportParams()
+      const sections = ['summary', ...ALL_PLOT_KEYS.filter((p) => includePlots[p.key]).flatMap((p) => PDF_SECTIONS[p.key] || [])]
+      const res = await generatePDFReport(Number(projectId), Number(datasetId), {
+        title: reportTitle || `${selectedDataset?.name || 'Dataset'} Report`,
+        subtitle: `${groupB} vs ${groupA}`,
+        prepared_by: 'Metabolomics Platform',
+        group_a: groupA,
+        group_b: groupB,
+        sections,
+        top_n: topN,
+        n_perm: 50,
+        fc_threshold: reportParams.fc_threshold,
+        p_threshold: reportParams.p_threshold,
+        test: reportParams.test,
+        multiple_testing: reportParams.multiple_testing,
+        show_labels: reportParams.show_labels,
         style: backendStyle,
-        parameters: buildReportParams(),
       })
-      setReportSections(res.data)
-      setTimeout(() => {
-        if (reportRef.current) {
-          applyOcrLayer(reportRef.current)
-        } else {
-          window.print()
-        }
-      }, 1800)
+      const blob = new Blob([res.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${(reportTitle || `${selectedDataset?.name || 'report'}`).replace(/\s+/g, '_')}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
     } catch (err: any) {
       console.error(err)
-      setReportOpen(false)
+      alert(err.response?.data?.detail || 'Failed to generate PDF')
     } finally {
       setReportLoading(false)
     }

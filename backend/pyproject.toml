@@ -28,6 +28,8 @@ dependencies = [
     "networkx>=3.2",
     "escher>=1.8.1",
     "cobra>=0.31",
+    "fpdf2>=2.7",
+    "kaleido==0.2.1",
     "pytest>=8.2",
     "pytest-asyncio>=0.23",
 ]

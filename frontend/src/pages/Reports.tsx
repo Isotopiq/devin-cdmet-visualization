@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { listAnalyses } from '../api'
-import { LuFileText, LuDownload, LuClock } from 'react-icons/lu'
+import { LuFileText, LuClock, LuDownload } from 'react-icons/lu'
+import DatasetPicker from '../components/DatasetPicker'
+import PDFReportPanel from '../components/PDFReportPanel'
 
 export default function Reports() {
   const { projectId, selectedDataset } = useWorkspace()
@@ -21,6 +23,8 @@ export default function Reports() {
         <h1 className="page-title">Reports & History</h1>
         <p className="page-subtitle">Project-level analysis history and downloadable summaries.</p>
       </div>
+
+      <DatasetPicker />
 
       <div className="card p-5">
         <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuFileText /> Analyses</h3>
@@ -43,6 +47,8 @@ export default function Reports() {
           </div>
         )}
       </div>
+
+      <PDFReportPanel />
     </div>
   )
 }

@@ -1,5 +1,7 @@
+import io
 from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
@@ -8,6 +10,7 @@ from app import models, schemas
 from app.services.plots import generate_plot
 from app.services.plots import _merge_style
 from app.services.stats import run_statistical_test
+from app.services.pdf_report import build_pdf
 
 router = APIRouter()
 
@@ -150,3 +153,30 @@ async def report(project_id: int, dataset_id: int, req: schemas.ReportRequest,
             sections.append({"key": key, "title": "Chain space", "figure": fig})
 
     return sections
+
+
+@router.post("/{project_id}/dataset/{dataset_id}/report/pdf")
+async def report_pdf(
+    project_id: int,
+    dataset_id: int,
+    req: schemas.PDFReportRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Dataset.id == dataset_id, models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
+    dataset = result.scalar_one_or_none()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    project_result = await db.execute(select(models.Project).where(models.Project.id == project_id))
+    project = project_result.scalar_one_or_none()
+    project_name = project.name if project else ""
+
+    pdf_bytes = build_pdf(dataset, project_name, req)
+    filename = f"{dataset.name.replace(' ', '_')}_report.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )

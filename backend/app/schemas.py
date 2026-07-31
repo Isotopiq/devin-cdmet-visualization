@@ -201,6 +201,44 @@ class ReportRequest(BaseModel):
     parameters: Dict[str, Any] = {}
 
 
+class PDFReportRequest(BaseModel):
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    prepared_for: Optional[str] = None
+    prepared_by: Optional[str] = "Metabolomics Platform"
+    group_a: Optional[str] = None
+    group_b: Optional[str] = None
+    sections: List[str] = [
+        "summary",
+        "heatmap_clustered",
+        "heatmap_unclustered",
+        "pca_score",
+        "pca_loadings",
+        "pca_scree",
+        "pls_da",
+        "opls_da",
+        "volcano",
+        "functional",
+        "food_profile",
+        "chain_space",
+        "lipid_class",
+        "per_lipid_bars",
+        "biomarker",
+        "permanova",
+        "outlier",
+        "rt_mz",
+    ]
+    top_n: int = 8
+    n_perm: int = 50
+    fc_threshold: float = 1.0
+    p_threshold: float = 0.05
+    alpha: float = 0.05
+    multiple_testing: str = "fdr_bh"
+    test: str = "t_test"
+    show_labels: bool = False
+    style: Dict[str, Any] = {}
+
+
 class IsotopeRequest(BaseModel):
     tracer: str
     max_label: int
