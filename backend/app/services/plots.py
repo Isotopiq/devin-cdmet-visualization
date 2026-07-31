@@ -302,7 +302,14 @@ def _volcano_publication(points, fc_thresh, padj_thresh, style, params):
     fig.add_vline(x=fc_thresh, line_dash="dash", line_color=line_color, line_width=1.5)
     fig.add_hline(y=y_thr, line_dash="dash", line_color=line_color, line_width=1.5)
 
-    for label, name in [("DOWN", "DOWN"), ("NS", "nonSIG"), ("UP", "UP")]:
+    group_a = params.get("group_a", "A")
+    group_b = params.get("group_b", "B")
+    legend_names = {
+        "UP": f"Higher in {group_b}",
+        "DOWN": f"Higher in {group_a}",
+        "NS": "Not significant",
+    }
+    for label in ["DOWN", "NS", "UP"]:
         pts = [p for p in points if p["label"] == label]
         if not pts:
             continue
@@ -310,7 +317,7 @@ def _volcano_publication(points, fc_thresh, padj_thresh, style, params):
             x=[p["lfc"] for p in pts],
             y=[p["neglogp"] for p in pts],
             mode="markers",
-            name=name,
+            name=legend_names[label],
             marker=dict(color=pts[0]["color"], size=style.get("marker_size"), line=dict(width=0.5, color="white")),
             text=[_shorten_name(p["name"], 35) for p in pts],
             hovertemplate="%{text}<br>log2FC: %{x:.3f}<br>-log10 padj: %{y:.3f}<extra></extra>",
@@ -1716,7 +1723,9 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         groups = {}
         for p in points:
             groups.setdefault(p["label"], []).append(p)
-        names = {"UP": f"Higher in {params.get('group_b','B')}", "DOWN": f"Lower in {params.get('group_b','B')}", "NS": "Not significant"}
+        group_a = params.get("group_a", "A")
+        group_b = params.get("group_b", "B")
+        names = {"UP": f"Higher in {group_b}", "DOWN": f"Higher in {group_a}", "NS": "Not significant"}
         for label in ["UP", "DOWN", "NS"]:
             if label in groups:
                 pts = groups[label]
@@ -1737,7 +1746,10 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         fig.add_hline(y=y_thr, line_dash="dash", line_color=line_color, line_width=1.5)
         fig.add_vline(x=fc_thresh, line_dash="dash", line_color=line_color, line_width=1.5)
         fig.add_vline(x=-fc_thresh, line_dash="dash", line_color=line_color, line_width=1.5)
-        fig.update_layout(xaxis_title="log2 fold change", yaxis_title="-log10 p-value")
+        fig.update_layout(
+            xaxis_title=f"log2 Fold Change ({group_b} / {group_a})",
+            yaxis_title="-log10 p-value",
+        )
         _apply_base_layout(fig, style, title="Volcano Plot")
         fig.update_xaxes(range=[-x_abs, x_abs])
         fig.update_yaxes(range=[0, y_max])

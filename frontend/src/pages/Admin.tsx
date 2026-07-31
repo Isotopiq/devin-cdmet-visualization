@@ -1,11 +1,11 @@
 import { useEffect, useState, FormEvent } from 'react'
 import {
-  listUsers, createUser, updateUser, deleteUser, listLogs, uploadLogo,
+  listUsers, createUser, updateUser, deleteUser, listLogs, clearLogs, uploadLogo,
   getSettings, updateSettings, uploadFavicon, getSMTPSettings, testSMTP,
   resetAnalyses, getAnalysisCount
 } from '../api'
 import type { User, AdminLog } from '../types'
-import { LuTrash2, LuRotateCcw, LuImage, LuSettings, LuMail, LuSend } from 'react-icons/lu'
+import { LuTrash2, LuRotateCcw, LuImage, LuSettings, LuMail, LuSend, LuUser } from 'react-icons/lu'
 
 export default function Admin() {
   const [users, setUsers] = useState<User[]>([])
@@ -22,10 +22,12 @@ export default function Admin() {
   const [settings, setSettings] = useState<any>({})
   const [smtp, setSmtp] = useState<any>({ host: '', port: 587, user: '', from_address: '', use_tls: true })
   const [smtpPassword, setSmtpPassword] = useState('')
+  const [logUserFilter, setLogUserFilter] = useState<number | ''>('')
+  const [previewTimestamp, setPreviewTimestamp] = useState(Date.now())
 
   const load = async () => {
     try {
-      const [uRes, lRes, aRes] = await Promise.all([listUsers(), listLogs(), getAnalysisCount()])
+      const [uRes, lRes, aRes] = await Promise.all([listUsers(), listLogs(logUserFilter || undefined), getAnalysisCount()])
       setUsers(uRes.data)
       setLogs(lRes.data)
       setAnalysisCount(aRes.data.count)
@@ -48,6 +50,10 @@ export default function Admin() {
     load()
     loadSettings()
   }, [])
+
+  useEffect(() => {
+    load()
+  }, [logUserFilter])
 
   const handleTab = (t: 'users' | 'logs' | 'logos' | 'settings') => {
     setActiveTab(t)
@@ -116,9 +122,13 @@ export default function Admin() {
 
   const upload = async (type: 'login' | 'dashboard', file: File | null) => {
     if (!file) return
+    setError('')
+    setSuccess('')
     try {
       await uploadLogo(type, file)
-      setSuccess(`${type} logo uploaded. Refresh to see changes.`)
+      setPreviewTimestamp(Date.now())
+      await loadSettings()
+      setSuccess(`${type} logo uploaded`)
     } catch (err: any) {
       setError(err.response?.data?.detail || `Failed to upload ${type} logo`)
     }
@@ -126,12 +136,29 @@ export default function Admin() {
 
   const uploadFav = async (file: File | null) => {
     if (!file) return
+    setError('')
+    setSuccess('')
     try {
       await uploadFavicon(file)
-      setSuccess('Favicon uploaded. Refresh to see changes.')
-      loadSettings()
+      setPreviewTimestamp(Date.now())
+      await loadSettings()
+      setSuccess('Favicon uploaded')
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to upload favicon')
+    }
+  }
+
+  const handleClearLogs = async (userId?: number) => {
+    const label = userId ? 'this user' : 'all'
+    if (!window.confirm(`Clear ${label} logs? This cannot be undone.`)) return
+    setError('')
+    setSuccess('')
+    try {
+      await clearLogs(userId)
+      load()
+      setSuccess(`Cleared ${label} logs`)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to clear logs')
     }
   }
 
@@ -267,28 +294,48 @@ export default function Admin() {
       )}
 
       {activeTab === 'logs' && (
-        <div className="card overflow-hidden">
-          <table className="min-w-full text-sm text-left">
-            <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              <tr>
-                <th className="px-4 py-3 font-medium">Time</th>
-                <th className="px-4 py-3 font-medium">Action</th>
-                <th className="px-4 py-3 font-medium">By</th>
-                <th className="px-4 py-3 font-medium">Details</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {logs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{new Date(log.created_at).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{log.action}</td>
-                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{log.user_email || `user ${log.user_id || 'system'}`}</td>
-                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{Object.entries(log.details || {}).map(([k, v]) => `${k}: ${v}`).join(', ')}</td>
-                </tr>
+        <div className="space-y-4">
+          <div className="card p-4 flex flex-col md:flex-row md:items-center gap-3">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-white">
+              <LuUser className="w-4 h-4" />
+              <span className="text-sm font-medium">Filter by user</span>
+            </div>
+            <select
+              value={logUserFilter}
+              onChange={(e) => setLogUserFilter(e.target.value ? Number(e.target.value) : '')}
+              className="input md:w-64"
+            >
+              <option value="">All users</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.email}</option>
               ))}
-            </tbody>
-          </table>
-          {logs.length === 0 && <div className="p-6 text-slate-500 dark:text-slate-400 text-sm">No logs yet.</div>}
+            </select>
+            <div className="flex-1" />
+            <button onClick={() => handleClearLogs(logUserFilter || undefined)} className="btn-secondary text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50"><LuTrash2 /> Clear {logUserFilter ? 'user' : 'all'} logs</button>
+          </div>
+          <div className="card overflow-hidden">
+            <table className="min-w-full text-sm text-left">
+              <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Time</th>
+                  <th className="px-4 py-3 font-medium">Action</th>
+                  <th className="px-4 py-3 font-medium">By</th>
+                  <th className="px-4 py-3 font-medium">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                {logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{new Date(log.created_at).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{log.action}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{log.user_email || `user ${log.user_id || 'system'}`}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{Object.entries(log.details || {}).map(([k, v]) => `${k}: ${v}`).join(', ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {logs.length === 0 && <div className="p-6 text-slate-500 dark:text-slate-400 text-sm">No logs found.</div>}
+          </div>
         </div>
       )}
 
@@ -297,16 +344,25 @@ export default function Admin() {
           <div>
             <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white flex items-center gap-2"><LuImage /> Login Logo</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Displayed on the login page.</p>
+            {settings.login_logo_url && (
+              <img src={`${settings.login_logo_url}?t=${previewTimestamp}`} alt="login logo" className="h-10 w-auto object-contain mb-2 border border-slate-200 dark:border-slate-700 rounded p-1" />
+            )}
             <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => upload('login', e.target.files?.[0] || null)} />
           </div>
           <div>
             <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white flex items-center gap-2"><LuImage /> Dashboard Logo</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Displayed in the sidebar. Use a white/light version for dark backgrounds.</p>
+            {settings.dashboard_logo_url && (
+              <img src={`${settings.dashboard_logo_url}?t=${previewTimestamp}`} alt="dashboard logo" className="h-10 w-auto object-contain mb-2 border border-slate-200 dark:border-slate-700 rounded p-1" />
+            )}
             <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => upload('dashboard', e.target.files?.[0] || null)} />
           </div>
           <div>
             <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white flex items-center gap-2"><LuSettings /> Favicon</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Browser tab icon. Current: {settings.favicon_url ? <a href={settings.favicon_url} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">preview</a> : 'default'}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Browser tab icon.</p>
+            {settings.favicon_url && (
+              <img src={`${settings.favicon_url}?t=${previewTimestamp}`} alt="favicon" className="h-8 w-auto object-contain mb-2 border border-slate-200 dark:border-slate-700 rounded p-1" />
+            )}
             <input type="file" accept="image/x-icon,image/png,image/jpeg,image/svg+xml" onChange={(e) => uploadFav(e.target.files?.[0] || null)} />
           </div>
         </div>

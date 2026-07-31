@@ -32,7 +32,7 @@ export default function Volcano() {
     if (!projectId || !datasetId) return
     setLoading(true)
     const statsRes = await runStats(Number(projectId), Number(datasetId), { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
-    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, show_labels: showLabels, top_n: topN } })
+    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, group_a: groupA, group_b: groupB, show_labels: showLabels, top_n: topN } })
     setFigure(res.data)
     setLoading(false)
   }

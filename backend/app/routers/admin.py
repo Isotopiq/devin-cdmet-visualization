@@ -1,6 +1,8 @@
 import os
 import shutil
 import datetime as dt
+import mimetypes
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
@@ -132,18 +134,22 @@ async def delete_user(
 
 @router.get("/logs", response_model=list[schemas.AdminLogOut])
 async def list_logs(
+    user_id: Optional[int] = None,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
     admin: models.User = Depends(get_current_admin_user),
 ):
-    result = await db.execute(
-        select(models.AdminLog)
-        .order_by(models.AdminLog.created_at.desc())
-        .limit(limit)
-    )
+    query = select(models.AdminLog).order_by(models.AdminLog.created_at.desc())
+    if user_id:
+        query = query.where(
+            (models.AdminLog.user_id == user_id) | (models.AdminLog.target_user_id == user_id)
+        )
+    result = await db.execute(query.limit(limit))
     logs = result.scalars().all()
     user_ids = {log.user_id for log in logs if log.user_id}
     user_ids |= {log.target_user_id for log in logs if log.target_user_id}
+    if user_id:
+        user_ids.add(user_id)
     emails = {}
     if user_ids:
         user_result = await db.execute(select(models.User.id, models.User.email).where(models.User.id.in_(user_ids)))
@@ -163,6 +169,51 @@ async def list_logs(
     ]
 
 
+@router.delete("/logs")
+async def clear_logs(
+    user_id: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+    admin: models.User = Depends(get_current_admin_user),
+):
+    if user_id:
+        await db.execute(
+            delete(models.AdminLog).where(
+                (models.AdminLog.user_id == user_id) | (models.AdminLog.target_user_id == user_id)
+            )
+        )
+        detail = f"Cleared logs for user {user_id}"
+    else:
+        await db.execute(delete(models.AdminLog))
+        detail = "Cleared all admin logs"
+    await db.commit()
+    await _log(db, "clear_logs", admin, details={"user_id": user_id, "cleared_by": admin.email})
+    return {"ok": True, "detail": detail}
+
+
+def _logo_content_type(filename: str, raw_content_type: Optional[str]) -> str:
+    if raw_content_type and raw_content_type != "application/octet-stream":
+        return raw_content_type
+    guessed, _ = mimetypes.guess_type(filename)
+    return guessed or "application/octet-stream"
+
+
+def _logo_ext(filename: str, content_type: str) -> str:
+    ext = Path(filename).suffix.lstrip(".").lower() if "." in filename else ""
+    if ext in ("png", "jpg", "jpeg", "svg", "ico"):
+        return "jpg" if ext == "jpeg" else ext
+    ct_ext = {"image/png": "png", "image/jpeg": "jpg", "image/jpg": "jpg", "image/svg+xml": "svg", "image/x-icon": "ico"}
+    return ct_ext.get(content_type, "png")
+
+
+def _file_response(path: str) -> FileResponse:
+    media_type, _ = mimetypes.guess_type(path)
+    response = FileResponse(path, media_type=media_type or "image/png")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 @router.post("/logo/{logo_type}")
 async def upload_logo(
     logo_type: str,
@@ -172,15 +223,22 @@ async def upload_logo(
 ):
     if logo_type not in ("login", "dashboard"):
         raise HTTPException(status_code=400, detail="logo_type must be 'login' or 'dashboard'")
-    if file.content_type not in ("image/png", "image/jpeg", "image/jpg", "image/svg+xml"):
+    content_type = _logo_content_type(file.filename or "", file.content_type)
+    allowed = {"image/png", "image/jpeg", "image/jpg", "image/svg+xml"}
+    if content_type not in allowed:
         raise HTTPException(status_code=400, detail="Only PNG, JPEG, or SVG logos are allowed")
-    ext = file.filename.split(".")[-1].lower() if "." in file.filename else "png"
-    if ext not in ("png", "jpg", "jpeg", "svg"):
-        ext = "png"
+    ext = _logo_ext(file.filename or "", content_type)
     stored_name = f"{logo_type}_logo_{dt.datetime.utcnow().strftime('%Y%m%d%H%M%S')}.{ext}"
     dest_path = os.path.join(_logo_dir(), stored_name)
     with open(dest_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+    # Clean up previous logo files for this type
+    for existing in Path(_logo_dir()).glob(f"{logo_type}_logo_*"):
+        if existing.name != stored_name:
+            try:
+                existing.unlink()
+            except OSError:
+                pass
     await _set_setting(db, f"{logo_type}_logo", stored_name)
     await _log(db, f"upload_{logo_type}_logo", admin, details={"filename": stored_name})
     return {"ok": True, "logo_type": logo_type, "filename": stored_name}
@@ -199,7 +257,7 @@ async def get_logo(logo_type: str, db: AsyncSession = Depends(get_db)):
     path = os.path.join(_logo_dir(), filename)
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Logo file not found")
-    return FileResponse(path)
+    return _file_response(path)
 
 
 @router.get("/analyses/count")
@@ -282,15 +340,22 @@ async def upload_favicon(
     db: AsyncSession = Depends(get_db),
     admin: models.User = Depends(get_current_admin_user),
 ):
-    if file.content_type not in ("image/x-icon", "image/png", "image/jpeg", "image/jpg", "image/svg+xml"):
+    content_type = _logo_content_type(file.filename or "", file.content_type)
+    allowed = {"image/x-icon", "image/png", "image/jpeg", "image/jpg", "image/svg+xml"}
+    if content_type not in allowed:
         raise HTTPException(status_code=400, detail="Only ICO, PNG, JPEG, or SVG favicons are allowed")
-    ext = file.filename.split(".")[-1].lower() if "." in file.filename else "png"
-    if ext not in ("ico", "png", "jpg", "jpeg", "svg"):
-        ext = "png"
+    ext = _logo_ext(file.filename or "", content_type)
     stored_name = f"favicon_{dt.datetime.utcnow().strftime('%Y%m%d%H%M%S')}.{ext}"
     dest_path = os.path.join(_logo_dir(), stored_name)
     with open(dest_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+    # Clean up previous favicons
+    for existing in Path(_logo_dir()).glob("favicon_*"):
+        if existing.name != stored_name:
+            try:
+                existing.unlink()
+            except OSError:
+                pass
     await _set_setting(db, "favicon", stored_name)
     await _log(db, "upload_favicon", admin, details={"filename": stored_name})
     return {"ok": True, "filename": stored_name}
@@ -307,7 +372,7 @@ async def get_favicon(db: AsyncSession = Depends(get_db)):
     path = os.path.join(_logo_dir(), filename)
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Favicon file not found")
-    return FileResponse(path)
+    return _file_response(path)
 
 
 async def _smtp_config(db: AsyncSession) -> dict:
