@@ -4,12 +4,14 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
+from jose import jwt as _jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
 from app import schemas, models
 from app.auth import verify_password, get_password_hash, create_access_token, get_current_active_user
 from app.config import settings
+from app.services.email import send_email
 
 
 _CT_EXT = {
@@ -142,3 +144,51 @@ async def get_avatar(
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    req: schemas.ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(models.User).where(models.User.email == req.email))
+    user = result.scalar_one_or_none()
+    if not user:
+        return {"ok": True, "detail": "If this email exists, a reset link has been sent."}
+    token = create_access_token({"sub": str(user.id), "scope": "reset"}, expires_delta=dt.timedelta(minutes=30))
+    base_url = settings.FRONTEND_URL or ""
+    reset_url = f"{base_url}/reset-password?token={token}"
+    try:
+        await send_email(
+            db,
+            to=user.email,
+            subject="Password reset request",
+            body=f"Click the following link to reset your password (expires in 30 minutes): {reset_url}",
+            html=f"<p>Click the following link to reset your password (expires in 30 minutes):</p><a href='{reset_url}'>{reset_url}</a>",
+        )
+    except Exception as exc:
+        if settings.RESET_TOKEN_IN_RESPONSE:
+            return {"ok": True, "detail": f"SMTP not configured ({exc}); reset token returned for development.", "reset_token": token, "reset_url": reset_url}
+        raise HTTPException(status_code=503, detail="SMTP not configured. Please configure SMTP in the admin panel or set FRONTEND_URL/RESET_TOKEN_IN_RESPONSE for development.")
+    return {"ok": True, "detail": "If this email exists, a reset link has been sent."}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    req: schemas.ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        payload = _jwt.decode(req.token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("scope") != "reset":
+            raise HTTPException(status_code=400, detail="Invalid token")
+        user_id = int(payload.get("sub"))
+    except (JWTError, ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.hashed_password = get_password_hash(req.new_password)
+    await db.commit()
+    return {"ok": True}

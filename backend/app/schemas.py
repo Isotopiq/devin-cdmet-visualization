@@ -57,6 +57,13 @@ class AdminLogOut(BaseModel):
 class SiteSettingsOut(BaseModel):
     login_logo_url: Optional[str]
     dashboard_logo_url: Optional[str]
+    favicon_url: Optional[str]
+    smtp_host: Optional[str]
+    smtp_port: Optional[int]
+    smtp_user: Optional[str]
+    smtp_from: Optional[str]
+    smtp_use_tls: bool = True
+    smtp_configured: bool = False
 
 
 class Token(BaseModel):
@@ -234,3 +241,32 @@ class PathwayRequest(BaseModel):
 class SiteSettingsUpdate(BaseModel):
     login_logo_url: Optional[str] = None
     dashboard_logo_url: Optional[str] = None
+    favicon_url: Optional[str] = None
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from: Optional[str] = None
+    smtp_use_tls: Optional[bool] = True
+
+
+class SMTPSettingsOut(BaseModel):
+    host: Optional[str]
+    port: Optional[int]
+    user: Optional[str]
+    from_address: Optional[str]
+    use_tls: bool = True
+    configured: bool = False
+
+
+class SampleGroupsUpdate(BaseModel):
+    sample_metadata: Dict[str, str]
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str

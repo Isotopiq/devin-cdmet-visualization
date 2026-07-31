@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { WorkspaceProvider } from './context/WorkspaceContext'
 import { PlotConfigProvider } from './context/PlotConfigContext'
 import { useAuth } from './context/AuthContext'
@@ -21,9 +21,11 @@ import Settings from './pages/Settings'
 import Preprocessing from './pages/Preprocessing'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
+import ResetPassword from './pages/ResetPassword'
 
 function App() {
   const { user, ready, login } = useAuth()
+  const location = useLocation()
 
   if (!ready) {
     return (
@@ -33,8 +35,12 @@ function App() {
     )
   }
 
-  if (!user) {
+  if (!user && location.pathname !== '/reset-password') {
     return <Login onLogin={login} />
+  }
+
+  if (location.pathname === '/reset-password') {
+    return <ResetPassword />
   }
 
   return (

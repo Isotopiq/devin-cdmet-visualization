@@ -1,7 +1,11 @@
 import { useEffect, useState, FormEvent } from 'react'
-import { listUsers, createUser, updateUser, deleteUser, listLogs, uploadLogo, resetAnalyses, getAnalysisCount } from '../api'
+import {
+  listUsers, createUser, updateUser, deleteUser, listLogs, uploadLogo,
+  getSettings, updateSettings, uploadFavicon, getSMTPSettings, testSMTP,
+  resetAnalyses, getAnalysisCount
+} from '../api'
 import type { User, AdminLog } from '../types'
-import { LuTrash2, LuRotateCcw } from 'react-icons/lu'
+import { LuTrash2, LuRotateCcw, LuImage, LuSettings, LuMail, LuSend } from 'react-icons/lu'
 
 export default function Admin() {
   const [users, setUsers] = useState<User[]>([])
@@ -12,8 +16,12 @@ export default function Admin() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'logos'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'logos' | 'settings'>('users')
   const [analysisCount, setAnalysisCount] = useState(0)
+
+  const [settings, setSettings] = useState<any>({})
+  const [smtp, setSmtp] = useState<any>({ host: '', port: 587, user: '', from_address: '', use_tls: true })
+  const [smtpPassword, setSmtpPassword] = useState('')
 
   const load = async () => {
     try {
@@ -26,11 +34,22 @@ export default function Admin() {
     }
   }
 
+  const loadSettings = async () => {
+    try {
+      const [sRes, mRes] = await Promise.all([getSettings(), getSMTPSettings()])
+      setSettings(sRes.data)
+      setSmtp(mRes.data)
+    } catch (err: any) {
+      // ignore errors for public settings
+    }
+  }
+
   useEffect(() => {
     load()
+    loadSettings()
   }, [])
 
-  const handleTab = (t: 'users' | 'logs' | 'logos') => {
+  const handleTab = (t: 'users' | 'logs' | 'logos' | 'settings') => {
     setActiveTab(t)
     setError('')
     setSuccess('')
@@ -105,18 +124,66 @@ export default function Admin() {
     }
   }
 
+  const uploadFav = async (file: File | null) => {
+    if (!file) return
+    try {
+      await uploadFavicon(file)
+      setSuccess('Favicon uploaded. Refresh to see changes.')
+      loadSettings()
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to upload favicon')
+    }
+  }
+
+  const saveSmtp = async () => {
+    setError('')
+    setSuccess('')
+    try {
+      await updateSettings({
+        smtp_host: smtp.host || null,
+        smtp_port: smtp.port || null,
+        smtp_user: smtp.user || null,
+        smtp_from: smtp.from_address || null,
+        smtp_use_tls: smtp.use_tls,
+        smtp_password: smtpPassword || null,
+      })
+      setSuccess('SMTP settings saved')
+      setSmtpPassword('')
+      loadSettings()
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to save SMTP settings')
+    }
+  }
+
+  const testSmtpConnection = async () => {
+    setError('')
+    setSuccess('')
+    try {
+      const res = await testSMTP({
+        host: smtp.host,
+        port: Number(smtp.port) || 587,
+        user: smtp.user,
+        from_address: smtp.from_address,
+        use_tls: smtp.use_tls,
+      })
+      setSuccess(`SMTP test sent to ${res.data.recipient}`)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'SMTP test failed')
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto">
       <h2 className="text-2xl font-semibold mb-6 text-slate-900 dark:text-white">Admin Panel</h2>
 
       <div className="flex gap-2 mb-4 border-b border-slate-200 dark:border-slate-700">
-        {(['users', 'logs', 'logos'] as const).map((t) => (
+        {(['users', 'logs', 'logos', 'settings'] as const).map((t) => (
           <button
             key={t}
             onClick={() => handleTab(t)}
             className={`px-4 py-2 text-sm font-medium capitalize ${activeTab === t ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}
           >
-            {t}
+            {t === 'logos' ? 'Logos & Favicon' : t}
           </button>
         ))}
       </div>
@@ -228,15 +295,58 @@ export default function Admin() {
       {activeTab === 'logos' && (
         <div className="card p-6 space-y-6">
           <div>
-            <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white">Login Logo</h3>
+            <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white flex items-center gap-2"><LuImage /> Login Logo</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Displayed on the login page.</p>
             <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => upload('login', e.target.files?.[0] || null)} />
           </div>
           <div>
-            <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white">Dashboard Logo</h3>
+            <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white flex items-center gap-2"><LuImage /> Dashboard Logo</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Displayed in the sidebar. Use a white/light version for dark backgrounds.</p>
             <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => upload('dashboard', e.target.files?.[0] || null)} />
           </div>
+          <div>
+            <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white flex items-center gap-2"><LuSettings /> Favicon</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Browser tab icon. Current: {settings.favicon_url ? <a href={settings.favicon_url} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">preview</a> : 'default'}</p>
+            <input type="file" accept="image/x-icon,image/png,image/jpeg,image/svg+xml" onChange={(e) => uploadFav(e.target.files?.[0] || null)} />
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="card p-6 space-y-6">
+          <div className="flex items-center gap-2 mb-2 text-slate-900 dark:text-white font-semibold"><LuMail /> SMTP Configuration</div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Required for forgot-password emails and other system notifications.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Host</label>
+              <input type="text" value={smtp.host || ''} onChange={(e) => setSmtp({ ...smtp, host: e.target.value })} className="input" placeholder="smtp.gmail.com" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Port</label>
+              <input type="number" value={smtp.port || ''} onChange={(e) => setSmtp({ ...smtp, port: e.target.value })} className="input" placeholder="587" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
+              <input type="text" value={smtp.user || ''} onChange={(e) => setSmtp({ ...smtp, user: e.target.value })} className="input" placeholder="user@example.com" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
+              <input type="password" value={smtpPassword} onChange={(e) => setSmtpPassword(e.target.value)} className="input" placeholder="Leave blank to keep existing" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">From address</label>
+              <input type="email" value={smtp.from_address || ''} onChange={(e) => setSmtp({ ...smtp, from_address: e.target.value })} className="input" placeholder="noreply@example.com" />
+            </div>
+            <div className="flex items-center gap-2 h-10">
+              <input id="tls" type="checkbox" checked={smtp.use_tls} onChange={(e) => setSmtp({ ...smtp, use_tls: e.target.checked })} className="rounded" />
+              <label htmlFor="tls" className="text-sm text-slate-700 dark:text-slate-300">Use TLS</label>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={saveSmtp} className="btn-primary">Save SMTP Settings</button>
+            <button onClick={testSmtpConnection} className="btn-secondary"><LuSend /> Test SMTP</button>
+          </div>
+          {smtp.configured && <div className="text-sm text-emerald-600 dark:text-emerald-400">SMTP is configured.</div>}
         </div>
       )}
     </div>

@@ -64,6 +64,8 @@ export const listDatasets = (projectId: number) => API.get(`/analysis/${projectI
 export const getDataset = (projectId: number, datasetId: number) => API.get(`/analysis/${projectId}/dataset/${datasetId}`)
 export const deleteDataset = (projectId: number, datasetId: number) => API.delete(`/analysis/${projectId}/dataset/${datasetId}`)
 export const preprocess = (projectId: number, datasetId: number, params: any) => API.post(`/analysis/${projectId}/dataset/${datasetId}/preprocess`, params)
+export const updateSampleGroups = (projectId: number, datasetId: number, sampleMetadata: Record<string, string>) =>
+  API.put(`/analysis/${projectId}/dataset/${datasetId}/sample_groups`, { sample_metadata: sampleMetadata })
 
 export const listAnalyses = (projectId: number) => API.get(`/analysis/${projectId}/analyses`)
 
@@ -79,11 +81,21 @@ export const buildPathway = (projectId: number, datasetId: number, params: any) 
 export const getPathwayJob = (jobId: string) => API.get(`/pathways/job/${jobId}`)
 
 export const getSettings = () => API.get('/admin/settings')
+export const updateSettings = (data: any) => API.put('/admin/settings', data)
 export const uploadLogo = (logoType: 'login' | 'dashboard', file: File) => {
   const form = new FormData()
   form.append('file', file)
   return API.post(`/admin/logo/${logoType}`, form)
 }
+export const uploadFavicon = (file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return API.post('/admin/favicon', form)
+}
+export const getSMTPSettings = () => API.get('/admin/settings/smtp')
+export const testSMTP = (data: any) => API.post('/admin/settings/smtp/test', data)
+export const forgotPassword = (email: string) => API.post('/auth/forgot-password', { email })
+export const resetPassword = (token: string, newPassword: string) => API.post('/auth/reset-password', { token, new_password: newPassword })
 export const listUsers = () => API.get('/admin/users')
 export const createUser = (data: { email: string; name?: string; password: string; is_admin?: boolean; is_active?: boolean }) => API.post('/admin/users', data)
 export const updateUser = (id: number, data: any) => API.patch(`/admin/users/${id}`, data)

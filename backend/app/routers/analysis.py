@@ -25,6 +25,34 @@ async def get_dataset(project_id: int, dataset_id: int, db: AsyncSession = Depen
     return dataset
 
 
+@router.put("/{project_id}/dataset/{dataset_id}/sample_groups", response_model=schemas.DatasetOut)
+async def update_sample_groups(
+    project_id: int,
+    dataset_id: int,
+    body: schemas.SampleGroupsUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Dataset.id == dataset_id,
+        models.Dataset.project_id == project_id,
+        models.Project.owner_id == current_user.id,
+    ))
+    dataset = result.scalar_one_or_none()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    # Only allow updating group labels for existing sample columns.
+    existing = set(dataset.sample_metadata or {})
+    if not existing:
+        raise HTTPException(status_code=400, detail="Dataset has no sample metadata")
+    sample_metadata = {col: str(body.sample_metadata.get(col, dataset.sample_metadata.get(col, "unknown"))) for col in existing}
+    dataset.sample_metadata = sample_metadata
+    dataset.processing_history = list(dataset.processing_history or []) + [{"step": "update_sample_groups", "updated": list(sample_metadata.values())}]
+    await db.commit()
+    await db.refresh(dataset)
+    return dataset
+
+
 @router.post("/{project_id}/dataset/{dataset_id}/preprocess", response_model=schemas.DatasetOut)
 async def preprocess(project_id: int, dataset_id: int, params: schemas.PreprocessingParams,
                      db: AsyncSession = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
