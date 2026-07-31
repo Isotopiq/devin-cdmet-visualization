@@ -10,6 +10,7 @@ from app.database import get_db
 from app.auth import get_current_active_user
 from app import models, schemas
 from app.services.preprocessing import preprocess_dataset, to_dataframe
+from app.services.qc import qc_analysis
 
 router = APIRouter()
 
@@ -72,6 +73,21 @@ async def list_datasets(project_id: int, db: AsyncSession = Depends(get_db),
     result = await db.execute(select(models.Dataset).join(models.Project).where(
         models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
     return result.scalars().all()
+
+
+@router.get("/{project_id}/dataset/{dataset_id}/qc")
+async def get_qc(
+    project_id: int,
+    dataset_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Dataset.id == dataset_id, models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
+    dataset = result.scalar_one_or_none()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    return qc_analysis(dataset)
 
 
 @router.delete("/{project_id}/dataset/{dataset_id}")

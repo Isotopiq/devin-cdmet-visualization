@@ -4,7 +4,7 @@ import {
   LuLayoutDashboard, LuFolderOpen, LuUploadCloud, LuTable,
   LuSlidersHorizontal, LuCalculator, LuBarChart3, LuPieChart, LuLayers, LuDna,
   LuGitMerge, LuFileText, LuSettings, LuSun, LuMoon,
-  LuLogOut, LuMenu, LuChevronLeft, LuMicroscope, LuUsers, LuUser
+  LuLogOut, LuMenu, LuChevronLeft, LuMicroscope, LuUsers, LuUser, LuActivity
 } from 'react-icons/lu'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { useAuth } from '../context/AuthContext'
@@ -26,6 +26,7 @@ const baseNavItems: NavItem[] = [
   { section: 'Analysis', to: '/preprocessing', label: 'Preprocessing', icon: <LuSlidersHorizontal /> },
   { to: '/stats', label: 'Statistics', icon: <LuCalculator /> },
   { to: '/visualize', label: 'Visualize', icon: <LuBarChart3 /> },
+  { to: '/qc', label: 'QC', icon: <LuActivity /> },
   { section: 'Specialized', to: '/isotope', label: 'Isotope Tracing', icon: <LuDna /> },
   { to: '/pathway', label: 'Pathway Mapping', icon: <LuGitMerge /> },
   { section: 'Output', to: '/reports', label: 'Reports', icon: <LuFileText /> },

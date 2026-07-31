@@ -16,6 +16,7 @@ import Volcano from './pages/Volcano'
 import Visualize from './pages/Visualize'
 import Isotope from './pages/Isotope'
 import Pathway from './pages/Pathway'
+import QC from './pages/QC'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import Preprocessing from './pages/Preprocessing'
@@ -60,6 +61,7 @@ function App() {
           <Route path="visualize" element={<Visualize />} />
           <Route path="isotope" element={<Isotope />} />
           <Route path="pathway" element={<Pathway />} />
+          <Route path="qc" element={<QC />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
           <Route path="preprocessing" element={<Preprocessing />} />

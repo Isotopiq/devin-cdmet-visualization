@@ -107,3 +107,4 @@ export const getAnalysisCount = () => API.get('/admin/analyses/count')
 export const resetAnalyses = () => API.post('/admin/analyses/reset')
 export const exportDataset = (projectId: number, datasetId: number, format: 'metaboanalyst' | 'lipidone') =>
   API.get(`/analysis/${projectId}/dataset/${datasetId}/export`, { params: { format }, responseType: 'blob' })
+export const getQC = (projectId: number, datasetId: number) => API.get(`/analysis/${projectId}/dataset/${datasetId}/qc`)
