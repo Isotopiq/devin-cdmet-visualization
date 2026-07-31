@@ -1,4 +1,5 @@
 import datetime as dt
+import mimetypes
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
@@ -91,22 +92,27 @@ async def upload_avatar(
     current_user: models.User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if not file.content_type:
-        raise HTTPException(status_code=400, detail="Could not determine file type")
+    # Fast-forward content type from filename if the client did not send one.
+    content_type = file.content_type
+    filename = file.filename or ""
+    if not content_type or content_type == "application/octet-stream":
+        guessed, _ = mimetypes.guess_type(filename)
+        content_type = guessed or content_type
+
     ext = (
-        Path(file.filename or "").suffix.lstrip(".").lower()
-        if file.filename and "." in file.filename
-        else _CT_EXT.get(file.content_type, "png")
+        Path(filename).suffix.lstrip(".").lower()
+        if "." in filename
+        else _CT_EXT.get(content_type or "", "png")
     )
     # Allow jpeg extension to be saved as jpg for consistency
     if ext == "jpeg":
         ext = "jpg"
-    if not _allowed_image(file.content_type, ext):
+    if not _allowed_image(content_type or "", ext):
         raise HTTPException(status_code=400, detail="Only PNG, JPEG, or WebP images are allowed")
-    MAX_AVATAR_SIZE = 5 * 1024 * 1024
+    MAX_AVATAR_SIZE = 20 * 1024 * 1024
     contents = await file.read()
     if len(contents) > MAX_AVATAR_SIZE:
-        raise HTTPException(status_code=413, detail="Avatar must be under 5 MB")
+        raise HTTPException(status_code=413, detail="Avatar must be under 20 MB")
     avatar_dir = _avatar_dir()
     # Clean up any previous avatar for this user
     for existing in avatar_dir.glob(f"user_{current_user.id}_*"):
@@ -139,7 +145,8 @@ async def get_avatar(
     matches = list(avatar_dir.glob(f"user_{user_id}_*"))
     if not matches:
         raise HTTPException(status_code=404, detail="Avatar file not found")
-    response = FileResponse(matches[0])
+    media_type, _ = mimetypes.guess_type(str(matches[0]))
+    response = FileResponse(matches[0], media_type=media_type or "image/png")
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"

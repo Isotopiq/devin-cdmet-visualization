@@ -43,7 +43,8 @@ export const uploadAvatar = (file: File) => {
   form.append('file', file)
   return API.post('/auth/me/avatar', form)
 }
-export const getAvatar = (userId: number) => API.get(`/auth/avatar/${userId}`, { responseType: 'blob' })
+export const getAvatar = (userId: number, rev?: string) =>
+  API.get(`/auth/avatar/${userId}`, { params: rev ? { v: rev } : {}, responseType: 'blob' })
 
 export const listProjects = () => API.get('/projects/')
 export const createProject = (data: { name: string; description?: string }) => API.post('/projects/', data)

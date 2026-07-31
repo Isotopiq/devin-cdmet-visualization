@@ -25,7 +25,8 @@ export default function Profile() {
       setEmail(u.email)
       setName(u.name || '')
       if (u.avatar_url && u.id) {
-        const avatarRes = await getAvatar(u.id)
+        const rev = u.avatar_url.split('?')[1]?.replace(/^v=/, '')
+        const avatarRes = await getAvatar(u.id, rev)
         setAvatarPreview(URL.createObjectURL(avatarRes.data))
       }
     } catch {
@@ -53,18 +54,23 @@ export default function Profile() {
       const res = await uploadAvatar(file)
       const u = res.data as User
       setUser(u)
-      const avatarRes = await getAvatar(u.id)
-      const url = URL.createObjectURL(avatarRes.data)
-      setAvatarPreview((prev) => {
-        if (prev) URL.revokeObjectURL(prev)
-        return url
-      })
+      try {
+        const rev = u.avatar_url?.split('?')[1]?.replace(/^v=/, '')
+        const avatarRes = await getAvatar(u.id, rev)
+        const url = URL.createObjectURL(avatarRes.data)
+        setAvatarPreview((prev) => {
+          if (prev) URL.revokeObjectURL(prev)
+          return url
+        })
+      } catch (previewErr: any) {
+        setError('Avatar saved, but the preview could not be loaded.')
+      }
       setSuccess('Avatar updated')
       if (fileRef.current) fileRef.current.value = ''
       await refreshUser()
     } catch (err: any) {
       const detail = err.response?.data?.detail
-      setError(typeof detail === 'string' ? detail : 'Avatar upload failed')
+      setError(typeof detail === 'string' ? detail : 'Avatar upload failed. Please use PNG, JPEG, or WebP under 20 MB.')
     } finally {
       setLoading(false)
     }

@@ -88,7 +88,8 @@ function UserMenu({ user, onLogout }: { user: User | null; onLogout: () => void 
   useEffect(() => {
     let url: string | null = null
     if (user?.avatar_url && user.id) {
-      getAvatar(user.id)
+      const rev = user.avatar_url.split('?')[1]?.replace(/^v=/, '')
+      getAvatar(user.id, rev)
         .then((res) => {
           url = URL.createObjectURL(res.data)
           setAvatarUrl(url)
