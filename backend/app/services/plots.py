@@ -1771,7 +1771,13 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         classes = [_extract_lipid_class(f.get("feature_id", ""), f) for f in dataset.feature_metadata]
         if len(classes) != len(df):
             classes = classes[: len(df)]
-        int_df = _intensity_df(df, dataset.processing_history)
+        # Exclude rows marked as non-representative isobaric substitutions from class rollups.
+        exclude_mask = [bool(f.get("isobaric_substitution_rollup_exclude")) for f in dataset.feature_metadata]
+        if len(exclude_mask) != len(df):
+            exclude_mask = exclude_mask[: len(df)]
+        keep = [not e for e in exclude_mask]
+        int_df = _intensity_df(df[keep], dataset.processing_history)
+        classes = [c for c, ok in zip(classes, keep) if ok]
         totals = _lipid_class_totals(int_df, classes)
         sample_groups = {c: sample_meta.get(c, "unknown") for c in totals.columns}
         unique_groups = sorted(set(sample_groups.values()))

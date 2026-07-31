@@ -1,11 +1,13 @@
 import copy
 import math
+from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 from scipy import stats
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import models, schemas
+from app.services.isobaric import apply_isobaric_substitution
 
 
 def _to_json_safe(value):
@@ -46,14 +48,19 @@ def _make_non_negative(df: pd.DataFrame) -> pd.DataFrame:
     return df.where(df > 0, floor)
 
 
-def from_dataframe(df: pd.DataFrame, dataset: models.Dataset, history_step: dict) -> models.Dataset:
+def from_dataframe(
+    df: pd.DataFrame,
+    dataset: models.Dataset,
+    history_step: dict,
+    feature_metadata: Optional[List[Dict[str, Any]]] = None,
+) -> models.Dataset:
     # Convert any remaining NaN/Inf before storing as JSON
     data_matrix = {}
     for col in df.columns:
         data_matrix[str(col)] = [_to_json_safe(v) for v in df[col].tolist()]
 
     # Align feature_metadata to the rows that survived filtering/transformation
-    original_meta = copy.deepcopy(dataset.feature_metadata) or []
+    original_meta = copy.deepcopy(feature_metadata or dataset.feature_metadata) or []
     new_meta = []
     if len(df) == len(original_meta):
         new_meta = original_meta
@@ -88,12 +95,25 @@ def from_dataframe(df: pd.DataFrame, dataset: models.Dataset, history_step: dict
 
 async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: schemas.PreprocessingParams) -> models.Dataset:
     df = to_dataframe(dataset)
+    current_meta: List[Dict[str, Any]] = copy.deepcopy(dataset.feature_metadata) or []
     history = {"step": "preprocessing", "params": params.model_dump()}
+
+    def _sync_meta():
+        """Filter current_meta to match the rows remaining in df."""
+        nonlocal current_meta
+        if len(df) == len(current_meta):
+            return
+        if all(isinstance(i, int) for i in df.index):
+            current_meta = [current_meta[i] for i in df.index if 0 <= i < len(current_meta)]
+        else:
+            meta_by_fid = {m.get("feature_id"): m for m in current_meta if m.get("feature_id")}
+            current_meta = [meta_by_fid.get(str(i), current_meta[i] if isinstance(i, int) and 0 <= i < len(current_meta) else {}) for i in df.index]
 
     # 1. Missing value filtering: keep features observed in at least threshold samples
     if params.missing_value_filter > 0:
         threshold = int(len(df.columns) * params.missing_value_filter)
         df = df.dropna(thresh=threshold)
+        _sync_meta()
 
     # 2. Blank subtraction (per-feature mean across blanks)
     if params.blank_subtraction and params.blank_columns:
@@ -112,15 +132,32 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
             cv = std / mean
             cv = cv.replace([np.inf, -np.inf], np.nan).fillna(np.inf)
         df = df[cv <= params.qc_cv_filter]
+        _sync_meta()
+
+    # 3.5 Isobaric substitution rule engine (lipidomics only)
+    if params.enable_isobaric_substitution_check:
+        isobaric_config = params.model_dump()
+        isobaric_config["feature_type"] = dataset.feature_type
+        df, current_meta, isobaric_summary = apply_isobaric_substitution(df, current_meta, isobaric_config)
+        history.setdefault("isobaric_substitution", isobaric_summary)
 
     # 4. Duplicate handling by feature_id when available
-    if params.duplicate_handling == "mean" and dataset.feature_metadata:
-        feature_ids = [m.get("feature_id", i) for i, m in enumerate(dataset.feature_metadata)]
+    if params.duplicate_handling == "mean" and current_meta:
+        feature_ids = [m.get("feature_id", i) for i, m in enumerate(current_meta)]
         if all(isinstance(i, int) and i < len(feature_ids) for i in df.index):
             df = df.copy()
             df["_feature_id"] = [feature_ids[i] for i in df.index]
             df = df.groupby("_feature_id").mean(numeric_only=True)
             df = df.drop(columns=["_feature_id"], errors="ignore")
+            # Keep one meta entry per unique feature_id.
+            seen = set()
+            keep_meta = []
+            for m in current_meta:
+                fid = m.get("feature_id")
+                if fid not in seen:
+                    seen.add(fid)
+                    keep_meta.append(m)
+            current_meta = keep_meta
 
     # 5. Imputation (before normalization/log to keep values interpretable)
     if params.imputation == "min":
@@ -171,7 +208,7 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
     elif params.scale == "minmax":
         df = pd.DataFrame(MinMaxScaler().fit_transform(df), columns=df.columns, index=df.index)
 
-    new_dataset = from_dataframe(df, dataset, history)
+    new_dataset = from_dataframe(df, dataset, history, feature_metadata=current_meta)
     db.add(new_dataset)
     await db.commit()
     await db.refresh(new_dataset)

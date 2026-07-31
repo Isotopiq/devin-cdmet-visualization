@@ -102,6 +102,7 @@ export default function DataTable() {
                     <th className="text-left p-3">RT</th>
                     <th className="text-left p-3">Adduct</th>
                     <th className="text-left p-3">Class / Grade</th>
+                    <th className="text-left p-3">Isobaric</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -113,9 +114,18 @@ export default function DataTable() {
                       <td className="p-3 text-slate-600 dark:text-slate-300">{f.rt ?? '-'}</td>
                       <td className="p-3 text-slate-600 dark:text-slate-300">{f.adduct || '-'}</td>
                       <td className="p-3 text-slate-600 dark:text-slate-300">{f.lipid_class || f.grade || '-'}</td>
+                      <td className="p-3 text-xs">
+                        {f.isobaric_substitution_flag ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200">{f.isobaric_substitution_resolution || 'ambiguous'}</span>
+                            <div className="text-slate-500 dark:text-slate-400">{f.isobaric_substitution_rule}</div>
+                            {f.isobaric_substitution_rollup_exclude && <div className="text-red-600 dark:text-red-400">excluded from rollup</div>}
+                          </div>
+                        ) : '-'}
+                      </td>
                     </tr>
                   ))}
-                  {paged.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-slate-500 dark:text-slate-400">No features match.</td></tr>}
+                  {paged.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-slate-500 dark:text-slate-400">No features match.</td></tr>}
                 </tbody>
               </table>
             </div>

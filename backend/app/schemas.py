@@ -156,6 +156,19 @@ class PreprocessingParams(BaseModel):
     batch_correction: str = "none"
     batch_column: Optional[str] = None
     batch_labels: Optional[Dict[str, str]] = None
+    enable_isobaric_substitution_check: bool = True
+    isobaric_substitution_mode: str = "flag_ambiguous"
+    isobaric_substitution_rules: List[Dict[str, Any]] = [{
+        "name": "O-/P- ether/vinyl-ether",
+        "applicable_classes": ["PC", "PE", "PI", "PS", "PA", "PG", "DG", "TG"],
+        "prefix_pair": ["O-", "P-"],
+        "db_offset": 1,
+        "carbon_count_match": True,
+    }]
+    isobaric_clustering_enabled: bool = True
+    isobaric_mz_tolerance: float = 0.005
+    isobaric_rt_tolerance: float = 0.2
+    isobaric_rollup_preference: str = "alphabetical"
 
 
 class StatsRequest(BaseModel):
