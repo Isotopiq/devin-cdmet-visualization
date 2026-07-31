@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete, func
 
 from app.database import get_db
 from app import schemas, models
@@ -136,9 +136,30 @@ async def list_logs(
     admin: models.User = Depends(get_current_admin_user),
 ):
     result = await db.execute(
-        select(models.AdminLog).order_by(models.AdminLog.created_at.desc()).limit(limit)
+        select(models.AdminLog)
+        .order_by(models.AdminLog.created_at.desc())
+        .limit(limit)
     )
-    return result.scalars().all()
+    logs = result.scalars().all()
+    user_ids = {log.user_id for log in logs if log.user_id}
+    user_ids |= {log.target_user_id for log in logs if log.target_user_id}
+    emails = {}
+    if user_ids:
+        user_result = await db.execute(select(models.User.id, models.User.email).where(models.User.id.in_(user_ids)))
+        emails = {uid: email for uid, email in user_result.all()}
+    return [
+        schemas.AdminLogOut(
+            id=log.id,
+            user_id=log.user_id,
+            user_email=emails.get(log.user_id),
+            action=log.action,
+            target_user_id=log.target_user_id,
+            target_user_email=emails.get(log.target_user_id),
+            details=log.details or {},
+            created_at=log.created_at,
+        )
+        for log in logs
+    ]
 
 
 @router.post("/logo/{logo_type}")
@@ -178,6 +199,28 @@ async def get_logo(logo_type: str, db: AsyncSession = Depends(get_db)):
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Logo file not found")
     return FileResponse(path)
+
+
+@router.get("/analyses/count")
+async def analysis_count(
+    db: AsyncSession = Depends(get_db),
+    admin: models.User = Depends(get_current_admin_user),
+):
+    result = await db.execute(select(func.count(models.Analysis.id)))
+    return {"count": result.scalar()}
+
+
+@router.post("/analyses/reset")
+async def reset_analyses(
+    db: AsyncSession = Depends(get_db),
+    admin: models.User = Depends(get_current_admin_user),
+):
+    result = await db.execute(select(func.count(models.Analysis.id)))
+    count = result.scalar()
+    await db.execute(delete(models.Analysis))
+    await db.commit()
+    await _log(db, "reset_analyses", admin, details={"deleted_count": count})
+    return {"ok": True, "deleted": count}
 
 
 @router.get("/settings", response_model=schemas.SiteSettingsOut)

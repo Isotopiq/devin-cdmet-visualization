@@ -11,6 +11,14 @@ from app import schemas, models
 from app.auth import verify_password, get_password_hash, create_access_token, get_current_active_user
 from app.config import settings
 
+
+_CT_EXT = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/webp": "webp",
+}
+
 router = APIRouter()
 
 
@@ -83,13 +91,20 @@ async def upload_avatar(
 ):
     if not file.content_type:
         raise HTTPException(status_code=400, detail="Could not determine file type")
-    ext = Path(file.filename or "").suffix.lstrip(".").lower() if file.filename and "." in file.filename else "png"
+    ext = (
+        Path(file.filename or "").suffix.lstrip(".").lower()
+        if file.filename and "." in file.filename
+        else _CT_EXT.get(file.content_type, "png")
+    )
+    # Allow jpeg extension to be saved as jpg for consistency
+    if ext == "jpeg":
+        ext = "jpg"
     if not _allowed_image(file.content_type, ext):
         raise HTTPException(status_code=400, detail="Only PNG, JPEG, or WebP images are allowed")
-    MAX_AVATAR_SIZE = 2 * 1024 * 1024
+    MAX_AVATAR_SIZE = 5 * 1024 * 1024
     contents = await file.read()
     if len(contents) > MAX_AVATAR_SIZE:
-        raise HTTPException(status_code=413, detail="Avatar must be under 2 MB")
+        raise HTTPException(status_code=413, detail="Avatar must be under 5 MB")
     avatar_dir = _avatar_dir()
     # Clean up any previous avatar for this user
     for existing in avatar_dir.glob(f"user_{current_user.id}_*"):
@@ -97,11 +112,12 @@ async def upload_avatar(
             existing.unlink()
         except OSError:
             pass
-    stored_name = f"user_{current_user.id}_{dt.datetime.utcnow().strftime('%Y%m%d%H%M%S')}.{ext}"
+    suffix = dt.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    stored_name = f"user_{current_user.id}_{suffix}.{ext}"
     dest_path = avatar_dir / stored_name
     with open(dest_path, "wb") as buffer:
         buffer.write(contents)
-    current_user.avatar_url = f"/api/auth/avatar/{current_user.id}"
+    current_user.avatar_url = f"/api/auth/avatar/{current_user.id}?v={suffix}"
     await db.commit()
     await db.refresh(current_user)
     return current_user
@@ -121,4 +137,8 @@ async def get_avatar(
     matches = list(avatar_dir.glob(f"user_{user_id}_*"))
     if not matches:
         raise HTTPException(status_code=404, detail="Avatar file not found")
-    return FileResponse(matches[0])
+    response = FileResponse(matches[0])
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response

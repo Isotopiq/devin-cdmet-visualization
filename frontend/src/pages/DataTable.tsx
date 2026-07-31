@@ -2,9 +2,10 @@ import { useEffect, useState, useMemo } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import { LuSearch, LuDownload } from 'react-icons/lu'
+import { exportDataset } from '../api'
 
 export default function DataTable() {
-  const { selectedDataset } = useWorkspace()
+  const { selectedDataset, projectId, datasetId } = useWorkspace()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const pageSize = 15
@@ -19,6 +20,22 @@ export default function DataTable() {
     Object.values(sampleMeta).forEach((v) => { g[v] = (g[v] || 0) + 1 })
     return g
   }, [sampleMeta])
+
+  const exportFile = async (format: 'metaboanalyst' | 'lipidone') => {
+    if (!projectId || !datasetId) return
+    try {
+      const res = await exportDataset(Number(projectId), Number(datasetId), format)
+      const blob = new Blob([res.data], { type: 'text/csv' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${selectedDataset?.name || 'dataset'}_${format}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      alert(err.response?.data?.detail || `Failed to export ${format}`)
+    }
+  }
 
   const filtered = useMemo(() => features.filter((f: any) => {
     const text = JSON.stringify(f).toLowerCase()
@@ -67,9 +84,11 @@ export default function DataTable() {
                 <LuSearch className="absolute left-3 top-2.5 text-slate-400" />
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search features..." className="input pl-9" />
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap justify-end">
                 <div className="text-sm text-slate-500 dark:text-slate-400">{filtered.length} features</div>
-                <button onClick={downloadCsv} className="btn-secondary"><LuDownload /> Export CSV</button>
+                <button onClick={() => exportFile('metaboanalyst')} className="btn-secondary"><LuDownload /> MetaboAnalyst</button>
+                <button onClick={() => exportFile('lipidone')} className="btn-secondary"><LuDownload /> LipidOne</button>
+                <button onClick={downloadCsv} className="btn-secondary"><LuDownload /> Metadata</button>
               </div>
             </div>
 

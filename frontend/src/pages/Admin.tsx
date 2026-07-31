@@ -1,6 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
-import { listUsers, createUser, updateUser, deleteUser, listLogs, uploadLogo } from '../api'
+import { listUsers, createUser, updateUser, deleteUser, listLogs, uploadLogo, resetAnalyses, getAnalysisCount } from '../api'
 import type { User, AdminLog } from '../types'
+import { LuTrash2, LuRotateCcw } from 'react-icons/lu'
 
 export default function Admin() {
   const [users, setUsers] = useState<User[]>([])
@@ -12,12 +13,14 @@ export default function Admin() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'logos'>('users')
+  const [analysisCount, setAnalysisCount] = useState(0)
 
   const load = async () => {
     try {
-      const [uRes, lRes] = await Promise.all([listUsers(), listLogs()])
+      const [uRes, lRes, aRes] = await Promise.all([listUsers(), listLogs(), getAnalysisCount()])
       setUsers(uRes.data)
       setLogs(lRes.data)
+      setAnalysisCount(aRes.data.count)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load admin data')
     }
@@ -26,6 +29,26 @@ export default function Admin() {
   useEffect(() => {
     load()
   }, [])
+
+  const handleTab = (t: 'users' | 'logs' | 'logos') => {
+    setActiveTab(t)
+    setError('')
+    setSuccess('')
+  }
+
+  const reset = async () => {
+    if (!window.confirm('Reset all analyses? This permanently deletes every analysis record.')) return
+    setError('')
+    setSuccess('')
+    try {
+      const res = await resetAnalyses()
+      setAnalysisCount(0)
+      setSuccess(`Analyses reset. ${res.data.deleted} records deleted.`)
+      load()
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to reset analyses')
+    }
+  }
 
   const create = async (e: FormEvent) => {
     e.preventDefault()
@@ -90,7 +113,7 @@ export default function Admin() {
         {(['users', 'logs', 'logos'] as const).map((t) => (
           <button
             key={t}
-            onClick={() => setActiveTab(t)}
+            onClick={() => handleTab(t)}
             className={`px-4 py-2 text-sm font-medium capitalize ${activeTab === t ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}
           >
             {t}
@@ -103,6 +126,17 @@ export default function Admin() {
 
       {activeTab === 'users' && (
         <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="card p-4">
+              <div className="text-xs uppercase text-slate-500 dark:text-slate-400">Analyses</div>
+              <div className="text-2xl font-semibold text-slate-900 dark:text-white">{analysisCount}</div>
+            </div>
+            <div className="card p-4 md:col-span-2 flex items-center justify-between">
+              <p className="text-sm text-slate-600 dark:text-slate-300">Reset the number of stored analyses across all projects.</p>
+              <button onClick={reset} className="btn-secondary text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50"><LuRotateCcw /> Reset Analyses</button>
+            </div>
+          </div>
+
           <div className="card p-6">
             <h3 className="text-lg font-medium mb-4 text-slate-900 dark:text-white">Create User</h3>
             <form onSubmit={create} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
@@ -181,8 +215,8 @@ export default function Admin() {
                 <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                   <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{new Date(log.created_at).toLocaleString()}</td>
                   <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{log.action}</td>
-                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{log.user_id || 'system'}</td>
-                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{JSON.stringify(log.details)}</td>
+                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{log.user_email || `user ${log.user_id || 'system'}`}</td>
+                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{Object.entries(log.details || {}).map(([k, v]) => `${k}: ${v}`).join(', ')}</td>
                 </tr>
               ))}
             </tbody>

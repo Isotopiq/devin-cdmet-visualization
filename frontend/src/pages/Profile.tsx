@@ -48,17 +48,23 @@ export default function Profile() {
     if (!file) return
     setLoading(true)
     setError('')
+    setSuccess('')
     try {
       const res = await uploadAvatar(file)
       const u = res.data as User
       setUser(u)
       const avatarRes = await getAvatar(u.id)
       const url = URL.createObjectURL(avatarRes.data)
-      setAvatarPreview(url)
+      setAvatarPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return url
+      })
       setSuccess('Avatar updated')
+      if (fileRef.current) fileRef.current.value = ''
       await refreshUser()
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Avatar upload failed')
+      const detail = err.response?.data?.detail
+      setError(typeof detail === 'string' ? detail : 'Avatar upload failed')
     } finally {
       setLoading(false)
     }

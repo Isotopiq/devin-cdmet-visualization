@@ -46,8 +46,10 @@ class AdminLogOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     user_id: Optional[int]
+    user_email: Optional[str] = None
     action: str
     target_user_id: Optional[int]
+    target_user_email: Optional[str] = None
     details: Dict[str, Any]
     created_at: dt.datetime
 

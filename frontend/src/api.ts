@@ -89,3 +89,7 @@ export const createUser = (data: { email: string; name?: string; password: strin
 export const updateUser = (id: number, data: any) => API.patch(`/admin/users/${id}`, data)
 export const deleteUser = (id: number) => API.delete(`/admin/users/${id}`)
 export const listLogs = () => API.get('/admin/logs')
+export const getAnalysisCount = () => API.get('/admin/analyses/count')
+export const resetAnalyses = () => API.post('/admin/analyses/reset')
+export const exportDataset = (projectId: number, datasetId: number, format: 'metaboanalyst' | 'lipidone') =>
+  API.get(`/analysis/${projectId}/dataset/${datasetId}/export`, { params: { format }, responseType: 'blob' })

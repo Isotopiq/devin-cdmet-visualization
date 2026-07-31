@@ -11,8 +11,10 @@ export interface User {
 export interface AdminLog {
   id: number
   user_id?: number
+  user_email?: string
   action: string
   target_user_id?: number
+  target_user_email?: string
   details: Record<string, any>
   created_at: string
 }
