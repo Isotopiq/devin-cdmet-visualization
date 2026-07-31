@@ -149,15 +149,9 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
             df["_feature_id"] = [feature_ids[i] for i in df.index]
             df = df.groupby("_feature_id").mean(numeric_only=True)
             df = df.drop(columns=["_feature_id"], errors="ignore")
-            # Keep one meta entry per unique feature_id.
-            seen = set()
-            keep_meta = []
-            for m in current_meta:
-                fid = m.get("feature_id")
-                if fid not in seen:
-                    seen.add(fid)
-                    keep_meta.append(m)
-            current_meta = keep_meta
+            # Align metadata to the new row order.
+            meta_by_fid = {m.get("feature_id"): m for m in current_meta if m.get("feature_id") is not None}
+            current_meta = [meta_by_fid.get(fid, {}) for fid in df.index]
 
     # 5. Imputation (before normalization/log to keep values interpretable)
     if params.imputation == "min":
