@@ -1183,8 +1183,40 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         zmid = 0
         cbar_title = "Row z-score"
 
-    row_link = None
+    sample_groups = {c: sample_meta.get(c, "Unknown") for c in plot_df.columns}
+    present_groups = sorted(set(sample_groups.values()))
+    group_order = params.get("group_order") or present_groups
+    if isinstance(group_order, str):
+        group_order = [g.strip() for g in group_order.split(",") if g.strip()]
+    group_order = [g for g in group_order if g in present_groups]
+    group_order += [g for g in present_groups if g not in group_order]
+    if "Unknown" in group_order:
+        group_order = [g for g in group_order if g != "Unknown"] + ["Unknown"]
+    gcolor_map = _group_color_map(style, group_order)
+
+    # Order columns by group_order and optionally cluster within each group
+    group_to_cols = {}
+    for c in plot_df.columns:
+        g = sample_groups.get(c, "Unknown")
+        group_to_cols.setdefault(g, []).append(c)
+    ordered_cols = []
     col_link = None
+    for g in group_order:
+        cols = group_to_cols.get(g, [])
+        if cluster_cols and len(cols) > 2:
+            try:
+                sub_df = plot_df[cols]
+                dist = pdist(sub_df.T.values, metric=metric)
+                link = linkage(dist, method=method)
+                order = leaves_list(link)
+                cols = [cols[i] for i in order]
+            except Exception:
+                pass
+        ordered_cols.extend(cols)
+    if ordered_cols:
+        plot_df = plot_df[ordered_cols]
+
+    row_link = None
     if cluster_rows and len(plot_df) > 2:
         try:
             row_link = linkage(pdist(plot_df.values, metric=metric), method=method)
@@ -1192,19 +1224,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
             plot_df = plot_df.iloc[row_order]
         except Exception:
             pass
-    if cluster_cols and len(plot_df.columns) > 2:
-        try:
-            col_link = linkage(pdist(plot_df.T.values, metric=metric), method=method)
-            col_order = leaves_list(col_link)
-            plot_df = plot_df.iloc[:, col_order]
-        except Exception:
-            pass
 
-    sample_groups = {c: sample_meta.get(c, "Unknown") for c in plot_df.columns}
-    group_order = sorted(set(sample_groups.values()))
-    if "Unknown" in group_order:
-        group_order = [g for g in group_order if g != "Unknown"] + ["Unknown"]
-    gcolor_map = _group_color_map(style, group_order)
     group_codes = [group_order.index(sample_groups.get(c, "Unknown")) for c in plot_df.columns]
     n_groups = max(len(group_order), 1)
     if n_groups == 1:
@@ -1489,6 +1509,38 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 zmid = 0
                 cbar_title = "Row z-score"
 
+            sample_groups = {c: sample_meta.get(c, "Unknown") for c in plot_df.columns}
+            present_groups = sorted(set(sample_groups.values()))
+            group_order = params.get("group_order") or present_groups
+            if isinstance(group_order, str):
+                group_order = [g.strip() for g in group_order.split(",") if g.strip()]
+            group_order = [g for g in group_order if g in present_groups]
+            group_order += [g for g in present_groups if g not in group_order]
+            if "Unknown" in group_order:
+                group_order = [g for g in group_order if g != "Unknown"] + ["Unknown"]
+            gcolor_map = _group_color_map(style, group_order)
+
+            # Order columns by group_order and optionally cluster within each group
+            group_to_cols = {}
+            for c in plot_df.columns:
+                g = sample_groups.get(c, "Unknown")
+                group_to_cols.setdefault(g, []).append(c)
+            ordered_cols = []
+            for g in group_order:
+                cols = group_to_cols.get(g, [])
+                if cluster_cols and len(cols) > 2:
+                    try:
+                        sub_df = plot_df[cols]
+                        dist = pdist(sub_df.T.values, metric=metric)
+                        link = linkage(dist, method=method)
+                        order = leaves_list(link)
+                        cols = [cols[i] for i in order]
+                    except Exception:
+                        pass
+                ordered_cols.extend(cols)
+            if ordered_cols:
+                plot_df = plot_df[ordered_cols]
+
             if cluster_rows and len(plot_df) > 2:
                 try:
                     dist = pdist(plot_df.values, metric=metric)
@@ -1497,20 +1549,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     plot_df = plot_df.iloc[order]
                 except Exception:
                     pass
-            if cluster_cols and len(plot_df.columns) > 2:
-                try:
-                    dist = pdist(plot_df.T.values, metric=metric)
-                    link = linkage(dist, method=method)
-                    order = leaves_list(link)
-                    plot_df = plot_df.iloc[:, order]
-                except Exception:
-                    pass
 
-            sample_groups = {c: sample_meta.get(c, "Unknown") for c in plot_df.columns}
-            group_order = sorted(set(sample_groups.values()))
-            if "Unknown" in group_order:
-                group_order = [g for g in group_order if g != "Unknown"] + ["Unknown"]
-            gcolor_map = _group_color_map(style, group_order)
             group_codes = [group_order.index(sample_groups.get(c, "Unknown")) for c in plot_df.columns]
             n_groups = max(len(group_order), 1)
             if n_groups == 1:

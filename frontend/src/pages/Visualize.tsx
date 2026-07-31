@@ -99,6 +99,8 @@ export default function Visualize() {
   const [heatmapTopN, setHeatmapTopN] = useState(50)
   const [rowCluster, setRowCluster] = useState(true)
   const [colCluster, setColCluster] = useState(true)
+  const [groupOrder, setGroupOrder] = useState<string[]>([])
+  const [selectedGroup, setSelectedGroup] = useState('')
 
   const [lipidsPerPage, setLipidsPerPage] = useState(8)
   const [allLipids, setAllLipids] = useState(false)
@@ -116,6 +118,7 @@ export default function Visualize() {
     setGroupA(groups[0] || '')
     setGroupB(groups[1] || '')
     setIncludedGroups(new Set(groups))
+    setGroupOrder([...groups].sort())
     setReady(true)
   }, [groups])
 
@@ -169,6 +172,7 @@ export default function Visualize() {
             method: heatmapMethod,
             cluster_rows: rowCluster,
             cluster_cols: colCluster,
+            group_order: groupOrder,
           }),
           style: backendStyle,
         })
@@ -266,6 +270,7 @@ export default function Visualize() {
     method: heatmapMethod,
     cluster_rows: rowCluster,
     cluster_cols: colCluster,
+    group_order: groupOrder,
     per_lipid_top_n: lipidsPerPage,
     all_lipids: allLipids,
     excluded_groups: excludedGroups,
@@ -431,15 +436,55 @@ export default function Visualize() {
     }
     if (tab === 'heatmap') {
       return (
-        <div className="grid grid-cols-2 md:grid-cols-9 gap-3 items-end">
-          <div><label className="label-like">Type</label><select value={heatmapType} onChange={(e) => setHeatmapType(e.target.value)} className="input"><option value="abundance">Abundance</option><option value="correlation">Correlation</option></select></div>
-          <div><label className="label-like">Scale</label><select value={heatmapScale} onChange={(e) => setHeatmapScale(e.target.value)} className="input">{SCALES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
-          <div><label className="label-like">Distance</label><select value={heatmapMetric} onChange={(e) => setHeatmapMetric(e.target.value)} className="input">{METRICS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
-          <div><label className="label-like">Linkage</label><select value={heatmapMethod} onChange={(e) => setHeatmapMethod(e.target.value)} className="input">{METHODS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
-          <div><label className="label-like">Top N</label><input type="number" value={heatmapTopN} onChange={(e) => setHeatmapTopN(Number(e.target.value))} className="input" /></div>
-          <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="rowCluster" checked={rowCluster} onChange={(e) => setRowCluster(e.target.checked)} /><label htmlFor="rowCluster">Rows</label></div>
-          <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="colCluster" checked={colCluster} onChange={(e) => setColCluster(e.target.checked)} /><label htmlFor="colCluster">Cols</label></div>
-          <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 md:grid-cols-9 gap-3 items-end">
+            <div><label className="label-like">Type</label><select value={heatmapType} onChange={(e) => setHeatmapType(e.target.value)} className="input"><option value="abundance">Abundance</option><option value="correlation">Correlation</option></select></div>
+            <div><label className="label-like">Scale</label><select value={heatmapScale} onChange={(e) => setHeatmapScale(e.target.value)} className="input">{SCALES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
+            <div><label className="label-like">Distance</label><select value={heatmapMetric} onChange={(e) => setHeatmapMetric(e.target.value)} className="input">{METRICS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
+            <div><label className="label-like">Linkage</label><select value={heatmapMethod} onChange={(e) => setHeatmapMethod(e.target.value)} className="input">{METHODS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
+            <div><label className="label-like">Top N</label><input type="number" value={heatmapTopN} onChange={(e) => setHeatmapTopN(Number(e.target.value))} className="input" /></div>
+            <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="rowCluster" checked={rowCluster} onChange={(e) => setRowCluster(e.target.checked)} /><label htmlFor="rowCluster">Rows</label></div>
+            <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="colCluster" checked={colCluster} onChange={(e) => setColCluster(e.target.checked)} /><label htmlFor="colCluster">Cols</label></div>
+            <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="label-like">Group order</label>
+              <select
+                size={Math.min(5, groupOrder.length)}
+                value={selectedGroup}
+                onChange={(e) => setSelectedGroup(e.target.value)}
+                className="input min-w-[10rem]"
+              >
+                {groupOrder.map((g, i) => <option key={g} value={g}>{i + 1}. {g}</option>)}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const idx = groupOrder.indexOf(selectedGroup)
+                  if (idx > 0) {
+                    const next = [...groupOrder]
+                    ;[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]
+                    setGroupOrder(next)
+                  }
+                }}
+                className="btn-secondary px-2 py-1"
+              >Up</button>
+              <button
+                onClick={() => {
+                  const idx = groupOrder.indexOf(selectedGroup)
+                  if (idx >= 0 && idx < groupOrder.length - 1) {
+                    const next = [...groupOrder]
+                    ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
+                    setGroupOrder(next)
+                  }
+                }}
+                className="btn-secondary px-2 py-1"
+              >Down</button>
+              <button onClick={() => { setGroupOrder([...groups].sort()); setSelectedGroup('') }} className="btn-secondary px-2 py-1">Reset</button>
+            </div>
+          </div>
         </div>
       )
     }

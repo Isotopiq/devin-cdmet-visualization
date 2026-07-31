@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
@@ -12,10 +12,31 @@ export default function HeatMap() {
   const [figure, setFigure] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
+  const groups = useMemo(() => {
+    const meta = selectedDataset?.sample_metadata || {}
+    const set = new Set<string>()
+    Object.values(meta).forEach((g) => set.add(g as string))
+    return Array.from(set)
+  }, [selectedDataset])
+
+  const clusterFlags = () => ({
+    cluster_rows: ['both', 'row'].includes(cluster),
+    cluster_cols: ['both', 'col'].includes(cluster),
+  })
+
   const generate = async () => {
     if (!projectId || !datasetId) return
     setLoading(true)
-    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'heatmap', parameters: { heatmap_type: heatmapType, cluster } })
+    const { cluster_rows, cluster_cols } = clusterFlags()
+    const res = await generatePlot(Number(projectId), Number(datasetId), {
+      plot_type: 'heatmap',
+      parameters: {
+        heatmap_type: heatmapType,
+        cluster_rows,
+        cluster_cols,
+        group_order: [...groups].sort(),
+      },
+    })
     setFigure(res.data)
     setLoading(false)
   }
