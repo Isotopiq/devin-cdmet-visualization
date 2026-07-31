@@ -10,7 +10,7 @@ from app.database import get_db
 from app.auth import get_current_active_user
 from app import models, schemas
 from app.services.preprocessing import preprocess_dataset, to_dataframe
-from app.services.qc import qc_analysis
+from app.services.qc import qc_analysis, qc_export_excel
 
 router = APIRouter()
 
@@ -88,6 +88,27 @@ async def get_qc(
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
     return qc_analysis(dataset)
+
+
+@router.get("/{project_id}/dataset/{dataset_id}/qc/excel")
+async def get_qc_excel(
+    project_id: int,
+    dataset_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Dataset.id == dataset_id, models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
+    dataset = result.scalar_one_or_none()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    excel_bytes = qc_export_excel(dataset)
+    filename = f"{dataset.name.replace(' ', '_')}_qc_summary.xlsx"
+    return StreamingResponse(
+        io.BytesIO(excel_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.delete("/{project_id}/dataset/{dataset_id}")

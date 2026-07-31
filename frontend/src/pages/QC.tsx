@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
-import { getQC } from '../api'
-import { LuActivity, LuRefreshCw } from 'react-icons/lu'
+import { getQC, exportQCExcel } from '../api'
+import { LuActivity, LuRefreshCw, LuDownload } from 'react-icons/lu'
 
 interface QCData {
   metrics: {
@@ -30,6 +30,23 @@ export default function QC() {
   const [data, setData] = useState<QCData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const handleExportExcel = async () => {
+    if (!projectId || !datasetId || !selectedDataset) return
+    try {
+      const res = await exportQCExcel(Number(projectId), Number(datasetId))
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `${selectedDataset.name.replace(/\s+/g, '_')}_qc_summary.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to export QC Excel')
+    }
+  }
 
   const load = async () => {
     if (!projectId || !datasetId) return
@@ -60,8 +77,9 @@ export default function QC() {
 
       {selectedDataset && (
         <>
-          <div className="card p-5 flex items-end gap-4">
+          <div className="card p-5 flex items-end gap-4 flex-wrap">
             <button onClick={load} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Run QC</button>
+            <button onClick={handleExportExcel} disabled={!selectedDataset} className="btn-secondary"><LuDownload /> Export Excel Summary</button>
             {error && <span className="text-sm text-red-600 dark:text-red-400">{error}</span>}
           </div>
 

@@ -1,3 +1,4 @@
+import io
 import json
 import math
 import numpy as np
@@ -6,10 +7,13 @@ import plotly.graph_objects as go
 from scipy import stats
 from sklearn.decomposition import PCA as PCA_SKL
 from sklearn.preprocessing import StandardScaler
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 from app import models, schemas
 from app.services.preprocessing import to_dataframe, _to_json_safe
-from app.services.plots import _merge_style, _group_color_map, _apply_base_layout, generate_plot
+from app.services.plots import _merge_style, _group_color_map, _apply_base_layout, generate_plot, _shorten_name
 
 
 def _safe_log10(values):
@@ -211,3 +215,199 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None) -> dict:
         },
         "figures": figures,
     }
+
+
+def qc_export_excel(dataset: models.Dataset, style: dict | None = None) -> bytes:
+    """Build a styled, color-coded Excel QC summary workbook."""
+    result = qc_analysis(dataset, style)
+    metrics = result["metrics"]
+    sample_meta = dataset.sample_metadata or {}
+    style = _merge_style(style)
+
+    wb = Workbook()
+    # Remove the default sheet and recreate it with a proper name later.
+    wb.remove(wb.active)
+
+    header_fill = PatternFill(start_color="1e293b", end_color="1e293b", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True, size=11)
+    title_font = Font(bold=True, size=14, color="1e293b")
+    good_fill = PatternFill(start_color="dcfce7", end_color="dcfce7", fill_type="solid")  # green
+    warn_fill = PatternFill(start_color="fef3c7", end_color="fef3c7", fill_type="solid")  # amber
+    bad_fill = PatternFill(start_color="fee2e2", end_color="fee2e2", fill_type="solid")  # red
+    thin_side = Side(style="thin", color="e2e8f0")
+    thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+    def _write_table(ws, title, headers, rows, col_widths=None):
+        ws.append([title])
+        ws.cell(row=1, column=1).font = title_font
+        ws.append([])
+        ws.append(headers)
+        for cell in ws[3]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = thin_border
+        for row in rows:
+            ws.append(row)
+        if col_widths:
+            for i, w in enumerate(col_widths, 1):
+                ws.column_dimensions[chr(64 + i)].width = w
+
+    # Overview sheet
+    ws = wb.create_sheet("Overview")
+    qc_cv = metrics.get("qc_median_cv_pct")
+    blank_ratio = metrics.get("sample_to_blank_median_ratio")
+    total_missing = metrics.get("total_missing_pct", 0)
+    outlier_count = metrics.get("pca_outlier_count", 0)
+
+    overview_rows = [
+        ["Total features", metrics["num_features"], ""],
+        ["Total samples", metrics["num_samples"], ""],
+        ["Groups", metrics["num_groups"], ""],
+        ["Total missing %", f"{total_missing}%", _status(total_missing, 20, 40)],
+        ["QC median CV %", f"{qc_cv}%" if qc_cv is not None else "N/A", _status(qc_cv if qc_cv is not None else 0, 20, 30, invert=False) if qc_cv is not None else ""],
+        ["Sample/Blank median ratio", blank_ratio if blank_ratio is not None else "N/A", _status(blank_ratio if blank_ratio is not None else 0, 10, 5, invert=True) if blank_ratio is not None else ""],
+        ["PCA outlier count", outlier_count, _status(outlier_count, 0, 1, invert=False)],
+    ]
+    for g, cnt in metrics.get("group_counts", {}).items():
+        cv = metrics.get("group_cv_pct", {}).get(g)
+        overview_rows.append([f"Group {g} count", cnt, ""])
+        if cv is not None:
+            overview_rows.append([f"Group {g} median CV %", f"{cv}%", _status(cv, 20, 30)])
+
+    _write_table(ws, "QC Summary", ["Metric", "Value", "Status"], overview_rows, [40, 20, 15])
+    for row in range(4, ws.max_row + 1):
+        for col in range(1, 4):
+            ws.cell(row=row, column=col).border = thin_border
+            ws.cell(row=row, column=col).alignment = Alignment(vertical="center")
+        status = ws.cell(row=row, column=3).value
+        if status == "PASS":
+            ws.cell(row=row, column=3).fill = good_fill
+        elif status == "WARN":
+            ws.cell(row=row, column=3).fill = warn_fill
+        elif status == "FAIL":
+            ws.cell(row=row, column=3).fill = bad_fill
+        ws.cell(row=row, column=3).alignment = Alignment(horizontal="center")
+
+    # Per-sample sheet
+    ws2 = wb.create_sheet("Per Sample")
+    samples = [s for s in metrics["tic"].keys()]
+    outlier_set = set(metrics.get("pca_outlier_samples", []))
+    per_sample_rows = []
+    for s in samples:
+        g = sample_meta.get(s, "Unknown")
+        per_sample_rows.append([
+            _shorten_name(s),
+            g,
+            metrics["tic"].get(s),
+            metrics["log2_tic"].get(s),
+            f"{metrics['missing_per_sample'].get(s, 0)}%",
+            metrics["detected_features"].get(s, 0),
+            "Yes" if s in outlier_set else "No",
+        ])
+    _write_table(ws2, "Per-Sample QC Metrics", ["Sample", "Group", "TIC", "log2 TIC", "Missing %", "Detected Features", "Outlier"], per_sample_rows, [24, 16, 16, 16, 14, 18, 12])
+    gcolor_map = _group_color_map(style, sorted(set(sample_meta.values())))
+    for row in range(4, ws2.max_row + 1):
+        for col in range(1, 8):
+            ws2.cell(row=row, column=col).border = thin_border
+        # Color group cell by group color
+        g_val = ws2.cell(row=row, column=2).value
+        if g_val and g_val in gcolor_map:
+            hex_color = gcolor_map[g_val].lstrip("#")
+            ws2.cell(row=row, column=2).fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type="solid")
+            ws2.cell(row=row, column=2).font = Font(color="FFFFFF" if _is_dark(hex_color) else "000000")
+        # Missing % color coding
+        try:
+            missing_val = float(ws2.cell(row=row, column=5).value.rstrip("%"))
+            if missing_val > 50:
+                ws2.cell(row=row, column=5).fill = bad_fill
+            elif missing_val > 20:
+                ws2.cell(row=row, column=5).fill = warn_fill
+            else:
+                ws2.cell(row=row, column=5).fill = good_fill
+        except Exception:
+            pass
+        if ws2.cell(row=row, column=7).value == "Yes":
+            ws2.cell(row=row, column=7).fill = bad_fill
+
+    # Group CV sheet
+    ws3 = wb.create_sheet("Group CV")
+    cv_rows = []
+    group_counts = metrics.get("group_counts", {})
+    for g in sorted(group_counts):
+        cv = metrics.get("group_cv_pct", {}).get(g)
+        cv_rows.append([g, group_counts[g], f"{cv}%" if cv is not None else "N/A", _status(cv, 20, 30) if cv is not None else ""])
+    _write_table(ws3, "Per-Group Coefficient of Variation", ["Group", "Sample Count", "Median CV %", "Status"], cv_rows, [20, 16, 16, 12])
+    for row in range(4, ws3.max_row + 1):
+        for col in range(1, 5):
+            ws3.cell(row=row, column=col).border = thin_border
+        status = ws3.cell(row=row, column=4).value
+        if status == "PASS":
+            ws3.cell(row=row, column=4).fill = good_fill
+        elif status == "WARN":
+            ws3.cell(row=row, column=4).fill = warn_fill
+        elif status == "FAIL":
+            ws3.cell(row=row, column=4).fill = bad_fill
+
+    # Outliers sheet
+    ws4 = wb.create_sheet("PCA Outliers")
+    outlier_rows = []
+    for s in metrics.get("pca_outlier_samples", []):
+        outlier_rows.append([_shorten_name(s), sample_meta.get(s, "Unknown")])
+    _write_table(ws4, "PCA Mahalanobis Outliers", ["Sample", "Group"], outlier_rows, [24, 16])
+    for row in range(4, ws4.max_row + 1):
+        for col in range(1, 3):
+            ws4.cell(row=row, column=col).border = thin_border
+            ws4.cell(row=row, column=col).fill = bad_fill
+
+    # Notes sheet
+    ws5 = wb.create_sheet("Thresholds")
+    notes = [
+        ["Metric", "PASS", "WARN", "FAIL"],
+        ["Missing % per sample", "<= 20%", "20-50%", "> 50%"],
+        ["QC median CV %", "<= 20%", "20-30%", "> 30%"],
+        ["Group median CV %", "<= 20%", "20-30%", "> 30%"],
+        ["Sample/Blank median ratio", ">= 10", "5-10", "< 5"],
+        ["PCA outlier count", "0", "1", ">= 2"],
+    ]
+    _write_table(ws5, "QC Thresholds", notes[0], notes[1:], [32, 14, 14, 14])
+    for row in range(4, ws5.max_row + 1):
+        for col in range(1, 5):
+            ws5.cell(row=row, column=col).border = thin_border
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def _status(value, warn, fail, invert: bool = False):
+    """Return PASS/WARN/FAIL based on numeric thresholds."""
+    if value is None:
+        return ""
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return ""
+    if invert:
+        if value < fail:
+            return "FAIL"
+        if value < warn:
+            return "WARN"
+        return "PASS"
+    if value > fail:
+        return "FAIL"
+    if value > warn:
+        return "WARN"
+    return "PASS"
+
+
+def _is_dark(hex_color: str) -> bool:
+    """Return True for dark hex colors so white font can be used."""
+    try:
+        h = hex_color.lstrip("#")
+        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return luminance < 0.5
+    except Exception:
+        return False

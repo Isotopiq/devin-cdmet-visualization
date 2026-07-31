@@ -173,14 +173,17 @@ def _intensity_df(df: pd.DataFrame, history: list | None) -> pd.DataFrame:
 
 def _shorten_name(name: str, max_len: int = 24) -> str:
     s = str(name)
-    m = re.search(r"Area:\s*(.+?)\.raw", s)
+    # Compound Discoverer / LipidSearch-style sample column headers often contain
+    # prefixes like "Area: " and suffixes like ".raw" and "(F8)". Strip those
+    # before plotting so axis labels/ticks show only the sample identifier.
+    m = re.search(r"Area:\s*(.+?)(?:\.raw(?:\s*\([^)]*\))?\s*)$", s, flags=re.IGNORECASE)
     if m:
-        s = m.group(1)
+        s = m.group(1).strip()
     else:
-        m = re.search(r"([^\s]+)\.raw", s)
-        if m:
-            s = m.group(1)
-    s = re.sub(r"\s*\(F\d+\)\s*$", "", s)
+        # Remove trailing ".raw (F#)" or ".raw" etc.
+        s = re.sub(r"\.raw(?:\s*\([^)]*\))?\s*$", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"\s*\(F\d+(?::\d+)?(?:\s*[^)]*)?\)\s*$", "", s, flags=re.IGNORECASE)
+    s = s.strip()
     if len(s) > max_len:
         return s[: max_len - 1] + "…"
     return s
@@ -1284,7 +1287,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
             tickfont={"size": 9},
         ),
         hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
-        customdata=np.array([[[feature_ids[i], c] for c in plot_df.columns] for i in range(m)]),
+        customdata=np.array([[[_shorten_name(str(feature_ids[i]), 18), _shorten_name(c)] for c in plot_df.columns] for i in range(m)]),
     ), row=3, col=2)
 
     max_top = max(np.nanmax(np.abs(y_dend)) if (col_link is not None and y_dend) else 1.0, 1.0)
@@ -1304,16 +1307,17 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     max_x_len = max([len(s) for s in short_cols], default=1)
     max_y_len = max([len(s) for s in short_rows], default=1)
 
-    x_step = _tick_text_step(n, max_labels=20)
+    x_step = _tick_text_step(n, max_labels=25)
     x_tickvals = list(range(0, n, x_step))
     x_ticktext = [short_cols[i] for i in x_tickvals]
-    x_tick_size = max(6, min(10, int(240 / max(n, 1))))
-    y_tick_size = max(6, min(10, int(220 / max(m, 1))))
-    y_step = _tick_text_step(m, max_labels=30)
+    x_tick_size = max(8, min(14, int(360 / max(n, 1))))
+    y_tick_size = max(8, min(12, int(320 / max(m, 1))))
+    x_tickangle = 0 if n <= 25 else -45
+    y_step = _tick_text_step(m, max_labels=35)
 
     max_group_len = max([len(str(g)) for g in group_order], default=0)
     group_legend_width = max_group_len * 8 + 55
-    right_margin = max(220, int(max_y_len * y_tick_size * 0.55) + 140 + group_legend_width)
+    right_margin = max(220, int(max_y_len * y_tick_size * 0.65) + 140 + group_legend_width)
     bottom_margin = max(120, int(max_x_len * x_tick_size * 0.65) + 70)
 
     _apply_base_layout(fig, style, title=f"Top {m} most-variable features", x_labels=short_cols, y_labels=short_rows)
@@ -1330,7 +1334,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         tickmode="array",
         tickvals=x_tickvals,
         ticktext=x_ticktext,
-        tickangle=-45,
+        tickangle=x_tickangle,
         side="bottom",
         tickfont=dict(size=x_tick_size),
         automargin=True,
@@ -1564,18 +1568,20 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             max_x_len = max([len(s) for s in short_cols], default=1)
             max_y_len = max([len(s) for s in short_rows], default=1)
 
-            x_step = _tick_text_step(n, max_labels=20)
+            x_step = _tick_text_step(n, max_labels=25)
             x_tickvals = list(range(0, n, x_step))
             x_ticktext = [short_cols[i] for i in x_tickvals]
-            x_tick_size = max(6, min(10, int(240 / max(n, 1))))
-            y_tick_size = max(6, min(10, int(220 / max(m, 1))))
-            y_step = _tick_text_step(m, max_labels=30)
+            # Larger base font for PDF/export readability, but still clamp for very dense plots.
+            x_tick_size = max(8, min(14, int(360 / max(n, 1))))
+            y_tick_size = max(8, min(12, int(320 / max(m, 1))))
+            x_tickangle = 0 if n <= 25 else -45
+            y_step = _tick_text_step(m, max_labels=35)
             y_tickvals = feature_ids[::y_step]
             y_ticktext = short_rows[::y_step]
 
             max_group_len = max([len(str(g)) for g in group_order], default=0)
             group_legend_width = max_group_len * 8 + 55
-            right_margin = max(220, int(max_y_len * y_tick_size * 0.55) + 130 + group_legend_width)
+            right_margin = max(220, int(max_y_len * y_tick_size * 0.65) + 130 + group_legend_width)
             bottom_margin = max(110, int(max_x_len * x_tick_size * 0.65) + 70)
 
             fig = make_subplots(rows=2, cols=1, shared_xaxes=False, vertical_spacing=0.02, row_heights=[0.08, 0.92])
@@ -1607,7 +1613,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     tickfont={"size": 9},
                 ),
                 hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
-                customdata=np.array([[[feature_ids[i], c] for c in plot_df.columns] for i in range(m)]),
+                customdata=np.array([[[_shorten_name(str(feature_ids[i]), 18), _shorten_name(c)] for c in plot_df.columns] for i in range(m)]),
             ), row=2, col=1)
 
             for g in group_order:
@@ -1652,7 +1658,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 tickmode="array",
                 tickvals=x_tickvals,
                 ticktext=x_ticktext,
-                tickangle=-45,
+                tickangle=x_tickangle,
                 side="bottom",
                 tickfont={"size": x_tick_size},
                 automargin=True,

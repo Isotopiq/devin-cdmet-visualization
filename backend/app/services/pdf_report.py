@@ -251,10 +251,28 @@ def _add_summary(pdf: _ReportPDF, metrics: dict, group_a: str, group_b: str, p_t
             pdf.cell(40, 8, f"{_safe_float(s.get('padj'), 1.0):.3e}", border=1, new_x="LMARGIN", new_y="NEXT")
 
 
-def _add_plot_page(pdf: _ReportPDF, title: str, img_buffer: io.BytesIO, width_mm: float = 190):
-    pdf.add_page()
+SECTION_LAYOUTS: Dict[str, Dict[str, Any]] = {
+    "default": {"width": 1200, "height": 700, "orientation": "P"},
+    "heatmap_unclustered": {"width": 1600, "height": 900, "orientation": "L"},
+    "heatmap_clustered": {"width": 1600, "height": 900, "orientation": "L"},
+    "pca_score": {"width": 1200, "height": 900, "orientation": "P"},
+    "pca_loadings": {"width": 1200, "height": 700, "orientation": "P"},
+    "pca_scree": {"width": 800, "height": 600, "orientation": "P"},
+    "pls_da": {"width": 1400, "height": 900, "orientation": "L"},
+    "opls_da": {"width": 1400, "height": 900, "orientation": "L"},
+    "volcano": {"width": 1200, "height": 800, "orientation": "P"},
+    "per_lipid_bars": {"width": 600, "height": 400, "orientation": "P"},
+}
+
+
+def _add_plot_page(pdf: _ReportPDF, title: str, img_buffer: io.BytesIO, section: str = "default"):
+    layout = SECTION_LAYOUTS.get(section, SECTION_LAYOUTS["default"])
+    orientation = layout.get("orientation", "P")
+    pdf.add_page(orientation)
     pdf.set_body_font(16, "B")
     pdf.cell(0, 12, title, new_x="LMARGIN", new_y="NEXT")
+    # Landscape A4 usable width ~277 mm, portrait ~190 mm.
+    width_mm = 277 if orientation == "L" else 190
     pdf.image(img_buffer, x=10, y=25, w=width_mm)
 
 
@@ -391,6 +409,7 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
             continue
 
         title = SECTION_TITLES.get(section, section)
+        layout = SECTION_LAYOUTS.get(section, SECTION_LAYOUTS["default"])
         if section == "per_lipid_bars":
             if not isinstance(fig, list):
                 continue
@@ -402,7 +421,7 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
                 fig = fig[0] if fig else None
             if not isinstance(fig, dict):
                 continue
-            img = _fig_to_png(fig, width=1200, height=700, scale=2)
-            _add_plot_page(pdf, title, img)
+            img = _fig_to_png(fig, width=layout["width"], height=layout["height"], scale=2)
+            _add_plot_page(pdf, title, img, section=section)
 
     return bytes(pdf.output())
