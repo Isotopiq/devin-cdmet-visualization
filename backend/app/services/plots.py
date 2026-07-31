@@ -1246,13 +1246,15 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         zmid=zmid,
         showlegend=False,
         colorbar=dict(
-            title={"text": cbar_title, "side": "right"},
+            title={"text": cbar_title, "side": "right", "font": {"size": 11}},
+            xref="container",
             x=1.0,
-            xanchor="left",
-            xpad=15,
-            len=0.75,
+            xanchor="right",
+            xpad=10,
+            len=0.65,
             thickness=12,
             outlinewidth=0,
+            tickfont={"size": 9},
         ),
         hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
         customdata=np.array([[[feature_ids[i], c] for c in plot_df.columns] for i in range(m)]),
@@ -1284,7 +1286,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
 
     max_group_len = max([len(str(g)) for g in group_order], default=0)
     group_legend_width = max_group_len * 8 + 55
-    right_margin = max(200, int(max_y_len * y_tick_size * 0.55) + 120 + group_legend_width)
+    right_margin = max(220, int(max_y_len * y_tick_size * 0.55) + 140 + group_legend_width)
     bottom_margin = max(120, int(max_x_len * x_tick_size * 0.65) + 70)
 
     _apply_base_layout(fig, style, title=f"Top {m} most-variable features", x_labels=short_cols, y_labels=short_rows)
@@ -1324,9 +1326,11 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     fig.update_layout(
         showlegend=True,
         legend=dict(
-            x=1.06,
+            xref="container",
+            yref="paper",
+            x=1.0,
             y=0.98,
-            xanchor="left",
+            xanchor="right",
             yanchor="top",
             orientation="v",
             bgcolor="rgba(255,255,255,0.85)",
@@ -1525,7 +1529,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
             max_group_len = max([len(str(g)) for g in group_order], default=0)
             group_legend_width = max_group_len * 8 + 55
-            right_margin = max(180, int(max_y_len * y_tick_size * 0.55) + 100 + group_legend_width)
+            right_margin = max(220, int(max_y_len * y_tick_size * 0.55) + 130 + group_legend_width)
             bottom_margin = max(110, int(max_x_len * x_tick_size * 0.65) + 70)
 
             fig = make_subplots(rows=2, cols=1, shared_xaxes=False, vertical_spacing=0.02, row_heights=[0.08, 0.92])
@@ -1546,13 +1550,15 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 zmid=zmid,
                 showlegend=False,
                 colorbar=dict(
-                    title={"text": cbar_title, "side": "right"},
+                    title={"text": cbar_title, "side": "right", "font": {"size": 11}},
+                    xref="container",
                     x=1.0,
-                    xanchor="left",
-                    xpad=15,
-                    len=0.75,
+                    xanchor="right",
+                    xpad=10,
+                    len=0.65,
                     thickness=12,
                     outlinewidth=0,
+                    tickfont={"size": 9},
                 ),
                 hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
                 customdata=np.array([[[feature_ids[i], c] for c in plot_df.columns] for i in range(m)]),
@@ -1568,9 +1574,11 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             fig.update_layout(
                 showlegend=True,
                 legend=dict(
-                    x=1.06,
+                    xref="container",
+                    yref="paper",
+                    x=1.0,
                     y=0.98,
-                    xanchor="left",
+                    xanchor="right",
                     yanchor="top",
                     orientation="v",
                     bgcolor="rgba(255,255,255,0.85)",
