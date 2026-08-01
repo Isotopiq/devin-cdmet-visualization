@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { listProjects, createProject, deleteProject } from '../api'
+import { useWorkspace } from '../context/WorkspaceContext'
 import { Project } from '../types'
-import { LuPlus, LuTrash2, LuFolderOpen, LuSearch } from 'react-icons/lu'
+import { LuPlus, LuTrash2, LuFolderOpen, LuSearch, LuArrowRight } from 'react-icons/lu'
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([])
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [search, setSearch] = useState('')
+  const { setProjectId, setDatasetId } = useWorkspace()
+  const navigate = useNavigate()
 
   const load = async () => {
     const res = await listProjects()
@@ -29,6 +33,12 @@ export default function Projects() {
     if (!confirm('Delete this project and all its data?')) return
     await deleteProject(id)
     load()
+  }
+
+  const openProject = (p: Project) => {
+    setProjectId(p.id)
+    setDatasetId('')
+    navigate('/data')
   }
 
   const filtered = projects.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()) || (p.description || '').toLowerCase().includes(search.toLowerCase()))
@@ -69,8 +79,16 @@ export default function Projects() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                  <td className="p-3 font-medium text-slate-900 dark:text-white flex items-center gap-2"><LuFolderOpen className="text-indigo-500" /> {p.name}</td>
+                <tr key={p.id} className="group hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                  <td className="p-3">
+                    <button
+                      onClick={() => openProject(p)}
+                      className="font-medium text-slate-900 dark:text-white flex items-center gap-2 hover:text-indigo-600 dark:hover:text-indigo-400"
+                      title="Open project"
+                    >
+                      <LuFolderOpen className="text-indigo-500" /> {p.name} <LuArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  </td>
                   <td className="p-3 text-slate-600 dark:text-slate-300">{p.description || '-'}</td>
                   <td className="p-3 text-slate-500 dark:text-slate-400">{new Date(p.created_at).toLocaleDateString()}</td>
                   <td className="p-3 text-right">
