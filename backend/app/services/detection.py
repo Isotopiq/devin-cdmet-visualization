@@ -397,7 +397,7 @@ def detect_columns(df: pd.DataFrame, metadata: Dict[str, Dict[str, Any]] = None)
 
 
 def parse_lipidsearch_alignment(path: str) -> Dict[str, Dict[str, Any]]:
-    """Parse a LipidSearch alignment .txt file and return sample_id -> {condition} mapping."""
+    """Parse a LipidSearch alignment .txt file and return sample_id/raw -> metadata mapping."""
     mapping: Dict[str, Dict[str, Any]] = {}
     if not os.path.exists(path):
         return mapping
@@ -417,7 +417,18 @@ def parse_lipidsearch_alignment(path: str) -> Dict[str, Dict[str, Any]]:
                 parts = line.split("\t")
                 if len(parts) >= 4:
                     sid = _normalize_lipidsearch_sample_id(parts[2].strip())
-                    mapping[sid] = {"condition": parts[3].strip()}
+                    raw = _base_raw_name(parts[1].strip())
+                    # LipidSearch marks the first replicate of each group with a leading '*'.
+                    condition = parts[3].strip().lstrip("*").strip()
+                    # Canonicalize QC/Blank/Pool labels for downstream QC logic.
+                    control_label = _control_group_label(condition)
+                    if control_label:
+                        condition = control_label
+                    meta = {"condition": condition, "raw_name": raw, "sample_identifier": sid}
+                    mapping[sid] = meta
+                    if raw:
+                        mapping[raw.lower()] = meta
+                        mapping[raw] = meta
     return mapping
 
 

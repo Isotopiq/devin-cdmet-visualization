@@ -9,6 +9,9 @@ from app.services.detection import (
     detect_columns,
     parse_sample_metadata,
     select_top_lipid_candidate,
+    LIPIDSEARCH_AREA_RE,
+    _normalize_lipidsearch_sample_id,
+    _base_raw_name,
 )
 from app.services.preprocessing import _to_json_safe
 
@@ -104,6 +107,32 @@ async def import_dataset(
     sample_cols = mapping.get("sample_columns") or detected["sample_columns"]
     if not sample_cols:
         sample_cols = list(df.columns)
+
+    # Rename LipidSearch bracketed area columns (e.g. "OriginalArea[s1-1]") to the raw
+    # sample name from the alignment file when available; otherwise use the sample id.
+    sample_aliases: dict[str, str] = {}
+    used_names: set[str] = set()
+    for col in sample_cols:
+        m = LIPIDSEARCH_AREA_RE.match(str(col))
+        if m:
+            sid = _normalize_lipidsearch_sample_id(m.group("sample"))
+            new_col = sid
+            if metadata and sid in metadata:
+                new_col = metadata[sid].get("raw_name") or sid
+            if new_col and new_col not in used_names:
+                sample_aliases[col] = new_col
+                used_names.add(new_col)
+            else:
+                sample_aliases[col] = col
+                used_names.add(col)
+        else:
+            sample_aliases[col] = col
+            used_names.add(col)
+
+    if any(k != v for k, v in sample_aliases.items()):
+        df = df.rename(columns=sample_aliases)
+        sample_cols = [sample_aliases[c] for c in sample_cols]
+        detected["sample_groups"] = {sample_aliases.get(k, k): v for k, v in detected["sample_groups"].items()}
 
     feature_keys = [
         "formula",

@@ -1,0 +1,30 @@
+*Parameters setting
+Job Name	Muschen Lipids - 07-22-26 (Set #2) - FLVCR1 ETN Tracing Samples Added for N Increase
+Folder	Metabolomics Center - DataSets
+SearchType	LCMS_PRODUCT_SEARCH
+MergeType	MEAN
+FilterType	NEW_FILTER
+GroupSummaryType	DATA
+
+*Filter expression
+
+
+*Class setting
+NormalizeType	NONE
+Normalize Base	SUMMARY_AREA
+
+Class	IS	MainIon	
+
+*Target search job
+Muschen Lipids - 07-22-26 (Set #2)	FLVCR1-ETN_CTRL_R1.raw	s1-1	*FLVCR1-CTRL	a6b87afb-e3ed-4781-a536-e1db3a182893
+Muschen Lipids - 07-22-26 (Set #2)	FLVCR1-ETN_CTRL_R2.raw	s1-2	*FLVCR1-CTRL	0e51450c-69a4-4c1b-9465-d89f6facbb54
+Muschen Lipids - 07-22-26 (Set #2)	FLVCR1-ETN_CTRL_R3.raw	s1-3	*FLVCR1-CTRL	bd4343cf-b99a-4190-bfe4-8230cbcd654e
+Muschen Lipids - 07-22-26 (Set #2)	FLVCR1-ETN_KO_R1.raw	s2-1	FLVCR1-KO	ebb4a3cf-97d8-4677-aa9a-2c0b9b4dd16b
+Muschen Lipids - 07-22-26 (Set #2)	FLVCR1-ETN_KO_R2.raw	s2-2	FLVCR1-KO	800e9756-f566-4a85-a7ef-1a1c96153adb
+Muschen Lipids - 07-22-26 (Set #2)	FLVCR1-ETN_KO_R3.raw	s2-3	FLVCR1-KO	2506721c-8502-46de-bb89-c56f56927097
+Muschen Lipids - 07-22-26 (Set #2)	QC-Pool1.raw	s3-1	QC-Pools	5a9fec41-ff14-4826-bc9b-1a305e15e431
+Muschen Lipids - 07-22-26 (Set #2)	QC-Pool2.raw	s3-2	QC-Pools	ee44064c-4902-4500-9c39-d1b15cfc63e1
+Muschen Lipids - 07-22-26 (Set #2)	ETN-Blank.raw	s4-1	QC-Blanks	ecc4b9fc-e120-4120-848d-8dae5dda65a8
+Muschen Lipids - 07-22-26 (Set #2)	QC-Blank1.raw	s4-2	QC-Blanks	9c94948f-f803-4188-b258-dea51a11a149
+Muschen Lipids - 07-22-26 (Set #2)	QC-Blank2.raw	s4-3	QC-Blanks	e7407193-efa2-43aa-96b5-8f9dd43e680e
+Muschen Lipids - 07-22-26 (Set #2)	QC-Blank3.raw	s4-4	QC-Blanks	2b4d0a4b-46d2-48a9-9714-6599bc6b618b
