@@ -64,6 +64,12 @@ class SiteSettingsOut(BaseModel):
     smtp_from: Optional[str]
     smtp_use_tls: bool = True
     smtp_configured: bool = False
+    s3_enabled: bool = False
+    s3_endpoint_url: Optional[str]
+    s3_bucket: Optional[str]
+    s3_region: Optional[str]
+    s3_use_path_style: bool = False
+    s3_configured: bool = False
 
 
 class Token(BaseModel):
@@ -286,6 +292,13 @@ class SiteSettingsUpdate(BaseModel):
     smtp_password: Optional[str] = None
     smtp_from: Optional[str] = None
     smtp_use_tls: Optional[bool] = True
+    s3_enabled: Optional[bool] = None
+    s3_endpoint_url: Optional[str] = None
+    s3_bucket: Optional[str] = None
+    s3_access_key: Optional[str] = None
+    s3_secret_key: Optional[str] = None
+    s3_region: Optional[str] = None
+    s3_use_path_style: Optional[bool] = None
 
 
 class SMTPSettingsOut(BaseModel):

@@ -10,6 +10,7 @@ from app.database import get_db
 from app.auth import get_current_active_user
 from app import models, schemas
 from app.services.detection import detect_file_format
+from app.services import storage
 
 router = APIRouter()
 
@@ -24,15 +25,17 @@ async def upload_file(project_id: int, file: UploadFile = File(...), db: AsyncSe
 
     ext = os.path.splitext(file.filename)[1].lower()
     stored_name = f"{uuid.uuid4().hex}{ext}"
-    path = os.path.join(settings.UPLOAD_DIR, stored_name)
-    with open(path, "wb") as buffer:
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    staging_path = os.path.join(settings.UPLOAD_DIR, stored_name)
+    with open(staging_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    detection = detect_file_format(path, ext)
+    detection = detect_file_format(staging_path, ext)
+    stored_ref = await storage.save_upload(staging_path, stored_name, db)
     uploaded = models.UploadedFile(
         project_id=project_id,
         original_name=file.filename,
-        stored_name=stored_name,
+        stored_name=stored_ref,
         file_type=ext.lstrip("."),
         detected_format=detection.get("format"),
         sheets=detection.get("sheets", []),
@@ -60,9 +63,7 @@ async def delete_file(file_id: int, db: AsyncSession = Depends(get_db),
     uploaded = result.scalar_one_or_none()
     if not uploaded:
         raise HTTPException(status_code=404, detail="File not found")
-    path = os.path.join(settings.UPLOAD_DIR, uploaded.stored_name)
-    if os.path.exists(path):
-        os.remove(path)
+    await storage.delete_file(uploaded.stored_name, db)
     await db.delete(uploaded)
     await db.commit()
     return {"ok": True}

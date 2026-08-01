@@ -6,6 +6,7 @@ import math
 import openpyxl
 import pandas as pd
 from app.config import settings
+from app.services import storage
 
 
 KNOWN_FORMATS = {
@@ -536,8 +537,8 @@ def parse_sample_metadata(path: str) -> Dict[str, Dict[str, Any]]:
     return {}
 
 
-def preview_file(uploaded, sheet: str = None, metadata: Dict[str, Dict[str, Any]] = None) -> Dict[str, Any]:
-    path = os.path.join(settings.UPLOAD_DIR, uploaded.stored_name)
+async def preview_file(uploaded, sheet: str = None, metadata: Dict[str, Dict[str, Any]] = None, db=None) -> Dict[str, Any]:
+    path = await storage.get_file_path(uploaded.stored_name, db) if db else os.path.join(settings.UPLOAD_DIR, uploaded.stored_name)
     df = read_file_to_df(path, sheet)
     mapping = detect_columns(df, metadata=metadata)
     return {

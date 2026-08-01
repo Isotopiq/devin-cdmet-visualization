@@ -11,6 +11,7 @@ from app.services.plots import generate_plot
 from app.services.plots import _merge_style
 from app.services.stats import run_statistical_test
 from app.services.pdf_report import build_pdf
+from app.services import storage
 
 router = APIRouter()
 
@@ -174,9 +175,13 @@ async def report_pdf(
     project_name = project.name if project else ""
 
     pdf_bytes = build_pdf(dataset, project_name, req)
+    s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db)
     filename = f"{dataset.name.replace(' ', '_')}_report.pdf"
+    headers = {"Content-Disposition": f"attachment; filename={filename}"}
+    if s3_key:
+        headers["X-S3-Key"] = s3_key
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers=headers,
     )

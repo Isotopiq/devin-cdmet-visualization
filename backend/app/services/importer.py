@@ -14,6 +14,7 @@ from app.services.detection import (
     _base_raw_name,
 )
 from app.services.preprocessing import _to_json_safe
+from app.services import storage
 
 
 def _grade_score(grade) -> int:
@@ -88,7 +89,7 @@ async def import_dataset(
     feature_type: str = "metabolite",
     metadata_path: str = None,
 ):
-    path = os.path.join(settings.UPLOAD_DIR, uploaded.stored_name)
+    path = await storage.get_file_path(uploaded.stored_name, db)
     df = read_file_to_df(path, uploaded.selected_sheet)
 
     metadata = None

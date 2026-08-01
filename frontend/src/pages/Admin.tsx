@@ -5,7 +5,7 @@ import {
   resetAnalyses, getAnalysisCount
 } from '../api'
 import type { User, AdminLog } from '../types'
-import { LuTrash2, LuRotateCcw, LuImage, LuSettings, LuMail, LuSend, LuUser } from 'react-icons/lu'
+import { LuTrash2, LuRotateCcw, LuImage, LuSettings, LuMail, LuSend, LuUser, LuCloud } from 'react-icons/lu'
 
 export default function Admin() {
   const [users, setUsers] = useState<User[]>([])
@@ -22,6 +22,9 @@ export default function Admin() {
   const [settings, setSettings] = useState<any>({})
   const [smtp, setSmtp] = useState<any>({ host: '', port: 587, user: '', from_address: '', use_tls: true })
   const [smtpPassword, setSmtpPassword] = useState('')
+  const [s3, setS3] = useState<any>({ enabled: false, endpoint_url: '', bucket: '', region: 'us-east-1', use_path_style: false })
+  const [s3AccessKey, setS3AccessKey] = useState('')
+  const [s3SecretKey, setS3SecretKey] = useState('')
   const [logUserFilter, setLogUserFilter] = useState<number | ''>('')
   const [previewTimestamp, setPreviewTimestamp] = useState(Date.now())
 
@@ -41,6 +44,14 @@ export default function Admin() {
       const [sRes, mRes] = await Promise.all([getSettings(), getSMTPSettings()])
       setSettings(sRes.data)
       setSmtp(mRes.data)
+      const s3Data = sRes.data || {}
+      setS3({
+        enabled: !!s3Data.s3_enabled,
+        endpoint_url: s3Data.s3_endpoint_url || '',
+        bucket: s3Data.s3_bucket || '',
+        region: s3Data.s3_region || 'us-east-1',
+        use_path_style: !!s3Data.s3_use_path_style,
+      })
     } catch (err: any) {
       // ignore errors for public settings
     }
@@ -196,6 +207,29 @@ export default function Admin() {
       setSuccess(`SMTP test sent to ${res.data.recipient}`)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'SMTP test failed')
+    }
+  }
+
+  const saveS3 = async () => {
+    setError('')
+    setSuccess('')
+    try {
+      const payload: any = {
+        s3_enabled: s3.enabled,
+        s3_endpoint_url: s3.endpoint_url || null,
+        s3_bucket: s3.bucket || null,
+        s3_region: s3.region || null,
+        s3_use_path_style: s3.use_path_style,
+      }
+      if (s3AccessKey) payload.s3_access_key = s3AccessKey
+      if (s3SecretKey) payload.s3_secret_key = s3SecretKey
+      await updateSettings(payload)
+      setSuccess('S3 settings saved')
+      setS3AccessKey('')
+      setS3SecretKey('')
+      loadSettings()
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to save S3 settings')
     }
   }
 
@@ -403,6 +437,45 @@ export default function Admin() {
             <button onClick={testSmtpConnection} className="btn-secondary"><LuSend /> Test SMTP</button>
           </div>
           {smtp.configured && <div className="text-sm text-emerald-600 dark:text-emerald-400">SMTP is configured.</div>}
+
+          <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+            <div className="flex items-center gap-2 mb-2 text-slate-900 dark:text-white font-semibold"><LuCloud /> S3 Storage</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">When enabled, uploaded files and generated PDF reports are stored on an S3-compatible object store instead of local disk.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <input id="s3enabled" type="checkbox" checked={s3.enabled} onChange={(e) => setS3({ ...s3, enabled: e.target.checked })} className="rounded" />
+                <label htmlFor="s3enabled" className="text-sm text-slate-700 dark:text-slate-300">Enable S3 storage</label>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Endpoint URL</label>
+                <input type="text" value={s3.endpoint_url || ''} onChange={(e) => setS3({ ...s3, endpoint_url: e.target.value })} className="input" placeholder="https://s3.example.com" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bucket</label>
+                <input type="text" value={s3.bucket || ''} onChange={(e) => setS3({ ...s3, bucket: e.target.value })} className="input" placeholder="my-bucket" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Region</label>
+                <input type="text" value={s3.region || ''} onChange={(e) => setS3({ ...s3, region: e.target.value })} className="input" placeholder="us-east-1" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Access key</label>
+                <input type="text" value={s3AccessKey} onChange={(e) => setS3AccessKey(e.target.value)} className="input" placeholder="Leave blank to keep existing" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Secret key</label>
+                <input type="password" value={s3SecretKey} onChange={(e) => setS3SecretKey(e.target.value)} className="input" placeholder="Leave blank to keep existing" />
+              </div>
+              <div className="flex items-center gap-2 h-10">
+                <input id="s3pathstyle" type="checkbox" checked={s3.use_path_style} onChange={(e) => setS3({ ...s3, use_path_style: e.target.checked })} className="rounded" />
+                <label htmlFor="s3pathstyle" className="text-sm text-slate-700 dark:text-slate-300">Use path-style addressing (MinIO, etc.)</label>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={saveS3} className="btn-primary">Save S3 Settings</button>
+            </div>
+            {settings.s3_configured && <div className="text-sm text-emerald-600 dark:text-emerald-400 mt-2">S3 is configured.</div>}
+          </div>
         </div>
       )}
     </div>

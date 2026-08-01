@@ -8,13 +8,9 @@ from app.auth import get_current_active_user
 from app import models, schemas
 from app.services.detection import preview_file, detect_columns, parse_sample_metadata
 from app.services.importer import import_dataset
+from app.services import storage
 
 router = APIRouter()
-
-
-def _uploaded_file_path(uploaded: models.UploadedFile) -> str:
-    from app.config import settings
-    return os.path.join(settings.UPLOAD_DIR, uploaded.stored_name)
 
 
 @router.get("/{file_id}/preview", response_model=schemas.ImportPreview)
@@ -43,13 +39,14 @@ async def preview_import(
         )
         meta_file = res.scalar_one_or_none()
         if meta_file:
-            metadata = parse_sample_metadata(_uploaded_file_path(meta_file))
+            metadata_path = await storage.get_file_path(meta_file.stored_name, db)
+            metadata = parse_sample_metadata(metadata_path)
 
     if sheet:
         uploaded.selected_sheet = sheet
         await db.commit()
 
-    preview = preview_file(uploaded, sheet, metadata=metadata)
+    preview = await preview_file(uploaded, sheet, metadata=metadata, db=db)
     return preview
 
 
@@ -104,7 +101,7 @@ async def run_import(
         )
         meta_file = res.scalar_one_or_none()
         if meta_file:
-            metadata_path = _uploaded_file_path(meta_file)
+            metadata_path = await storage.get_file_path(meta_file.stored_name, db)
 
     dataset = await import_dataset(db, uploaded, feature_type, metadata_path=metadata_path)
     return dataset

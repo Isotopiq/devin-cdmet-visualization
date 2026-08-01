@@ -15,6 +15,7 @@ from app import schemas, models
 from app.auth import get_current_admin_user, get_password_hash
 from app.config import settings
 from app.services.email import encrypt_smtp_password, get_smtp_config
+from app.services.storage import encrypt_setting as _encrypt_setting, get_storage_config
 
 router = APIRouter()
 
@@ -293,6 +294,7 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
     smtp_from = await _get_setting(db, "smtp_from")
     smtp_use_tls = await _get_setting(db, "smtp_use_tls")
     smtp_password = await _get_setting(db, "smtp_password")
+    s3_cfg = await get_storage_config(db)
     return {
         "login_logo_url": "/api/admin/settings/logo/login" if login and login.value else None,
         "dashboard_logo_url": "/api/admin/settings/logo/dashboard" if dashboard and dashboard.value else None,
@@ -303,6 +305,12 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
         "smtp_from": smtp_from.value if smtp_from else None,
         "smtp_use_tls": smtp_use_tls.value.lower() != "false" if smtp_use_tls and smtp_use_tls.value else True,
         "smtp_configured": bool(smtp_host and smtp_port and smtp_user and smtp_password),
+        "s3_enabled": s3_cfg["enabled"],
+        "s3_endpoint_url": s3_cfg["endpoint_url"],
+        "s3_bucket": s3_cfg["bucket"],
+        "s3_region": s3_cfg["region"],
+        "s3_use_path_style": s3_cfg["use_path_style"],
+        "s3_configured": s3_cfg["configured"],
     }
 
 
@@ -330,6 +338,20 @@ async def update_settings(
         await _set_setting(db, "smtp_use_tls", "true" if body.smtp_use_tls else "false")
     if body.smtp_password is not None:
         await _set_setting(db, "smtp_password", encrypt_smtp_password(body.smtp_password))
+    if body.s3_enabled is not None:
+        await _set_setting(db, "s3_enabled", "true" if body.s3_enabled else "false")
+    if body.s3_endpoint_url is not None:
+        await _set_setting(db, "s3_endpoint_url", body.s3_endpoint_url)
+    if body.s3_bucket is not None:
+        await _set_setting(db, "s3_bucket", body.s3_bucket)
+    if body.s3_region is not None:
+        await _set_setting(db, "s3_region", body.s3_region)
+    if body.s3_use_path_style is not None:
+        await _set_setting(db, "s3_use_path_style", "true" if body.s3_use_path_style else "false")
+    if body.s3_access_key:
+        await _set_setting(db, "s3_access_key", _encrypt_setting(body.s3_access_key))
+    if body.s3_secret_key:
+        await _set_setting(db, "s3_secret_key", _encrypt_setting(body.s3_secret_key))
     await _log(db, "update_settings", admin)
     return {"ok": True}
 
