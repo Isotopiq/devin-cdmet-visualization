@@ -1307,18 +1307,28 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     max_x_len = max([len(s) for s in short_cols], default=1)
     max_y_len = max([len(s) for s in short_rows], default=1)
 
-    x_step = _tick_text_step(n, max_labels=25)
+    # Decide x-axis label density/rotation from sample name length and count.
+    long_x_labels = max_x_len > 12
+    x_step = _tick_text_step(n, max_labels=18 if long_x_labels else 25)
     x_tickvals = list(range(0, n, x_step))
     x_ticktext = [short_cols[i] for i in x_tickvals]
-    x_tick_size = max(8, min(14, int(360 / max(n, 1))))
+    x_tick_size = max(8, min(10 if long_x_labels else 13, int(300 / max(n, 1))))
     y_tick_size = max(8, min(12, int(320 / max(m, 1))))
-    x_tickangle = 0 if n <= 25 else -45
+    if max_x_len > 16:
+        x_tickangle = -60
+    elif long_x_labels or n > 15:
+        x_tickangle = -45
+    elif n > 25:
+        x_tickangle = -60
+    else:
+        x_tickangle = 0
     y_step = _tick_text_step(m, max_labels=35)
 
     max_group_len = max([len(str(g)) for g in group_order], default=0)
     group_legend_width = max_group_len * 8 + 55
     right_margin = max(220, int(max_y_len * y_tick_size * 0.65) + 140 + group_legend_width)
-    bottom_margin = max(120, int(max_x_len * x_tick_size * 0.65) + 70)
+    x_label_extra = int(max_x_len * x_tick_size * 0.6) + 40 if x_tickangle != 0 else x_tick_size + 30
+    bottom_margin = max(120, x_label_extra + 70)
 
     _apply_base_layout(fig, style, title=f"Top {m} most-variable features", x_labels=short_cols, y_labels=short_rows)
 
@@ -1568,13 +1578,21 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             max_x_len = max([len(s) for s in short_cols], default=1)
             max_y_len = max([len(s) for s in short_rows], default=1)
 
-            x_step = _tick_text_step(n, max_labels=25)
+            # Decide x-axis label density/rotation from sample name length and count.
+            long_x_labels = max_x_len > 12
+            x_step = _tick_text_step(n, max_labels=18 if long_x_labels else 25)
             x_tickvals = list(range(0, n, x_step))
             x_ticktext = [short_cols[i] for i in x_tickvals]
-            # Larger base font for PDF/export readability, but still clamp for very dense plots.
-            x_tick_size = max(8, min(14, int(360 / max(n, 1))))
+            x_tick_size = max(8, min(10 if long_x_labels else 13, int(300 / max(n, 1))))
             y_tick_size = max(8, min(12, int(320 / max(m, 1))))
-            x_tickangle = 0 if n <= 25 else -45
+            if max_x_len > 16:
+                x_tickangle = -60
+            elif long_x_labels or n > 15:
+                x_tickangle = -45
+            elif n > 25:
+                x_tickangle = -60
+            else:
+                x_tickangle = 0
             y_step = _tick_text_step(m, max_labels=35)
             y_tickvals = feature_ids[::y_step]
             y_ticktext = short_rows[::y_step]
@@ -1582,7 +1600,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             max_group_len = max([len(str(g)) for g in group_order], default=0)
             group_legend_width = max_group_len * 8 + 55
             right_margin = max(220, int(max_y_len * y_tick_size * 0.65) + 130 + group_legend_width)
-            bottom_margin = max(110, int(max_x_len * x_tick_size * 0.65) + 70)
+            x_label_extra = int(max_x_len * x_tick_size * 0.6) + 40 if x_tickangle != 0 else x_tick_size + 30
+            bottom_margin = max(110, x_label_extra + 70)
 
             fig = make_subplots(rows=2, cols=1, shared_xaxes=False, vertical_spacing=0.02, row_heights=[0.08, 0.92])
             fig.add_trace(go.Heatmap(
