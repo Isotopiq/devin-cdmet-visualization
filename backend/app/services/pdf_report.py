@@ -425,3 +425,119 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
             _add_plot_page(pdf, title, img, section=section)
 
     return bytes(pdf.output())
+
+
+def _qc_figure_title(fig: dict, default: str) -> str:
+    title = fig.get("layout", {}).get("title")
+    if isinstance(title, dict):
+        return title.get("text") or default
+    if isinstance(title, str):
+        return title or default
+    return default
+
+
+def _add_qc_summary(pdf: _ReportPDF, metrics: dict):
+    pdf.add_page()
+    pdf.set_body_font(18, "B")
+    pdf.cell(0, 14, "QC Metrics Summary", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+    pdf.set_body_font(11)
+
+    rows = [
+        ["Total features", str(metrics["num_features"])],
+        ["Total samples", str(metrics["num_samples"])],
+        ["Groups", str(metrics["num_groups"])],
+        ["Total missing %", f"{metrics.get('total_missing_pct', 0)}%"],
+    ]
+    qc_cv = metrics.get("qc_median_cv_pct")
+    if qc_cv is not None:
+        rows.append(["QC median CV %", f"{qc_cv}%"])
+    blank_ratio = metrics.get("sample_to_blank_median_ratio")
+    if blank_ratio is not None:
+        rows.append(["Sample/Blank median ratio", f"{blank_ratio}x"])
+    rows.append(["PCA outlier count", str(metrics.get("pca_outlier_count", 0))])
+
+    col_widths = [90, 90]
+    for row in rows:
+        for i, text in enumerate(row):
+            pdf.cell(col_widths[i], 10, text, border=1, align="L")
+        pdf.ln()
+
+    pdf.ln(6)
+    pdf.set_body_font(12, "B")
+    pdf.cell(0, 10, "Group counts", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_body_font(11)
+    for g, cnt in metrics.get("group_counts", {}).items():
+        pdf.cell(90, 8, str(g), border=1)
+        pdf.cell(90, 8, str(cnt), border=1, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(6)
+    pdf.set_body_font(12, "B")
+    pdf.cell(0, 10, "Group median CV %", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_body_font(11)
+    for g, cv in metrics.get("group_cv_pct", {}).items():
+        cv_text = f"{cv}%" if cv is not None else "N/A"
+        pdf.cell(90, 8, str(g), border=1)
+        pdf.cell(90, 8, cv_text, border=1, new_x="LMARGIN", new_y="NEXT")
+
+    outlier_samples = metrics.get("pca_outlier_samples") or []
+    if outlier_samples:
+        pdf.ln(6)
+        pdf.set_body_font(12, "B")
+        pdf.cell(0, 10, "PCA outlier samples", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_body_font(11)
+        for s in outlier_samples:
+            pdf.cell(0, 8, str(s), new_x="LMARGIN", new_y="NEXT")
+
+
+def build_qc_pdf(dataset: models.Dataset, project_name: str = "") -> bytes:
+    """Build a QC report PDF with summary tables and all QC figures."""
+    from app.services.qc import qc_analysis
+
+    result = qc_analysis(dataset)
+    metrics = result["metrics"]
+    figures = result.get("figures", {})
+
+    pdf = _ReportPDF()
+    pdf.add_page()
+    pdf.set_body_font(28, "B")
+    pdf.set_y(60)
+    pdf.cell(0, 20, "QC Report", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_body_font(14)
+    pdf.cell(0, 12, dataset.name or "Dataset", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(10)
+    pdf.set_body_font(12)
+    lines = []
+    if project_name:
+        lines.append(f"Project: {project_name}")
+    lines.append(f"Features: {metrics['num_features']}")
+    lines.append(f"Samples: {metrics['num_samples']}")
+    lines.append(f"Groups: {metrics['num_groups']}")
+    lines.append(f"Generated: {dt.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}")
+    for line in lines:
+        pdf.cell(0, 10, line, align="C", new_x="LMARGIN", new_y="NEXT")
+
+    _add_qc_summary(pdf, metrics)
+
+    figure_order = [
+        ("tic", "default"),
+        ("missing_pct", "default"),
+        ("detected_features", "default"),
+        ("log2_intensity", "default"),
+        ("cv_by_group", "default"),
+        ("pca", "pca_score"),
+        ("correlation_heatmap", "heatmap_unclustered"),
+    ]
+    for key, section in figure_order:
+        fig = figures.get(key)
+        if not isinstance(fig, dict):
+            continue
+        title = _qc_figure_title(fig, key.replace("_", " ").title())
+        try:
+            layout = SECTION_LAYOUTS.get(section, SECTION_LAYOUTS["default"])
+            img = _fig_to_png(fig, width=layout["width"], height=layout["height"], scale=2)
+            _add_plot_page(pdf, title, img, section=section)
+        except Exception:
+            continue
+
+    return bytes(pdf.output())

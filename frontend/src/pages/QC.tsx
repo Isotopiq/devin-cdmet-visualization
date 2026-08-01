@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
-import { getQC, exportQCExcel } from '../api'
-import { LuActivity, LuRefreshCw, LuDownload } from 'react-icons/lu'
+import { getQC, exportQCExcel, exportQCPdf } from '../api'
+import { LuActivity, LuRefreshCw, LuDownload, LuFileText } from 'react-icons/lu'
 
 interface QCData {
   metrics: {
@@ -48,6 +48,27 @@ export default function QC() {
     }
   }
 
+  const handleExportPdf = async () => {
+    if (!projectId || !datasetId || !selectedDataset) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await exportQCPdf(Number(projectId), Number(datasetId))
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `${selectedDataset.name.replace(/\s+/g, '_')}_qc_report.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to export QC PDF')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const load = async () => {
     if (!projectId || !datasetId) return
     setLoading(true)
@@ -80,6 +101,7 @@ export default function QC() {
           <div className="card p-5 flex items-end gap-4 flex-wrap">
             <button onClick={load} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Run QC</button>
             <button onClick={handleExportExcel} disabled={!selectedDataset} className="btn-secondary"><LuDownload /> Export Excel Summary</button>
+            <button onClick={handleExportPdf} disabled={!selectedDataset || loading} className="btn-secondary"><LuFileText /> Export QC PDF Report</button>
             {error && <span className="text-sm text-red-600 dark:text-red-400">{error}</span>}
           </div>
 

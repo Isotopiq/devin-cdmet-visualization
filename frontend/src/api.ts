@@ -110,5 +110,7 @@ export const exportDataset = (projectId: number, datasetId: number, format: 'met
 export const getQC = (projectId: number, datasetId: number) => API.get(`/analysis/${projectId}/dataset/${datasetId}/qc`)
 export const exportQCExcel = (projectId: number, datasetId: number) =>
   API.get(`/analysis/${projectId}/dataset/${datasetId}/qc/excel`, { responseType: 'blob' })
+export const exportQCPdf = (projectId: number, datasetId: number) =>
+  API.post(`/analysis/${projectId}/dataset/${datasetId}/qc/pdf`, {}, { responseType: 'blob' })
 export const generatePDFReport = (projectId: number, datasetId: number, data: any) =>
   API.post(`/plots/${projectId}/dataset/${datasetId}/report/pdf`, data, { responseType: 'blob' })

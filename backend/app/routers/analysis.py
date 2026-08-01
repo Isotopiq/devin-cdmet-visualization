@@ -11,6 +11,8 @@ from app.auth import get_current_active_user
 from app import models, schemas
 from app.services.preprocessing import preprocess_dataset, to_dataframe
 from app.services.qc import qc_analysis, qc_export_excel
+from app.services.pdf_report import build_qc_pdf
+from app.services import storage
 
 router = APIRouter()
 
@@ -108,6 +110,40 @@ async def get_qc_excel(
         io.BytesIO(excel_bytes),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.post("/{project_id}/dataset/{dataset_id}/qc/pdf")
+async def get_qc_pdf(
+    project_id: int,
+    dataset_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(
+        select(models.Dataset, models.Project)
+        .join(models.Project)
+        .where(
+            models.Dataset.id == dataset_id,
+            models.Dataset.project_id == project_id,
+            models.Project.owner_id == current_user.id,
+        )
+    )
+    row = result.one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    dataset, project = row
+
+    pdf_bytes = build_qc_pdf(dataset, project.name if project else "")
+    s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db)
+    filename = f"{dataset.name.replace(' ', '_')}_qc_report.pdf"
+    headers = {"Content-Disposition": f"attachment; filename={filename}"}
+    if s3_key:
+        headers["X-S3-Key"] = s3_key
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers=headers,
     )
 
 
