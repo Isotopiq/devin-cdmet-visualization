@@ -11,7 +11,24 @@ from app.config import settings
 KNOWN_FORMATS = {
     "compound_discoverer": ["Name", "Formula", "m/z", "RT", "Area"],
     "lipidsearch": ["LipidMolec", "ClassKey", "FAKey", "CalcMass", "BaseRt", "TotalGrade", "Area"],
+    "lipidsearch_alignment": [],
+    "compound_discoverer_metadata": ["Sample Identifier", "File", "Sample Type", "Condition"],
+    "sample_metadata": ["Sample", "Group"],
 }
+
+
+def _is_lipidsearch_alignment_file(path: str) -> bool:
+    """A LipidSearch AlignmentSettings .txt has section headers like *Parameters setting and *Target search job."""
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+            for i, line in enumerate(fh):
+                if i > 50:
+                    break
+                if line.startswith("*Parameters setting") or line.startswith("*Target search job"):
+                    return True
+    except Exception:
+        pass
+    return False
 
 SAMPLE_REGEX = re.compile(r"area|intensity|abundance|sample|ctrl|control|treat|rep|replicate|isotopolog|m\+\d+|_[0-9]+$", re.I)
 GROUP_REGEX = re.compile(r"^(?P<group>.+?)_(?P<idx>[0-9]+)$")
@@ -289,8 +306,25 @@ def list_sheets(path: str) -> List[str]:
     return []
 
 
+def _detect_metadata_format(columns: List[str]) -> str | None:
+    """Classify an uploaded sample metadata / alignment file based on column names."""
+    cols_lower = [c.lower() for c in columns]
+    col_set = set(cols_lower)
+    # Compound Discoverer sample metadata exports
+    if {"sample identifier", "file"} <= col_set or {"sample", "file", "sample type"} <= col_set:
+        return "compound_discoverer_metadata"
+    # Generic sample group metadata
+    if "sample" in col_set and any(g in col_set for g in ["group", "condition", "sample type", "sample_type"]):
+        return "sample_metadata"
+    return None
+
+
 def detect_file_format(path: str, ext: str = None) -> Dict[str, Any]:
     ext = ext or os.path.splitext(path)[1].lower()
+    # LipidSearch AlignmentSettings has section markers before a tabular header.
+    if ext in [".txt", ".tsv"] and _is_lipidsearch_alignment_file(path):
+        return {"format": "lipidsearch_alignment", "scores": {}, "sheets": [], "columns": []}
+
     try:
         sheets = list_sheets(path)
         if sheets:
@@ -308,6 +342,13 @@ def detect_file_format(path: str, ext: str = None) -> Dict[str, Any]:
     for fmt, markers in KNOWN_FORMATS.items():
         scores[fmt] = sum(1 for m in markers if any(m.lower() in c.lower() for c in columns))
     best = max(scores, key=scores.get) if scores and max(scores.values()) > 0 else None
+
+    # Fallback: if no data-format markers matched, see if this is a metadata file.
+    if not best:
+        meta_format = _detect_metadata_format(columns)
+        if meta_format:
+            best = meta_format
+
     return {"format": best, "scores": scores, "sheets": sheets, "columns": columns}
 
 
