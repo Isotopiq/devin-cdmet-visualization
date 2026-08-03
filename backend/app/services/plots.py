@@ -1267,7 +1267,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         group_colorscale = [[i / (n_groups - 1), gcolor_map[g]] for i, g in enumerate(group_order)]
 
     m, n = plot_df.shape
-    height = max(600, min(1600, m * 16 + 260))
+    height = max(600, min(2400, m * 16 + 260))
     is_lipidone = params.get("heatmap_style") == "lipidone"
     feature_ids = [feature_metadata[i].get("feature_id", i) if i < len(feature_metadata) else i for i in plot_df.index]
     # Keep the top dendrogram and group color bar at fixed pixel heights so they do not
@@ -1354,7 +1354,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     x_tickvals = list(range(0, n, x_step))
     x_ticktext = [short_cols[i] for i in x_tickvals]
     x_tick_size = max(8, min(10 if long_x_labels else 13, int(300 / max(n, 1))))
-    y_tick_size = max(8, min(12, int(height * 0.45 / max(m, 1))))
+    y_tick_size = max(7, min(11, int(height * 0.5 / max(m, 1))))
     if max_x_len > 16:
         x_tickangle = -60
     elif long_x_labels or n > 15:
@@ -1365,11 +1365,12 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         x_tickangle = 0
     if is_lipidone:
         x_tickangle = -90
-    y_step = _tick_text_step(m, max_labels=max(35, int(height / 22)))
+    # Allow one label per row as long as there is ~14 px of vertical space per label.
+    y_step = _tick_text_step(m, max_labels=max(1, int(height / 14)))
 
     max_group_len = max([len(str(g)) for g in group_order], default=0)
     group_legend_width = max_group_len * 8 + 55
-    right_margin = max(220, int(max_y_len * y_tick_size * 0.65) + 140 + group_legend_width)
+    right_margin = max(260, int(max_y_len * y_tick_size * 0.75) + 150 + group_legend_width)
     if is_lipidone:
         x_label_extra = max_x_len * x_tick_size + 30
         bottom_margin = max(180, x_label_extra + 70)
