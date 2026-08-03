@@ -166,6 +166,8 @@ class PreprocessingParams(BaseModel):
     scale: str = "none"
     normalization: str = "none"
     custom_factor: Optional[float] = None
+    normalization_file_id: Optional[int] = None
+    normalization_column: Optional[str] = "Value"
     batch_correction: str = "none"
     batch_column: Optional[str] = None
     batch_labels: Optional[Dict[str, str]] = None

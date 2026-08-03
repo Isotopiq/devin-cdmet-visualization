@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
-import { preprocess } from '../api'
-import { LuSlidersHorizontal, LuPlay, LuHistory, LuAlertCircle, LuCheckCircle2, LuPlus, LuTrash2 } from 'react-icons/lu'
+import { preprocess, uploadFile } from '../api'
+import { LuSlidersHorizontal, LuPlay, LuHistory, LuAlertCircle, LuCheckCircle2, LuPlus, LuTrash2, LuDownload, LuUpload } from 'react-icons/lu'
 
 const DEFAULT_ISOBARIC_RULE = {
   name: 'O-/P- ether/vinyl-ether',
@@ -35,6 +35,10 @@ export default function Preprocessing() {
     isobaric_rt_tolerance: 0.2,
     isobaric_rollup_preference: 'alphabetical',
     output_name: '',
+    custom_factor: '',
+    normalization_file_id: null as number | null,
+    normalization_column: 'Value',
+    normalization_file_name: '',
   })
 
   useEffect(() => {
@@ -78,7 +82,9 @@ export default function Preprocessing() {
         duplicate_handling: 'mean',
         batch_correction: 'none',
         batch_column: null,
-        custom_factor: null,
+        custom_factor: params.normalization === 'custom_factor' && params.custom_factor ? Number(params.custom_factor) : null,
+        normalization_file_id: params.normalization_file_id,
+        normalization_column: params.normalization_column,
         enable_isobaric_substitution_check: isLipid ? params.enable_isobaric_substitution_check : false,
         isobaric_substitution_mode: params.isobaric_substitution_mode,
         isobaric_substitution_rules: rules,
@@ -167,6 +173,7 @@ export default function Preprocessing() {
                   <option value="dna">DNA</option>
                   <option value="cell_number">Cell number</option>
                   <option value="tissue_weight">Tissue weight</option>
+                  <option value="custom_factor">Custom factor</option>
                 </select>
               </div>
               <div>
@@ -213,6 +220,65 @@ export default function Preprocessing() {
                   </div>
                 )}
               </div>
+              {['internal_standard', 'protein', 'dna', 'cell_number', 'tissue_weight'].includes(params.normalization) && (
+                <div className="md:col-span-3 flex flex-col gap-2">
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Value column name</label>
+                      <input type="text" value={params.normalization_column} onChange={(e) => setParams({ ...params, normalization_column: e.target.value })} className="input" placeholder="Value" />
+                    </div>
+                    <button
+                      onClick={() => {
+                        const cols = Object.keys(selectedDataset?.sample_metadata || {})
+                        const header = `Sample,${params.normalization_column}`
+                        const rows = cols.map((s) => `"${s.replace(/"/g, '""')}",`)
+                        const csv = [header, ...rows].join('\n')
+                        const blob = new Blob([csv], { type: 'text/csv' })
+                        const url = window.URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = 'normalization_template.csv'
+                        document.body.appendChild(a)
+                        a.click()
+                        a.remove()
+                        window.URL.revokeObjectURL(url)
+                      }}
+                      className="btn-secondary text-sm"
+                    >
+                      <LuDownload /> Download template
+                    </button>
+                    <label className="btn-secondary text-sm cursor-pointer inline-flex items-center gap-1">
+                      <LuUpload /> {params.normalization_file_name || 'Upload metadata'}
+                      <input
+                        type="file"
+                        accept=".csv,.xlsx,.xls,.txt"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file || !projectId) return
+                          setLoading(true)
+                          try {
+                            const res = await uploadFile(Number(projectId), file)
+                            setParams((prev: any) => ({ ...prev, normalization_file_id: res.data.id, normalization_file_name: file.name }))
+                          } catch (err: any) {
+                            setError(err.response?.data?.detail || 'Upload failed')
+                          } finally {
+                            setLoading(false)
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                  {params.normalization_file_name && <p className="text-xs text-slate-500">Uploaded: {params.normalization_file_name}</p>}
+                  <p className="text-xs text-slate-500">Upload a CSV or Excel file with a Sample column and a {params.normalization_column} column containing per-sample values.</p>
+                </div>
+              )}
+              {params.normalization === 'custom_factor' && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Custom factor</label>
+                  <input type="number" step="any" value={params.custom_factor} onChange={(e) => setParams({ ...params, custom_factor: e.target.value })} className="input" placeholder="e.g. 1000" />
+                </div>
+              )}
             </div>
             <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div className="md:col-span-2">

@@ -1,12 +1,16 @@
 import copy
 import math
+import os
 from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
+from fastapi import HTTPException
 from scipy import stats
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import models, schemas
+from app.services import storage
 from app.services.isobaric import apply_isobaric_substitution
 
 
@@ -93,6 +97,69 @@ def from_dataframe(
     return new_dataset
 
 
+async def _load_normalization_values(file_id: int, sample_columns: List[str], value_column: Optional[str], db: AsyncSession) -> Dict[str, float]:
+    """Load per-sample normalization factors from an uploaded metadata file."""
+    result = await db.execute(select(models.UploadedFile).where(models.UploadedFile.id == file_id))
+    uploaded = result.scalar_one_or_none()
+    if not uploaded:
+        raise ValueError(f"Normalization file not found: {file_id}")
+
+    path = await storage.get_file_path(uploaded.stored_name, db)
+    ext = os.path.splitext(path)[1].lower()
+    if ext in (".xlsx", ".xls"):
+        df = pd.read_excel(path, engine="openpyxl")
+    else:
+        df = pd.read_csv(path, sep=None, engine="python")
+
+    if df.empty:
+        raise ValueError("Normalization file is empty")
+
+    sample_col = None
+    for c in df.columns:
+        if str(c).strip().lower() in ("sample", "sample_name", "sample id", "sample_id", "sampleid"):
+            sample_col = c
+            break
+    if sample_col is None:
+        sample_col = df.columns[0]
+
+    value_col = None
+    if value_column:
+        target = str(value_column).strip().lower()
+        for c in df.columns:
+            if str(c).strip().lower() == target:
+                value_col = c
+                break
+    if value_col is None:
+        for c in df.columns:
+            if str(c).strip().lower() in ("value", "factor", "amount", "quantity"):
+                value_col = c
+                break
+    if value_col is None:
+        value_col = df.columns[1] if len(df.columns) > 1 else df.columns[0]
+
+    df[value_col] = pd.to_numeric(df[value_col], errors="coerce")
+    mapping: Dict[str, float] = {}
+    for _, row in df.iterrows():
+        sample = str(row[sample_col]).strip()
+        val = row[value_col]
+        if sample and not pd.isna(val):
+            mapping[sample] = float(val)
+
+    missing = [c for c in sample_columns if c not in mapping]
+    if missing:
+        raise ValueError(
+            f"Missing normalization values for {len(missing)} sample(s): {', '.join(missing[:5])}{'...' if len(missing) > 5 else ''}"
+        )
+
+    zero_samples = [s for s, v in mapping.items() if v == 0]
+    if zero_samples:
+        raise ValueError(
+            f"Normalization values cannot be zero for {len(zero_samples)} sample(s): {', '.join(zero_samples[:5])}{'...' if len(zero_samples) > 5 else ''}"
+        )
+
+    return mapping
+
+
 async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: schemas.PreprocessingParams) -> models.Dataset:
     df = to_dataframe(dataset)
     current_meta: List[Dict[str, Any]] = copy.deepcopy(dataset.feature_metadata) or []
@@ -166,6 +233,7 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
     df = _make_non_negative(df)
 
     # 6. Normalization (on raw, non-logged sample totals)
+    NORMALIZATION_BY_SAMPLE = {"internal_standard", "protein", "dna", "cell_number", "tissue_weight"}
     if params.normalization == "total_area":
         sample_sums = df.sum(axis=0)
         sample_sums = sample_sums.replace(0, np.nan)
@@ -174,6 +242,18 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
         df = df.fillna(0)
     elif params.normalization == "custom_factor" and params.custom_factor:
         df = df / float(params.custom_factor)
+    elif params.normalization in NORMALIZATION_BY_SAMPLE:
+        if not params.normalization_file_id:
+            raise HTTPException(status_code=400, detail=f"Normalization '{params.normalization}' requires an uploaded metadata file with per-sample values")
+        values = await _load_normalization_values(params.normalization_file_id, df.columns.tolist(), params.normalization_column, db)
+        factors = pd.Series({col: values.get(col, np.nan) for col in df.columns})
+        factors = factors.replace(0, np.nan)
+        median_factor = float(factors.median()) if not factors.isna().all() else 1.0
+        if pd.isna(median_factor) or median_factor == 0:
+            raise HTTPException(status_code=400, detail="No valid normalization factors found in uploaded file")
+        df = df.div(factors, axis=1) * median_factor
+        df = df.fillna(0)
+        history["normalization_values"] = values
 
     # 7. Log transformation
     if params.log_transform:
