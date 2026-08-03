@@ -1440,7 +1440,7 @@ def _mpl_figure_to_plotly(fig: plt.Figure, title: str | None = None) -> go.Figur
     """Save a matplotlib figure to PNG and wrap it in a Plotly image figure."""
     buf = io.BytesIO()
     try:
-        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", pad_inches=0.05)
+        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", pad_inches=0.1)
         buf.seek(0)
         img = Image.open(buf)
         width, height = img.size
@@ -1453,9 +1453,9 @@ def _mpl_figure_to_plotly(fig: plt.Figure, title: str | None = None) -> go.Figur
         "images": [{
             "source": f"data:image/png;base64,{png_b64}",
             "xref": "paper", "yref": "paper",
-            "x": 0, "y": 1,
+            "x": 0.5, "y": 0.5,
             "sizex": 1, "sizey": 1,
-            "xanchor": "left", "yanchor": "top",
+            "xanchor": "center", "yanchor": "middle",
             "sizing": "contain",
             "layer": "below",
         }],
@@ -1549,10 +1549,11 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
             cg.ax_heatmap.set_yticklabels(cg.ax_heatmap.get_yticklabels(), fontsize=7)
         title = params.get("title") or f"Top {m} most-variable features"
         cg.fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
-        # group color legend
+        # group color legend below the heatmap so it does not overlap the heatmap cells
         try:
             legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
-            cg.ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.02, 1), title="Group", fontsize=7, frameon=True)
+            ncol = min(4, max(1, len(legend_handles)))
+            cg.ax_heatmap.legend(handles=legend_handles, loc="upper center", bbox_to_anchor=(0.5, -0.18), title="Group", fontsize=7, frameon=True, ncol=ncol)
         except Exception:
             pass
         return _mpl_figure_to_plotly(cg.fig, title=None)
@@ -1563,7 +1564,8 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
         ax.set_xticklabels(ax.get_xticklabels(), rotation=90, ha="center", fontsize=7)
         ax.set_yticklabels(ax.get_yticklabels(), fontsize=7)
         legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
-        ax.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.02, 1), title="Group", fontsize=7, frameon=True)
+        ncol = min(4, max(1, len(legend_handles)))
+        ax.legend(handles=legend_handles, loc="upper center", bbox_to_anchor=(0.5, -0.18), title="Group", fontsize=7, frameon=True, ncol=ncol)
         return _mpl_figure_to_plotly(fig, params.get("title"))
 
 
@@ -1631,17 +1633,19 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     fig_width = max(8, min(24, n * 0.35 + 3))
     fig_height = max(6, min(24, m * 0.18 + 3))
     fig = plt.figure(figsize=(fig_width, fig_height))
-    gs = fig.add_gridspec(3, 3, width_ratios=[1.2, 6, 0.35], height_ratios=[0.6, 0.25, 6], wspace=0.25, hspace=0.15)
+    # dedicated legend column on the far right prevents overlap with the heatmap
+    gs = fig.add_gridspec(3, 4, width_ratios=[1.0, 6, 0.35, 1.2], height_ratios=[0.6, 0.25, 6], wspace=0.3, hspace=0.15)
 
     ax_col = fig.add_subplot(gs[0, 1])
     ax_group = fig.add_subplot(gs[1, 1])
     ax_row = fig.add_subplot(gs[2, 0])
     ax_heatmap = fig.add_subplot(gs[2, 1])
     ax_cbar = fig.add_subplot(gs[2, 2])
+    ax_legend = fig.add_subplot(gs[2, 3])
 
     try:
         if cluster_cols and n > 2:
-            col_link = linkage(pdist(z.T, metric=metric) if 'col_link' not in dir() else pdist(z.T, metric=metric), method=method)
+            col_link = linkage(pdist(z.T, metric=metric), method=method)
             scipy_dendrogram(col_link, orientation="top", no_labels=True, show_leaf_counts=False, ax=ax_col, color_threshold=0, above_threshold_color=linkage_color)
         if cluster_rows and m > 2:
             row_link = linkage(pdist(z, metric=metric), method=method)
@@ -1650,7 +1654,6 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
         pass
     ax_col.axis("off")
     ax_row.axis("off")
-    # hide any residual dendrogram leaf labels
     for txt in getattr(ax_col, "texts", []):
         txt.set_visible(False)
     for txt in getattr(ax_row, "texts", []):
@@ -1667,22 +1670,25 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     ax_heatmap.set_xticklabels(x_labels, rotation=90, ha="center", fontsize=7)
     ax_heatmap.set_yticks(range(m))
     ax_heatmap.set_yticklabels(y_labels, fontsize=7)
-    ax_heatmap.tick_params(axis='y', pad=10)
+    # put row labels on the right side, away from the row dendrogram
+    ax_heatmap.yaxis.tick_right()
+    ax_heatmap.tick_params(axis="y", labelleft=False, labelright=True, pad=8)
     ax_heatmap.set_xlabel("")
     ax_heatmap.set_ylabel("")
 
     fig.colorbar(im, cax=ax_cbar)
+    ax_cbar.tick_params(labelsize=8)
 
-    # group color legend
+    # group color legend in its own axes, outside the heatmap
     try:
         legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
-        ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.02, 1), title="Group", fontsize=7, frameon=True)
+        ax_legend.legend(handles=legend_handles, loc="center left", title="Group", fontsize=8, frameon=True)
     except Exception:
         pass
+    ax_legend.axis("off")
 
     title = params.get("title") or f"Top {m} most-variable features"
     fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
-    fig.subplots_adjust(left=0.06, right=0.94, top=0.94, bottom=0.16, wspace=0.1, hspace=0.1)
     return _mpl_figure_to_plotly(fig, title=None)
 
 
