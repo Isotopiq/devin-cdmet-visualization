@@ -664,12 +664,28 @@ def _category_volcano_figure(items, title, style, params=None):
         ),
     ), row=2, col=1)
 
+    # group legend (only visible in the legend, not on the plot)
+    group_a = params.get("group_a", "")
+    group_b = params.get("group_b", "")
+    group_colors = _group_color_map(style, [group_a, group_b])
+    for label, grp in [("A", group_a), ("B", group_b)]:
+        if grp and grp in group_colors:
+            fig.add_trace(go.Scatter(
+                x=[0], y=[0],
+                mode="markers",
+                marker=dict(color=group_colors[grp], size=10),
+                name=f"Group {label}: {grp}",
+                visible="legendonly",
+                hoverinfo="skip",
+                showlegend=True,
+            ), row=1, col=1)
+
     _apply_base_layout(fig, style, title="")
     fig.update_layout(
         xaxis=dict(title=dict(text="log2 fold change", font=dict(size=style.get("axis_label_size", 12)), standoff=18), zeroline=False, showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[min_x, max_x]),
         yaxis=dict(title=dict(text="-log10(adjusted P)", font=dict(size=style.get("axis_label_size", 12)), standoff=30), showgrid=True, gridcolor="#e5e5e5", automargin=True, range=[0, max(1.3, max_y) * 1.1]),
-        legend=dict(title=dict(text="Category"), orientation="h", yanchor="top", y=0.99, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.85)"),
-        margin=dict(l=80, r=40, t=80, b=80),
+        legend=dict(title=dict(text="Legend"), orientation="v", yanchor="top", y=1, xanchor="left", x=1.02, bgcolor="rgba(255,255,255,0.85)"),
+        margin=dict(l=80, r=140, t=80, b=80),
         plot_bgcolor="white",
         paper_bgcolor="white",
         showlegend=True,

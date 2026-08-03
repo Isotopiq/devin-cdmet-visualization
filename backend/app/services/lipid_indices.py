@@ -245,6 +245,17 @@ def _ratio_index(name, cat, num_samples, den_samples, a_idx, b_idx, desc, interp
     }
 
 
+def _label_interpretations(raw, group_a, group_b):
+    """Replace A/B placeholders in interpretation strings with actual group names."""
+    for r in raw:
+        interp = r["interpretation"].replace(" in B", f" in {group_b}")
+        # For negative log2fc, "Lower X in B" is equivalent to "Higher X in A"
+        if r["log2fc"] < 0 and interp.startswith("Lower"):
+            interp = ("Higher " + interp[6:]).replace(f" in {group_b}", f" in {group_a}", 1)
+        r["interpretation"] = interp
+    return raw
+
+
 def compute_functional_indices(df, feature_metadata, sample_meta, group_a, group_b):
     samples = df.columns.tolist()
     n = len(samples)
@@ -390,6 +401,7 @@ def compute_functional_indices(df, feature_metadata, sample_meta, group_a, group
     padjs = _bh(pvals)
     for r, p in zip(raw, padjs):
         r["padj"] = p
+    _label_interpretations(raw, group_a, group_b)
     return raw
 
 
@@ -479,4 +491,5 @@ def compute_food_profile_indices(df, feature_metadata, sample_meta, group_a, gro
     padjs = _bh(pvals)
     for r, p in zip(raw, padjs):
         r["padj"] = p
+    _label_interpretations(raw, group_a, group_b)
     return raw
