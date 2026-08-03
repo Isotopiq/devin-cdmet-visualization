@@ -1356,18 +1356,17 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     x_ticktext = [short_cols[i] for i in x_tickvals]
     x_tick_size = max(8, min(10 if long_x_labels else 13, int(300 / max(n, 1))))
     y_tick_size = max(7, min(11, int(height * 0.5 / max(m, 1))))
-    if max_x_len > 16:
-        x_tickangle = -60
+    if is_lipidone or max_x_len > 16 or (long_x_labels and n > 8):
+        x_tickangle = -90
     elif long_x_labels or n > 15:
         x_tickangle = -45
     elif n > 25:
         x_tickangle = -60
     else:
         x_tickangle = 0
-    if is_lipidone:
-        x_tickangle = -90
-        # For vertical sample labels, cap the label length so the bottom margin
-        # stays reasonable and the footer has room below the names.
+    # For vertical sample labels, cap the label length so the bottom margin
+    # stays reasonable and the footer has room below the names.
+    if is_lipidone or x_tickangle == -90:
         x_tick_size = max(8, min(10, int(300 / max(n, 1))))
         max_allowed_x_len = max(8, int((height * 0.45 - 150) / max(x_tick_size, 1)))
         if max_x_len > max_allowed_x_len:
@@ -1388,7 +1387,8 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         bottom_margin = max(180, x_label_extra + 90)
         footer_y = - (bottom_margin - 40) / height
     else:
-        x_label_extra = int(max_x_len * x_tick_size * 0.6) + 40 if x_tickangle != 0 else x_tick_size + 30
+        projection = abs(np.sin(np.radians(x_tickangle))) if x_tickangle != 0 else 0
+        x_label_extra = int(max_x_len * x_tick_size * projection) + 60 if x_tickangle != 0 else x_tick_size + 30
         bottom_margin = max(120, x_label_extra + 70)
         footer_y = None
 
@@ -1487,7 +1487,7 @@ def _mpl_figure_to_plotly(fig: plt.Figure, title: str | None = None) -> go.Figur
     """Save a matplotlib figure to PNG and wrap it in a Plotly image figure."""
     buf = io.BytesIO()
     try:
-        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", pad_inches=0.15)
+        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", pad_inches=0.25)
         buf.seek(0)
         img = Image.open(buf)
         width, height = img.size
@@ -1497,6 +1497,7 @@ def _mpl_figure_to_plotly(fig: plt.Figure, title: str | None = None) -> go.Figur
         plt.close(fig)
     layout = {
         "autosize": True,
+        "height": height,
         "images": [{
             "source": f"data:image/png;base64,{png_b64}",
             "xref": "paper", "yref": "paper",
@@ -1582,8 +1583,10 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
     center = 0 if scale == "row_zscore" else None
     standard_scale = None
 
-    fig_width = max(8, min(24, n * 0.3 + 2))
-    fig_height = max(6, min(24, m * 0.18 + 3))
+    fig_width = max(8, min(40, n * 0.35 + 2))
+    fig_height = max(6, min(40, m * 0.25 + 3))
+    y_font = max(5, min(10, int(fig_height * 36 / max(m, 1))))
+    x_font = max(5, min(10, int(fig_width * 36 / max(n, 1))))
 
     tree_kws = {"colors": linkage_color, "linewidths": 1.0}
     try:
@@ -1609,9 +1612,9 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
             tree_kws=tree_kws,
         )
         if cg.ax_heatmap.get_xticklabels():
-            cg.ax_heatmap.set_xticklabels(cg.ax_heatmap.get_xticklabels(), rotation=90, ha="center", fontsize=7)
+            cg.ax_heatmap.set_xticklabels(cg.ax_heatmap.get_xticklabels(), rotation=90, ha="center", fontsize=x_font)
         if cg.ax_heatmap.get_yticklabels():
-            cg.ax_heatmap.set_yticklabels(cg.ax_heatmap.get_yticklabels(), fontsize=7)
+            cg.ax_heatmap.set_yticklabels(cg.ax_heatmap.get_yticklabels(), fontsize=y_font)
         title = params.get("title") or f"Top {m} most-variable features"
         cg.fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
         # group color legend below the heatmap
@@ -1646,8 +1649,8 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
         ax_group.set_yticks([])
         ax_group.set_frame_on(False)
         sns.heatmap(plot_df, cmap=cmap, center=center, ax=ax_heatmap, mask=mask, cbar=True, xticklabels=True, yticklabels=True)
-        ax_heatmap.set_xticklabels(ax_heatmap.get_xticklabels(), rotation=90, ha="center", fontsize=7)
-        ax_heatmap.set_yticklabels(ax_heatmap.get_yticklabels(), fontsize=7)
+        ax_heatmap.set_xticklabels(ax_heatmap.get_xticklabels(), rotation=90, ha="center", fontsize=x_font)
+        ax_heatmap.set_yticklabels(ax_heatmap.get_yticklabels(), fontsize=y_font)
         legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
         ncol = min(4, max(1, len(legend_handles)))
         ax_heatmap.legend(handles=legend_handles, loc="upper center", bbox_to_anchor=(0.5, -0.18), title="Group", fontsize=7, frameon=True, ncol=ncol)
@@ -1717,8 +1720,10 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     y_labels = [_shorten_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx, 40) for idx in plot_df.index[row_order]]
     x_labels = [_shorten_name(plot_df.columns[i], 35) for i in col_order]
 
-    fig_width = max(8, min(24, n * 0.35 + 3))
-    fig_height = max(6, min(24, m * 0.18 + 3))
+    fig_width = max(8, min(40, n * 0.4 + 3))
+    fig_height = max(6, min(40, m * 0.25 + 3))
+    y_font = max(5, min(10, int(fig_height * 36 / max(m, 1))))
+    x_font = max(5, min(10, int(fig_width * 36 / max(n, 1))))
     fig = plt.figure(figsize=(fig_width, fig_height))
     gs = fig.add_gridspec(3, 4, width_ratios=[1.2, 6, 0.35, 1.5], height_ratios=[0.6, 0.25, 6], wspace=0.35, hspace=0.15)
 
@@ -1751,9 +1756,9 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
 
     im = ax_heatmap.imshow(z, aspect="auto", cmap=cmap, vmin=vmin, vmax=vmax, interpolation="nearest")
     ax_heatmap.set_xticks(range(n))
-    ax_heatmap.set_xticklabels(x_labels, rotation=90, ha="center", fontsize=7)
+    ax_heatmap.set_xticklabels(x_labels, rotation=90, ha="center", fontsize=x_font)
     ax_heatmap.set_yticks(range(m))
-    ax_heatmap.set_yticklabels(y_labels, fontsize=6)
+    ax_heatmap.set_yticklabels(y_labels, fontsize=y_font)
     # keep row labels on the left with extra padding so dendrogram lines and labels do not overlap
     ax_heatmap.yaxis.tick_left()
     ax_heatmap.tick_params(axis="y", labelleft=True, labelright=False, pad=15)
@@ -1977,6 +1982,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 group_colorscale = [[i / (n_groups - 1), gcolor_map[g]] for i, g in enumerate(group_order)]
 
             m, n = plot_df.shape
+            height = max(600, min(1600, m * 16 + 260))
             feature_ids = [feature_metadata[i].get("feature_id", i) if i < len(feature_metadata) else i for i in plot_df.index]
             short_cols = [_shorten_name(c) for c in plot_df.columns]
             short_rows = [_shorten_name(str(fid), 18) for fid in feature_ids]
@@ -1989,26 +1995,30 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             x_tickvals = list(range(0, n, x_step))
             x_ticktext = [short_cols[i] for i in x_tickvals]
             x_tick_size = max(8, min(10 if long_x_labels else 13, int(300 / max(n, 1))))
-            y_tick_size = max(8, min(12, int(320 / max(m, 1))))
-            if max_x_len > 16:
-                x_tickangle = -60
+            y_tick_size = max(7, min(11, int(height * 0.5 / max(m, 1))))
+            if max_x_len > 16 or (long_x_labels and n > 8):
+                x_tickangle = -90
             elif long_x_labels or n > 15:
                 x_tickangle = -45
             elif n > 25:
                 x_tickangle = -60
             else:
                 x_tickangle = 0
-            y_step = _tick_text_step(m, max_labels=35)
+            # Allow one label per row as long as there is ~14 px of vertical space per label.
+            y_step = _tick_text_step(m, max_labels=max(1, int(height / 14)))
             y_tickvals = feature_ids[::y_step]
             y_ticktext = short_rows[::y_step]
 
             max_group_len = max([len(str(g)) for g in group_order], default=0)
             group_legend_width = max_group_len * 8 + 55
-            right_margin = max(220, int(max_y_len * y_tick_size * 0.65) + 130 + group_legend_width)
-            x_label_extra = int(max_x_len * x_tick_size * 0.6) + 40 if x_tickangle != 0 else x_tick_size + 30
+            right_margin = max(260, int(max_y_len * y_tick_size * 0.75) + 150 + group_legend_width)
+            projection = abs(np.sin(np.radians(x_tickangle))) if x_tickangle != 0 else 0
+            x_label_extra = int(max_x_len * x_tick_size * projection) + 60 if x_tickangle != 0 else x_tick_size + 30
             bottom_margin = max(110, x_label_extra + 70)
 
-            fig = make_subplots(rows=2, cols=1, shared_xaxes=False, vertical_spacing=0.02, row_heights=[0.08, 0.92])
+            group_frac = 50 / height
+            heatmap_frac = max(0.5, 0.98 - group_frac)
+            fig = make_subplots(rows=2, cols=1, shared_xaxes=False, vertical_spacing=0.02, row_heights=[group_frac, heatmap_frac])
             fig.add_trace(go.Heatmap(
                 z=[group_codes],
                 x=list(range(n)),
@@ -2037,7 +2047,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     tickfont={"size": 9},
                 ),
                 hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
-                customdata=np.array([[[_shorten_name(str(feature_ids[i]), 18), _shorten_name(c)] for c in plot_df.columns] for i in range(m)]),
+                customdata=np.array([[[_shorten_name(str(feature_ids[i]), 18), _shorten_name(c, 60)] for c in plot_df.columns] for i in range(m)]),
             ), row=2, col=1)
 
             for g in group_order:
@@ -2075,6 +2085,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     "pad": {"b": 20},
                 },
                 margin={"l": 80, "r": right_margin, "t": 100, "b": bottom_margin},
+                height=height,
             )
             fig.update_xaxes(range=[-0.5, n - 0.5], showticklabels=False, showgrid=False, zeroline=False, row=1, col=1)
             fig.update_xaxes(
