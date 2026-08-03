@@ -2260,6 +2260,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
         y_thr = -np.log10(padj_thresh)
         x_abs = max(abs(min([p["lfc"] for p in points] or [-1], default=-1)), abs(max([p["lfc"] for p in points] or [1], default=1)), fc_thresh)
+        x_pad = max(x_abs * 0.08, 0.2)
         y_max = max(max([p["neglogp"] for p in points] or [0], default=0), y_thr * 1.25) * 1.45
         line_color = "#475569"
         fig.add_hline(y=y_thr, line_dash="dash", line_color=line_color, line_width=1.5)
@@ -2271,7 +2272,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         )
         _apply_base_layout(fig, style, title="Volcano Plot")
         fig.update_layout(margin=dict(l=80, r=90, t=140, b=70))
-        fig.update_xaxes(range=[-x_abs, x_abs])
+        fig.update_xaxes(range=[-x_abs - x_pad, x_abs + x_pad])
         fig.update_yaxes(range=[0, y_max])
 
         if show_labels and top_n > 0 and points:
@@ -2282,7 +2283,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 x_vals = [p["lfc"] for p in top]
                 y_vals = [p["neglogp"] for p in top]
                 labels = [_shorten_name(p["name"], 35) for p in top]
-                x_min, x_max = -x_abs, x_abs
+                x_min, x_max = -x_abs - x_pad, x_abs + x_pad
                 y_min, y_max = 0, y_max
                 positions = list(_place_labels(x_vals, y_vals, labels, x_min, x_max, y_min, y_max))
                 fig.add_trace(go.Scatter(
