@@ -108,10 +108,16 @@ export const getAnalysisCount = () => API.get('/admin/analyses/count')
 export const resetAnalyses = () => API.post('/admin/analyses/reset')
 export const exportDataset = (projectId: number, datasetId: number, format: 'metaboanalyst' | 'lipidone') =>
   API.get(`/analysis/${projectId}/dataset/${datasetId}/export`, { params: { format }, responseType: 'blob' })
-export const getQC = (projectId: number, datasetId: number, selectedGroups: string[] = []) =>
-  API.get(`/analysis/${projectId}/dataset/${datasetId}/qc`, { params: selectedGroups.length ? { selected_groups: selectedGroups } : {} })
-export const exportQCExcel = (projectId: number, datasetId: number, selectedGroups: string[] = []) =>
-  API.get(`/analysis/${projectId}/dataset/${datasetId}/qc/excel`, { params: selectedGroups.length ? { selected_groups: selectedGroups } : {}, responseType: 'blob' })
+export const getQC = (projectId: number, datasetId: number, selectedGroups: string[] = []) => {
+  const params = new URLSearchParams()
+  selectedGroups.forEach((g) => params.append('selected_groups', g))
+  return API.get(`/analysis/${projectId}/dataset/${datasetId}/qc`, { params })
+}
+export const exportQCExcel = (projectId: number, datasetId: number, selectedGroups: string[] = []) => {
+  const params = new URLSearchParams()
+  selectedGroups.forEach((g) => params.append('selected_groups', g))
+  return API.get(`/analysis/${projectId}/dataset/${datasetId}/qc/excel`, { params, responseType: 'blob' })
+}
 export const exportQCPdf = (projectId: number, datasetId: number, selectedGroups: string[] = []) =>
   API.post(`/analysis/${projectId}/dataset/${datasetId}/qc/pdf`, selectedGroups.length ? { selected_groups: selectedGroups } : {}, { responseType: 'blob' })
 export const generatePDFReport = (projectId: number, datasetId: number, data: any) =>
