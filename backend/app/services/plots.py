@@ -1267,8 +1267,9 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         group_colorscale = [[i / (n_groups - 1), gcolor_map[g]] for i, g in enumerate(group_order)]
 
     m, n = plot_df.shape
-    height = max(600, min(2400, m * 16 + 260))
     is_lipidone = params.get("heatmap_style") == "lipidone"
+    min_height = 800 if is_lipidone else 600
+    height = max(min_height, min(2400, m * 16 + 260))
     feature_ids = [feature_metadata[i].get("feature_id", i) if i < len(feature_metadata) else i for i in plot_df.index]
     # Keep the top dendrogram and group color bar at fixed pixel heights so they do not
     # become oversized when the overall figure grows for larger top-N values.
@@ -1328,7 +1329,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
             tickfont={"size": 9},
         ),
         hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
-        customdata=np.array([[[_shorten_name(str(feature_ids[i]), 18), _shorten_name(c)] for c in plot_df.columns] for i in range(m)]),
+        customdata=np.array([[[_shorten_name(str(feature_ids[i]), 18), _shorten_name(c, 60)] for c in plot_df.columns] for i in range(m)]),
     ), row=3, col=2)
 
     max_top = max(np.nanmax(np.abs(y_dend)) if (col_link is not None and y_dend) else 1.0, 1.0)
@@ -1365,6 +1366,17 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         x_tickangle = 0
     if is_lipidone:
         x_tickangle = -90
+        # For vertical sample labels, cap the label length so the bottom margin
+        # stays reasonable and the footer has room below the names.
+        x_tick_size = max(8, min(10, int(300 / max(n, 1))))
+        max_allowed_x_len = max(8, int((height * 0.45 - 150) / max(x_tick_size, 1)))
+        if max_x_len > max_allowed_x_len:
+            short_cols = [_shorten_name(c, max_allowed_x_len) for c in plot_df.columns]
+            max_x_len = max_allowed_x_len
+        long_x_labels = max_x_len > 12
+        x_step = _tick_text_step(n, max_labels=18 if long_x_labels else 25)
+        x_tickvals = list(range(0, n, x_step))
+        x_ticktext = [short_cols[i] for i in x_tickvals]
     # Allow one label per row as long as there is ~14 px of vertical space per label.
     y_step = _tick_text_step(m, max_labels=max(1, int(height / 14)))
 
@@ -1372,9 +1384,9 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     group_legend_width = max_group_len * 8 + 55
     right_margin = max(260, int(max_y_len * y_tick_size * 0.75) + 150 + group_legend_width)
     if is_lipidone:
-        x_label_extra = max_x_len * x_tick_size + 30
-        bottom_margin = max(180, x_label_extra + 70)
-        footer_y = - (bottom_margin - 50) / height
+        x_label_extra = max_x_len * x_tick_size + 60
+        bottom_margin = max(180, x_label_extra + 90)
+        footer_y = - (bottom_margin - 40) / height
     else:
         x_label_extra = int(max_x_len * x_tick_size * 0.6) + 40 if x_tickangle != 0 else x_tick_size + 30
         bottom_margin = max(120, x_label_extra + 70)
