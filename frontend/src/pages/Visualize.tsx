@@ -123,7 +123,10 @@ export default function Visualize() {
     setIncludedGroups(new Set(groups))
     setGroupOrder([...groups].sort())
     setReady(true)
-  }, [groups])
+    if (groups.length <= 2 && (perLipidTest === 'anova' || perLipidTest === 'kruskal')) {
+      setPerLipidTest('t_test')
+    }
+  }, [groups, perLipidTest])
 
   useEffect(() => {
     setIncludedGroups((prev) => new Set([...Array.from(prev), groupA, groupB].filter(Boolean)))
@@ -540,7 +543,7 @@ export default function Visualize() {
           <div className="grid grid-cols-2 md:grid-cols-8 gap-3 items-end">
             <div><label className="label-like">Group A</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
             <div><label className="label-like">Group B</label><select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
-            <div><label className="label-like">Test</label><select value={perLipidTest} onChange={(e) => setPerLipidTest(e.target.value)} className="input"><option value="t_test">t-test</option><option value="welch">Welch</option><option value="mannwhitney">Mann-Whitney</option><option value="anova">ANOVA</option><option value="kruskal">Kruskal-Wallis</option></select></div>
+            <div><label className="label-like">Test</label><select value={perLipidTest} onChange={(e) => setPerLipidTest(e.target.value)} className="input"><option value="t_test">t-test</option><option value="welch">Welch</option><option value="mannwhitney">Mann-Whitney</option>{groups.length > 2 && <><option value="anova">ANOVA</option><option value="kruskal">Kruskal-Wallis</option></>}</select></div>
             <div><label className="label-like">Lipids/page</label><select value={lipidsPerPage} onChange={(e) => setLipidsPerPage(Number(e.target.value))} className="input">{LIPIDS_PER_PAGE.map(n => <option key={n} value={n}>{n}</option>)}</select></div>
             <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="allLipids" checked={allLipids} onChange={(e) => setAllLipids(e.target.checked)} /><label htmlFor="allLipids">All lipids</label></div>
             <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>

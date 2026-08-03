@@ -755,23 +755,25 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params, histor
         ), row=1, col=1)
 
     summary = result.get("summary", {})
+    group_colors = _group_color_map(style, [group_a, group_b])
+
     by_type = summary.get("by_type", {})
     types = sorted({k for d in by_type.values() for k in d.keys()})
     for g in [group_a, group_b]:
         vals = [max(by_type.get(g, {}).get(t, 0.0), 0.0) for t in types]
-        fig.add_trace(go.Bar(name=g, x=types, y=vals), row=1, col=2)
+        fig.add_trace(go.Bar(name=g, x=types, y=vals, marker_color=group_colors.get(g)), row=1, col=2)
 
     by_carbon = summary.get("by_carbon", {})
     carbons = sorted({k for d in by_carbon.values() for k in d.keys()})
     for g in [group_a, group_b]:
         vals = [max(by_carbon.get(g, {}).get(c, 0.0), 0.0) for c in carbons]
-        fig.add_trace(go.Bar(name=g, x=[str(c) for c in carbons], y=vals, showlegend=False), row=2, col=1)
+        fig.add_trace(go.Bar(name=g, x=[str(c) for c in carbons], y=vals, marker_color=group_colors.get(g), showlegend=False), row=2, col=1)
 
     by_db = summary.get("by_db", {})
     dbs = sorted({k for d in by_db.values() for k in d.keys()})
     for g in [group_a, group_b]:
         vals = [max(by_db.get(g, {}).get(d, 0.0), 0.0) for d in dbs]
-        fig.add_trace(go.Bar(name=g, x=[str(d) for d in dbs], y=vals, showlegend=False), row=2, col=2)
+        fig.add_trace(go.Bar(name=g, x=[str(d) for d in dbs], y=vals, marker_color=group_colors.get(g), showlegend=False), row=2, col=2)
 
     fig.update_xaxes(title_text="Carbon atoms", row=1, col=1)
     fig.update_yaxes(title_text="Double bonds", row=1, col=1)
