@@ -98,6 +98,7 @@ export default function Visualize() {
   const [heatmapMetric, setHeatmapMetric] = useState('euclidean')
   const [heatmapMethod, setHeatmapMethod] = useState('average')
   const [heatmapTopN, setHeatmapTopN] = useState(50)
+  const [heatmapTopNInput, setHeatmapTopNInput] = useState('50')
   const [heatmapStyle, setHeatmapStyle] = useState<'default' | 'publication' | 'lipidone' | 'seaborn' | 'matplotlib'>('default')
   const [rowCluster, setRowCluster] = useState(true)
   const [colCluster, setColCluster] = useState(true)
@@ -131,6 +132,14 @@ export default function Visualize() {
   useEffect(() => {
     setIncludedGroups((prev) => new Set([...Array.from(prev), groupA, groupB].filter(Boolean)))
   }, [groupA, groupB])
+
+  // Debounce heatmap Top N so typing "25" doesn't fire a request for "2" first
+  useEffect(() => {
+    const n = parseInt(heatmapTopNInput, 10)
+    if (isNaN(n) || n < 1) return
+    const timer = setTimeout(() => setHeatmapTopN(n), 400)
+    return () => clearTimeout(timer)
+  }, [heatmapTopNInput])
 
   const backendStyle = styleToBackend(style)
   const excludedGroups = useMemo(() => groups.filter((g) => !includedGroups.has(g)), [groups, includedGroups])
@@ -491,7 +500,7 @@ export default function Visualize() {
             <div><label className="label-like">Scale</label><select value={heatmapScale} onChange={(e) => setHeatmapScale(e.target.value)} className="input">{SCALES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
             <div><label className="label-like">Distance</label><select value={heatmapMetric} onChange={(e) => setHeatmapMetric(e.target.value)} className="input">{METRICS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
             <div><label className="label-like">Linkage</label><select value={heatmapMethod} onChange={(e) => setHeatmapMethod(e.target.value)} className="input">{METHODS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
-            <div><label className="label-like">Top N</label><input type="number" min={5} value={heatmapTopN} onChange={(e) => setHeatmapTopN(Number(e.target.value))} className="input" /></div>
+            <div><label className="label-like">Top N</label><input type="number" min={5} value={heatmapTopNInput} onChange={(e) => setHeatmapTopNInput(e.target.value)} onBlur={() => { const n = parseInt(heatmapTopNInput, 10); if (!isNaN(n) && n >= 1) { setHeatmapTopNInput(String(n)); setHeatmapTopN(n) } }} className="input" /></div>
             <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="rowCluster" checked={rowCluster} onChange={(e) => setRowCluster(e.target.checked)} /><label htmlFor="rowCluster">Rows</label></div>
             <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="colCluster" checked={colCluster} onChange={(e) => setColCluster(e.target.checked)} /><label htmlFor="colCluster">Cols</label></div>
             <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
