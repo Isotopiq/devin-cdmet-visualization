@@ -1,0 +1,102 @@
+colors:
+  deep: "#13086a"
+  mid: "#2b1782"
+  header: "#2b1782"
+  teal: "#00c4a8"
+  green: "#22c55e"
+  red: "#ef4444"
+  blue: "#3b82f6"
+  gray: "#94a3b8"
+  cover_gradient:
+    - "#0d0550"
+    - "#1e1070"
+    - "#3528aa"
+    - "#2b1782"
+  page_background: "#f2f0fb"
+  card_background: "#ffffff"
+  text: "#1a1040"
+  text_muted: "#6b5fa0"
+  border: "#e2e8f0"
+
+cover_styles:
+  classic:
+    name: "Classic Deep"
+    gradient:
+      - "#0d0550"
+      - "#1e1070"
+      - "#3528aa"
+      - "#2b1782"
+    text_color: "#ffffff"
+    accent: "#00c4a8"
+  minimal:
+    name: "Clean Minimal"
+    gradient:
+      - "#ffffff"
+      - "#f8f6ff"
+    text_color: "#1a1040"
+    accent: "#2b1782"
+  teal:
+    name: "Ocean Teal"
+    gradient:
+      - "#0a3d35"
+      - "#0d5c50"
+      - "#05423a"
+      - "#062e28"
+    text_color: "#ffffff"
+    accent: "#6ee7b7"
+  split:
+    name: "Split Panel"
+    gradient:
+      - "#13086a"
+      - "#13086a"
+    text_color: "#ffffff"
+    accent: "#00c4a8"
+    sidebar_width: 0.38
+
+page:
+  width_mm: 210
+  height_mm: 297
+  margin_left: 12
+  margin_right: 12
+  header_height: 22
+  footer_height: 12
+  card_radius: 5
+
+network:
+  nodes:
+    - { x: 210, y: 35, r: 7, c: "white" }
+    - { x: 265, y: 58, r: 5, c: "#00c4a8" }
+    - { x: 310, y: 30, r: 5, c: "white" }
+    - { x: 340, y: 75, r: 8, c: "white" }
+    - { x: 295, y: 110, r: 5, c: "#fbbf24" }
+    - { x: 250, y: 130, r: 7, c: "#00c4a8" }
+    - { x: 220, y: 90, r: 5, c: "white" }
+    - { x: 360, y: 135, r: 5, c: "white" }
+    - { x: 390, y: 90, r: 5, c: "white" }
+    - { x: 330, y: 55, r: 4, c: "#00c4a8" }
+    - { x: 380, y: 50, r: 5, c: "white" }
+    - { x: 185, y: 65, r: 5, c: "white" }
+    - { x: 270, y: 170, r: 6, c: "#fbbf24" }
+    - { x: 400, y: 160, r: 5, c: "white" }
+    - { x: 430, y: 110, r: 5, c: "#00c4a8" }
+  edges:
+    - [0, 1]
+    - [1, 2]
+    - [0, 6]
+    - [1, 5]
+    - [2, 3]
+    - [3, 9]
+    - [9, 10]
+    - [3, 4]
+    - [4, 5]
+    - [5, 6]
+    - [6, 11]
+    - [3, 7]
+    - [7, 8]
+    - [8, 14]
+    - [14, 13]
+    - [7, 12]
+    - [12, 5]
+    - [4, 13]
+    - [10, 8]
+    - [1, 9]

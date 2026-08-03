@@ -1,13 +1,17 @@
 import io
 import datetime as dt
 import json
+import math
 import warnings
-import numpy as np
-import pandas as pd
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import yaml
+import numpy as np
+import pandas as pd
+from PIL import Image, ImageDraw
 from fpdf import FPDF
+from fpdf.enums import RenderStyle, Corner
 import plotly.graph_objects as go
 
 from app import models, schemas
@@ -15,70 +19,610 @@ from app.services.preprocessing import to_dataframe
 from app.services.stats import run_statistical_test
 from app.services.plots import generate_plot
 
-# Kaleido 0.2.1 is required for headless Plotly->PNG export in this container;
-# newer versions need a separate Chrome install. Silence its deprecation chatter.
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"(?s).*Kaleido versions less than 1\.0\.0.*")
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"(?s).*Use of plotly\.io\.kaleido\.scope.*")
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"(?s).*setDaemon.*")
 
 
+_ASSET_DIR = Path(__file__).parent.parent / "assets" / "report_template"
+_TEMPLATE_CONFIG: Dict[str, Any] = {}
+
+
+def _load_template_config() -> Dict[str, Any]:
+    global _TEMPLATE_CONFIG
+    if not _TEMPLATE_CONFIG:
+        config_path = _ASSET_DIR / "template_config.yaml"
+        if config_path.exists():
+            with open(config_path) as f:
+                _TEMPLATE_CONFIG = yaml.safe_load(f) or {}
+        else:
+            _TEMPLATE_CONFIG = {}
+    return _TEMPLATE_CONFIG
+
+
+def _hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
+    h = hex_color.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _contrast_text(hex_color: str) -> str:
+    r, g, b = _hex_to_rgb(hex_color)
+    brightness = (r * 299 + g * 587 + b * 114) / 1000
+    return "#0d4a3d" if brightness > 128 else "#ffffff"
+
+
+def _rgba(hex_color: str, alpha: int = 255) -> Tuple[int, int, int, int]:
+    r, g, b = _hex_to_rgb(hex_color)
+    return r, g, b, alpha
+
+
+def _color(pdf: FPDF, hex_color: str):
+    r, g, b = _hex_to_rgb(hex_color)
+    pdf.set_text_color(r, g, b)
+
+
+def _fill(pdf: FPDF, hex_color: str):
+    r, g, b = _hex_to_rgb(hex_color)
+    pdf.set_fill_color(r, g, b)
+
+
+def _draw_color(pdf: FPDF, hex_color: str):
+    r, g, b = _hex_to_rgb(hex_color)
+    pdf.set_draw_color(r, g, b)
+
+
+def _named_rgba(name: str, alpha: int = 255) -> Tuple[int, int, int, int]:
+    cmap = {
+        "white": "#ffffff",
+        "teal": "#00c4a8",
+        "green": "#22c55e",
+        "red": "#ef4444",
+        "blue": "#3b82f6",
+        "gray": "#94a3b8",
+        "amber": "#fbbf24",
+        "purple": "#a78bfa",
+    }
+    return _rgba(cmap.get(name.lower(), name), alpha)
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Cover image generation
+# ───────────────────────────────────────────────────────────────────────────────
+
+def _gradient_array(width: int, height: int, hex_stops: List[str]) -> np.ndarray:
+    colors = np.array([_hex_to_rgb(c) for c in hex_stops], dtype=np.float32)
+    stops = np.linspace(0, 1, len(hex_stops))
+    xs = np.arange(width)
+    ys = np.arange(height)[:, None]
+    t = (xs + ys) / (width + height)
+    t = np.clip(t, 0, 1)
+    idx = np.searchsorted(stops, t, side="right") - 1
+    idx = np.clip(idx, 0, len(colors) - 2)
+    t0 = stops[idx]
+    t1 = stops[idx + 1]
+    local = np.where(t1 > t0, (t - t0) / (t1 - t0), 0)[..., None]
+    arr = colors[idx] + (colors[idx + 1] - colors[idx]) * local
+    return arr.astype(np.uint8)
+
+
+def _create_cover_png(style_key: str, width_px: int, height_px: int) -> Image.Image:
+    cfg = _load_template_config()
+    style_cfg = cfg.get("cover_styles", {}).get(style_key) or cfg.get("cover_styles", {}).get("classic", {})
+    gradient = style_cfg.get("gradient")
+    if not gradient:
+        gradient = cfg.get("colors", {}).get("cover_gradient", ["#0d0550", "#1e1070", "#3528aa", "#2b1782"])
+
+    rgb = _gradient_array(width_px, height_px, gradient)
+    img = Image.fromarray(rgb, "RGB").convert("RGBA")
+    draw = ImageDraw.Draw(img)
+
+    # Subtle radial circle in top-right (approximate the Figma "radial-gradient")
+    circle = Image.new("RGBA", (width_px, height_px), (0, 0, 0, 0))
+    cdraw = ImageDraw.Draw(circle)
+    r = int(min(width_px, height_px) * 0.45)
+    cx = int(width_px * 0.85)
+    cy = int(height_px * 0.15)
+    for i in range(r, 0, -1):
+        alpha = int(25 * (i / r))
+        cdraw.ellipse([(cx - i, cy - i), (cx + i, cy + i)], fill=(167, 139, 250, alpha))
+    img = Image.alpha_composite(img, circle)
+    draw = ImageDraw.Draw(img)
+
+    # Network overlay
+    network = cfg.get("network", {})
+    nodes = network.get("nodes", [])
+    edges = network.get("edges", [])
+    if nodes and edges:
+        svg_min_x, svg_min_y = 140, 0
+        svg_w, svg_h = 320, 240
+        tx = int(width_px * 0.52)
+        ty = 0
+        tw = int(width_px * 0.48)
+        th = int(height_px * 0.85)
+
+        def to_px(pt):
+            x = tx + (pt["x"] - svg_min_x) / svg_w * tw
+            y = ty + (pt["y"] - svg_min_y) / svg_h * th
+            return x, y
+
+        for a, b in edges:
+            if 0 <= a < len(nodes) and 0 <= b < len(nodes):
+                x1, y1 = to_px(nodes[a])
+                x2, y2 = to_px(nodes[b])
+                draw.line([(x1, y1), (x2, y2)], fill=(255, 255, 255, 100), width=1)
+
+        scale = tw / svg_w
+        for n in nodes:
+            px, py = to_px(n)
+            r = max(2, n["r"] * scale)
+            fill = _named_rgba(n["c"], int(255 * 0.85))
+            draw.ellipse([(px - r, py - r), (px + r, py + r)], fill=fill)
+
+    # Round the corners so the image fits inside the card rounded rect
+    radius = int(min(width_px, height_px) * 0.025)
+    mask = Image.new("L", (width_px, height_px), 0)
+    mdraw = ImageDraw.Draw(mask)
+    mdraw.rounded_rectangle([(0, 0), (width_px, height_px)], radius=radius, fill=255)
+    img.putalpha(mask)
+    return img
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# PDF document class
+# ───────────────────────────────────────────────────────────────────────────────
+
 class _ReportPDF(FPDF):
-    def __init__(self):
+    def __init__(self, style: Optional[Dict[str, Any]] = None):
         super().__init__("P", "mm", "A4")
+        self.cfg = _load_template_config()
+        self.style = style or {}
         self._set_fonts()
+        self.set_auto_page_break(False)
+        self.margin = 12
+        self.header_h = 14
+        self.footer_h = 10
+        self.card_radius = 5
 
     def _set_fonts(self):
-        regular = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-        bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        if Path(regular).exists() and Path(bold).exists():
-            self.add_font("DejaVu", "", regular)
-            self.add_font("DejaVu", "B", bold)
-        else:
-            regular = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
-            bold = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+        candidates = [
+            (
+                "DejaVu",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            ),
+            (
+                "Liberation",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+            ),
+        ]
+        self.font_family = "Helvetica"
+        for family, regular, bold in candidates:
             if Path(regular).exists() and Path(bold).exists():
-                self.add_font("Liberation", "", regular)
-                self.add_font("Liberation", "B", bold)
-
-    def set_body_font(self, size=11, style=""):
-        for family in ["DejaVu", "Liberation", "Helvetica"]:
-            try:
-                self.set_font(family, style, size)
+                self.add_font(family, "", regular)
+                self.add_font(family, "B", bold)
+                self.font_family = family
                 return
-            except RuntimeError:
+
+    def set_body_font(self, size: int = 11, style: str = ""):
+        try:
+            self.set_font(self.font_family, style, size)
+        except RuntimeError:
+            self.set_font("Helvetica", style, size)
+
+    def _rounded_rect(
+        self,
+        x: float,
+        y: float,
+        w: float,
+        h: float,
+        r: float,
+        corners: Optional[Tuple[Any, ...]] = None,
+        style: str = "DF",
+    ):
+        if corners is None:
+            corners = (Corner.TOP_LEFT, Corner.TOP_RIGHT, Corner.BOTTOM_LEFT, Corner.BOTTOM_RIGHT)
+        render = RenderStyle.DF if style == "DF" else (RenderStyle.F if style == "F" else RenderStyle.D)
+        self._draw_rounded_rect(x, y, w, h, render, corners, r)
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Page chrome
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _page_header(self, title: str, organization: str):
+        deep = self.cfg.get("colors", {}).get("deep", "#13086a")
+        x, y = self.margin, 8
+        w = self.w - 2 * self.margin
+        _fill(self, deep)
+        _draw_color(self, deep)
+        self._rounded_rect(x, y, w, self.header_h, 4, style="F")
+
+        _color(self, "#ffffff")
+        self.set_body_font(10, "B")
+        self.set_xy(x + 5, y + 4)
+        self.cell(w * 0.7, 6, title, align="L")
+        self.set_body_font(9, "")
+        self.set_xy(x + w * 0.65, y + 4)
+        self.cell(w * 0.27, 6, organization, align="R")
+
+    def _page_footer(self, page: int, footer_text: str, date_str: str):
+        x = self.margin
+        w = self.w - 2 * self.margin
+        y = self.h - self.footer_h
+        _color(self, "#94a3b8")
+        self.set_body_font(8)
+        self.set_xy(x, y)
+        self.cell(w * 0.8, 5, f"Generated {date_str} | {footer_text}", align="L")
+        self.set_xy(x + w * 0.75, y)
+        self.cell(w * 0.17, 5, f"Page {page}", align="R")
+
+    def _content_card(self, title: str, y: float, h: float) -> float:
+        x = self.margin
+        w = self.w - 2 * self.margin
+        _fill(self, "#ffffff")
+        _draw_color(self, "#e2e8f0")
+        self._rounded_rect(x, y, w, h, self.card_radius, style="DF")
+
+        _color(self, "#1a1040")
+        self.set_body_font(13, "B")
+        self.set_xy(x + 6, y + 6)
+        self.cell(w - 12, 7, title, align="L")
+        return y + 16
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Cover
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _draw_cover(self):
+        self.add_page("P")
+        style_key = self.style.get("cover_style", "classic")
+        style_cfg = self.cfg.get("cover_styles", {}).get(style_key) or self.cfg.get("cover_styles", {}).get("classic", {})
+        text_color = style_cfg.get("text_color", "#ffffff")
+        accent = style_cfg.get("accent", "#00c4a8")
+
+        page_w = self.w
+        margin = self.margin
+        card_x = margin
+        card_y = 16
+        card_w = page_w - 2 * margin
+        card_h = 130
+
+        if style_key == "minimal":
+            # Light cover card
+            _fill(self, "#ffffff")
+            _draw_color(self, "#e2e8f0")
+            self._rounded_rect(card_x, card_y, card_w, card_h, self.card_radius, style="DF")
+            # subtle light gradient overlay
+            try:
+                px_per_mm = 4
+                img = _create_cover_png("minimal", int(card_w * px_per_mm), int(card_h * px_per_mm))
+                self.image(img, x=card_x, y=card_y, w=card_w)
+            except Exception:
                 pass
-        self.set_font("Helvetica", style, size)
+        else:
+            px_per_mm = 4
+            img = _create_cover_png(style_key, int(card_w * px_per_mm), int(card_h * px_per_mm))
+            self.image(img, x=card_x, y=card_y, w=card_w)
+
+        # Logo
+        logo_path = _ASSET_DIR / ("logo.png" if style_key == "minimal" else "logo_white.png")
+        if logo_path.exists():
+            self.image(str(logo_path), x=card_x + 6, y=card_y + 6, w=35)
+
+        _color(self, text_color)
+        # Organization line
+        self.set_xy(card_x + 6, card_y + 24)
+        self.set_body_font(9, "B")
+        organization = self.style.get("organization", "UCLA Metabolomics Center")
+        self.cell(card_w * 0.55, 5, organization.upper(), align="L")
+
+        # Title
+        self.set_xy(card_x + 6, card_y + 32)
+        self.set_body_font(22, "B")
+        title = self.style.get("title") or "Statistical Report"
+        self.multi_cell(card_w * 0.62, 12, title, align="L")
+
+        # Report type tag
+        tag_y = self.get_y() + 4
+        report_type = self.style.get("report_type") or "Lipidomics Statistical Report"
+        tag_w = self.get_string_width(report_type) + 8
+        _fill(self, accent)
+        _draw_color(self, accent)
+        self._rounded_rect(card_x + 6, tag_y, tag_w, 7, 3, style="F")
+        _color(self, _contrast_text(accent))
+        self.set_xy(card_x + 6, tag_y + 1.5)
+        self.set_body_font(9, "B")
+        self.cell(tag_w, 4, report_type, align="C")
+
+        # Description
+        desc = self.style.get("description", "")
+        if desc:
+            _color(self, text_color)
+            self.set_xy(card_x + 6, tag_y + 12)
+            self.set_body_font(9)
+            self.multi_cell(card_w * 0.62, 5, desc, align="L")
+
+        # Tags
+        tags = self.style.get("tags") or _default_tags(self.style.get("sections", []))
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()][:6]
+        tag_y = self.get_y() + 4
+        x_off = card_x + 6
+        for i, tag in enumerate(tag_list):
+            tag_w = self.get_string_width(tag) + 8
+            if x_off + tag_w > card_x + card_w * 0.55:
+                x_off = card_x + 6
+                tag_y += 9
+            if i % 2 == 0:
+                _fill(self, accent)
+                _color(self, _contrast_text(accent))
+            else:
+                _fill(self, style_cfg.get("gradient", ["#0d0550"])[0] if style_key != "minimal" else "#ffffff")
+                _draw_color(self, accent)
+                _color(self, accent)
+            self._rounded_rect(x_off, tag_y, tag_w, 7, 3, style="F")
+            self.set_xy(x_off, tag_y + 1.5)
+            self.set_body_font(8, "B")
+            self.cell(tag_w, 4, tag, align="C")
+            x_off += tag_w + 4
+
+        # Generated date top-right
+        _color(self, text_color)
+        self.set_body_font(8)
+        self.set_xy(card_x + card_w - 50, card_y + 8)
+        self.cell(44, 5, f"Generated {self.style.get('date', dt.datetime.utcnow().strftime('%Y-%m-%d'))}", align="R")
+
+        # Report Overview
+        overview_y = card_y + card_h + 12
+        _color(self, "#1a1040")
+        self.set_xy(card_x, overview_y)
+        self.set_body_font(16, "B")
+        self.cell(card_w, 8, "Report Overview", align="L")
+
+        grid_y = overview_y + 12
+        col_w = (card_w - 6) / 2
+        row_h = 28
+        gap = 5
+        meta = [
+            ("PRIMARY COMPARISON", self.style.get("primary_comparison") or "—", "#13086a"),
+            ("PREPARED FOR", self.style.get("prepared_for") or "—", "#00c4a8"),
+            ("REPORT CONTENTS", self.style.get("report_contents") or "Untargeted Lipidomics Report", "#f59e0b"),
+            ("PREPARED BY", self.style.get("prepared_by") or "—", "#2b1782"),
+        ]
+        for i, (label, value, accent_col) in enumerate(meta):
+            cx = card_x + (i % 2) * (col_w + gap)
+            cy = grid_y + (i // 2) * (row_h + gap)
+            self._meta_card(cx, cy, col_w, row_h, label, value, accent_col)
+
+    def _meta_card(self, x: float, y: float, w: float, h: float, label: str, value: str, accent: str):
+        _fill(self, "#ffffff")
+        _draw_color(self, "#e2e8f0")
+        self._rounded_rect(x, y, w, h, 3, style="DF")
+        # Colored top bar
+        _fill(self, accent)
+        _draw_color(self, accent)
+        self._rounded_rect(x + 0.5, y, w - 1, 4, 2, corners=(Corner.TOP_LEFT, Corner.TOP_RIGHT), style="F")
+        # Label
+        _color(self, "#94a3b8")
+        self.set_xy(x + 5, y + 8)
+        self.set_body_font(8, "B")
+        self.cell(w - 10, 5, label, align="L")
+        # Value
+        _color(self, "#1a1040")
+        self.set_xy(x + 5, y + 15)
+        self.set_body_font(10, "B")
+        self.multi_cell(w - 10, 5, value, align="L")
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Summary / QC summary
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _draw_metric_card(self, x: float, y: float, w: float, h: float, label: str, value: str, accent: str):
+        _fill(self, "#ffffff")
+        _draw_color(self, "#e2e8f0")
+        self._rounded_rect(x, y, w, h, 3, style="DF")
+        _fill(self, accent)
+        _draw_color(self, accent)
+        self._rounded_rect(x + 0.5, y, w - 1, 4, 2, corners=(Corner.TOP_LEFT, Corner.TOP_RIGHT), style="F")
+        _color(self, "#94a3b8")
+        self.set_xy(x + 5, y + 8)
+        self.set_body_font(8, "B")
+        self.cell(w - 10, 5, label, align="L")
+        _color(self, "#1a1040")
+        self.set_xy(x + 5, y + 15)
+        self.set_body_font(12, "B")
+        self.cell(w - 10, 7, value, align="L")
+
+    def _draw_table(self, x: float, y: float, w: float, headers: List[str], rows: List[List[str]], zebra: bool = False):
+        col_w = w / len(headers)
+        _fill(self, "#f2f0fb")
+        _draw_color(self, "#e2e8f0")
+        _color(self, "#1a1040")
+        self.set_xy(x, y)
+        self.set_body_font(9, "B")
+        for h in headers:
+            self.cell(col_w, 7, h, border=1, align="L", fill=True)
+        self.ln()
+        self.set_body_font(9, "")
+        for i, row in enumerate(rows):
+            if zebra and i % 2 == 1:
+                _fill(self, "#fafafa")
+            else:
+                _fill(self, "#ffffff")
+            _color(self, "#1a1040")
+            self.set_x(x)
+            for cell in row:
+                self.cell(col_w, 7, str(cell), border=1, align="L", fill=True)
+            self.ln()
+
+    def _summary_page(self, metrics: dict, group_a: str, group_b: str, p_threshold: float):
+        self.add_page("P")
+        self._page_header(self.style.get("title", "Report"), self.style.get("organization", ""))
+        card_y = 26
+        card_h = self.h - card_y - self.footer_h - 8
+        self._content_card("Summary", card_y, card_h)
+
+        x = self.margin + 6
+        y = card_y + 18
+        col_w = (self.w - 2 * self.margin - 12 - 6) / 2
+        row_h = 22
+        gap = 5
+        items = [
+            ("Features", str(metrics["features"]), "#13086a"),
+            ("Samples", str(metrics["samples"]), "#00c4a8"),
+            ("Significant features", f"{metrics['significant']} (padj < {p_threshold})", "#f59e0b"),
+            ("Up / Down", f"{metrics['up']} / {metrics['down']}", "#2b1782"),
+        ]
+        if metrics.get("qc_median_cv") is not None:
+            items.append(("QC median CV", f"{metrics['qc_median_cv']}%", "#22c55e"))
+        if metrics.get("sample_to_blank") is not None:
+            items.append(("Sample/Blank ratio", f"{metrics['sample_to_blank']}x", "#3b82f6"))
+
+        for i, (label, value, accent) in enumerate(items):
+            cx = x + (i % 2) * (col_w + gap)
+            cy = y + (i // 2) * (row_h + gap)
+            self._draw_metric_card(cx, cy, col_w, row_h, label, value, accent)
+
+        table_y = y + ((len(items) + 1) // 2) * (row_h + gap) + 6
+        group_rows = [[g, str(c)] for g, c in metrics.get("group_counts", {}).items()]
+        if group_rows:
+            self._draw_table(x, table_y, self.w - 2 * self.margin - 12, ["Group", "Samples"], group_rows, zebra=True)
+            table_y += 9 + len(group_rows) * 7
+
+        top = metrics.get("top_features")
+        if top:
+            _color(self, "#1a1040")
+            self.set_xy(x, table_y + 6)
+            self.set_body_font(11, "B")
+            cmp = f"{group_b} vs {group_a}" if group_b and group_a else ""
+            self.cell(0, 7, f"Top significant features ({cmp})", align="L")
+            self.ln(9)
+            rows = [
+                [s.get("feature_id", ""), f"{_safe_float(s.get('log2fc'), 0):.3f}", f"{_safe_float(s.get('padj'), 1):.3e}"]
+                for s in top
+            ]
+            self._draw_table(x, self.get_y(), self.w - 2 * self.margin - 12, ["Feature", "log2FC", "padj"], rows, zebra=True)
+
+        self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
+
+    def _qc_summary_page(self, metrics: dict):
+        self.add_page("P")
+        self._page_header(self.style.get("title", "QC Report"), self.style.get("organization", ""))
+        card_y = 26
+        card_h = self.h - card_y - self.footer_h - 8
+        self._content_card("QC Metrics Summary", card_y, card_h)
+
+        x = self.margin + 6
+        y = card_y + 18
+        col_w = (self.w - 2 * self.margin - 12 - 6) / 2
+        row_h = 22
+        gap = 5
+        items = [
+            ("Total features", str(metrics["num_features"]), "#13086a"),
+            ("Total samples", str(metrics["num_samples"]), "#00c4a8"),
+            ("Groups", str(metrics["num_groups"]), "#2b1782"),
+            ("Missing %", f"{metrics.get('total_missing_pct', 0)}%", "#f59e0b"),
+        ]
+        qc_cv = metrics.get("qc_median_cv_pct")
+        if qc_cv is not None:
+            items.append(("QC median CV", f"{qc_cv}%", "#22c55e"))
+        blank_ratio = metrics.get("sample_to_blank_median_ratio")
+        if blank_ratio is not None:
+            items.append(("Sample/Blank ratio", f"{blank_ratio}x", "#3b82f6"))
+        items.append(("PCA outliers", str(metrics.get("pca_outlier_count", 0)), "#ef4444"))
+
+        for i, (label, value, accent) in enumerate(items):
+            cx = x + (i % 2) * (col_w + gap)
+            cy = y + (i // 2) * (row_h + gap)
+            self._draw_metric_card(cx, cy, col_w, row_h, label, value, accent)
+
+        table_y = y + ((len(items) + 1) // 2) * (row_h + gap) + 6
+        group_rows = [[g, str(c)] for g, c in metrics.get("group_counts", {}).items()]
+        if group_rows:
+            self._draw_table(x, table_y, self.w - 2 * self.margin - 12, ["Group", "Samples"], group_rows, zebra=True)
+            table_y += 9 + len(group_rows) * 7
+
+        cv = metrics.get("group_cv_pct", {})
+        if cv:
+            _color(self, "#1a1040")
+            self.set_xy(x, table_y + 6)
+            self.set_body_font(11, "B")
+            self.cell(0, 7, "Group median CV %", align="L")
+            self.ln(9)
+            rows = [[g, f"{v}%" if v is not None else "N/A"] for g, v in cv.items()]
+            self._draw_table(x, self.get_y(), self.w - 2 * self.margin - 12, ["Group", "CV %"], rows, zebra=True)
+
+        outliers = metrics.get("pca_outlier_samples") or []
+        if outliers:
+            self.set_xy(x, self.get_y() + 6)
+            self.set_body_font(11, "B")
+            self.cell(0, 7, "PCA outlier samples", align="L")
+            self.ln(9)
+            rows = [[str(s)] for s in outliers]
+            self._draw_table(x, self.get_y(), self.w - 2 * self.margin - 12, ["Sample"], rows, zebra=True)
+
+        self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Plot pages
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _fit_image(self, buffer: io.BytesIO, x: float, y: float, max_w: float, max_h: float):
+        img = Image.open(buffer)
+        iw, ih = img.size
+        aspect = ih / iw
+        draw_w = max_w
+        draw_h = draw_w * aspect
+        if draw_h > max_h:
+            draw_h = max_h
+            draw_w = draw_h / aspect
+        draw_x = x + (max_w - draw_w) / 2
+        self.image(buffer, x=draw_x, y=y, w=draw_w, h=draw_h)
+
+    def _plot_page(self, title: str, buffer: io.BytesIO, orientation: str = "P"):
+        self.add_page(orientation)
+        self._page_header(self.style.get("title", "Report"), self.style.get("organization", ""))
+        card_y = 26
+        card_h = self.h - card_y - self.footer_h - 8
+        img_y = self._content_card(title, card_y, card_h)
+        max_w = self.w - 2 * self.margin - 12
+        max_h = card_h - 22
+        self._fit_image(buffer, self.margin + 6, img_y, max_w, max_h)
+        self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
+
+    def _multi_plot_page(self, title: str, buffers: List[io.BytesIO]):
+        per_page = 4
+        for i in range(0, len(buffers), per_page):
+            self.add_page("P")
+            self._page_header(self.style.get("title", "Report"), self.style.get("organization", ""))
+            card_y = 26
+            card_h = self.h - card_y - self.footer_h - 8
+            page_title = title
+            if len(buffers) > per_page:
+                page_title = f"{title} ({i + 1}-{min(i + per_page, len(buffers))})"
+            self._content_card(page_title, card_y, card_h)
+
+            positions = [
+                (self.margin + 8, card_y + 18, 88, 60),
+                (self.margin + 104, card_y + 18, 88, 60),
+                (self.margin + 8, card_y + 92, 88, 60),
+                (self.margin + 104, card_y + 92, 88, 60),
+            ]
+            for j, buf in enumerate(buffers[i : i + per_page]):
+                if j >= len(positions):
+                    break
+                x, y, w, h = positions[j]
+                _fill(self, "#ffffff")
+                _draw_color(self, "#e2e8f0")
+                self._rounded_rect(x, y, w, h, 3, style="DF")
+                self._fit_image(buf, x + 3, y + 3, w - 6, h - 6)
+            self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
 
-def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int = 2) -> io.BytesIO:
-    fig = go.Figure(data=fig_dict.get("data", []), layout=fig_dict.get("layout", {}))
-    buffer = io.BytesIO()
-    # Suppress Kaleido/Plotly deprecation noise for the headless PNG export.
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        fig.write_image(buffer, format="png", width=width, height=height, scale=scale)
-    buffer.seek(0)
-    return buffer
-
-
-def _groups(dataset: models.Dataset) -> List[str]:
-    meta = dataset.sample_metadata or {}
-    groups = sorted(set(str(g) for g in meta.values() if g))
-    if "Unknown" in groups:
-        groups = [g for g in groups if g != "Unknown"] + ["Unknown"]
-    return groups
-
-
-def _comparison(dataset: models.Dataset, group_a: Optional[str], group_b: Optional[str]) -> Tuple[str, str]:
-    groups = _groups(dataset)
-    if group_a and group_b and group_a in groups and group_b in groups:
-        return group_a, group_b
-    if len(groups) >= 2:
-        return groups[0], groups[1]
-    if len(groups) == 1:
-        return groups[0], ""
-    return "", ""
-
+# ───────────────────────────────────────────────────────────────────────────────
+# Helpers kept from original module
+# ───────────────────────────────────────────────────────────────────────────────
 
 SECTION_TITLES = {
     "summary": "Summary",
@@ -102,11 +646,57 @@ SECTION_TITLES = {
 }
 
 
+SECTION_LAYOUTS: Dict[str, Dict[str, Any]] = {
+    "default": {"width": 1200, "height": 700, "orientation": "P"},
+    "heatmap_unclustered": {"width": 1600, "height": 900, "orientation": "L"},
+    "heatmap_clustered": {"width": 1600, "height": 900, "orientation": "L"},
+    "pca_score": {"width": 1200, "height": 900, "orientation": "P"},
+    "pca_loadings": {"width": 1200, "height": 700, "orientation": "P"},
+    "pca_scree": {"width": 800, "height": 600, "orientation": "P"},
+    "pls_da": {"width": 1400, "height": 900, "orientation": "L"},
+    "opls_da": {"width": 1400, "height": 900, "orientation": "L"},
+    "volcano": {"width": 1200, "height": 800, "orientation": "P"},
+    "per_lipid_bars": {"width": 600, "height": 400, "orientation": "P"},
+}
+
+
 def _safe_float(value: Any, default: float = 0.0) -> float:
     try:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _groups(dataset: models.Dataset) -> List[str]:
+    meta = dataset.sample_metadata or {}
+    groups = sorted(set(str(g) for g in meta.values() if g))
+    if "Unknown" in groups:
+        groups = [g for g in groups if g != "Unknown"] + ["Unknown"]
+    return groups
+
+
+def _comparison(dataset: models.Dataset, group_a: Optional[str], group_b: Optional[str]) -> Tuple[str, str]:
+    groups = _groups(dataset)
+    if group_a and group_b and group_a in groups and group_b in groups:
+        return group_a, group_b
+    if len(groups) >= 2:
+        return groups[0], groups[1]
+    if len(groups) == 1:
+        return groups[0], ""
+    return "", ""
+
+
+def _default_tags(sections: List[str]) -> str:
+    labels = [SECTION_TITLES.get(s, s).split(" - ")[0].split(" ")[0] for s in sections if s not in ("summary", "cover")]
+    # dedup and cap
+    seen = set()
+    out = []
+    for label in labels:
+        key = label.lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(label)
+    return ", ".join(out[:5])
 
 
 def _summary_metrics(dataset: models.Dataset, group_a: str, group_b: str, stats_data: List[dict], p_threshold: float) -> dict:
@@ -120,10 +710,13 @@ def _summary_metrics(dataset: models.Dataset, group_a: str, group_b: str, stats_
     missing_pct = round(missing_total / total * 100, 2) if total else 0.0
 
     sig_count = sum(1 for s in stats_data if _safe_float(s.get("padj"), 1.0) < p_threshold)
-    up_count = sum(1 for s in stats_data if _safe_float(s.get("padj"), 1.0) < p_threshold and _safe_float(s.get("log2fc"), 0.0) > 0)
+    up_count = sum(
+        1
+        for s in stats_data
+        if _safe_float(s.get("padj"), 1.0) < p_threshold and _safe_float(s.get("log2fc"), 0.0) > 0
+    )
     down_count = sig_count - up_count
 
-    # QC-like medians
     def _median_cv(cols):
         if not cols:
             return None
@@ -168,134 +761,38 @@ def _summary_metrics(dataset: models.Dataset, group_a: str, group_b: str, stats_
     }
 
 
-def _add_cover(pdf: _ReportPDF, title: str, subtitle: str, dataset_name: str, project_name: str,
-               group_a: str, group_b: str, prepared_for: str, prepared_by: str, sections: List[str]):
-    pdf.add_page()
-    pdf.set_body_font(28, "B")
-    pdf.set_y(60)
-    pdf.cell(0, 20, title or "Statistical Report", align="C", new_x="LMARGIN", new_y="NEXT")
-    if subtitle:
-        pdf.set_body_font(14)
-        pdf.cell(0, 12, subtitle, align="C", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(20)
-    pdf.set_body_font(12)
-    lines = [
-        f"Dataset: {dataset_name}",
-    ]
-    if project_name:
-        lines.append(f"Project: {project_name}")
-    if group_a or group_b:
-        lines.append(f"Primary comparison: {group_a} vs {group_b}")
-    lines.append(f"Generated: {dt.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}")
-    if prepared_for:
-        lines.append(f"Prepared for: {prepared_for}")
-    if prepared_by:
-        lines.append(f"Prepared by: {prepared_by}")
-    for line in lines:
-        pdf.cell(0, 10, line, align="C", new_x="LMARGIN", new_y="NEXT")
+def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int = 2) -> io.BytesIO:
+    fig = go.Figure(data=fig_dict.get("data", []), layout=fig_dict.get("layout", {}))
 
-    pdf.ln(20)
-    pdf.set_body_font(14, "B")
-    pdf.cell(0, 12, "Report Contents", align="C", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_body_font(11)
-    for section in sections:
-        pdf.cell(0, 8, f"  • {SECTION_TITLES.get(section, section)}", align="C", new_x="LMARGIN", new_y="NEXT")
+    # Strip the figure title because the PDF card already has a title.
+    if fig.layout.title is not None:
+        fig.update_layout(title_text="")
+
+    # Tighten the top margin since the title is gone.
+    margin = {}
+    if fig.layout.margin is not None:
+        margin = {
+            k: getattr(fig.layout.margin, k)
+            for k in ("l", "r", "t", "b")
+            if getattr(fig.layout.margin, k) is not None
+        }
+    margin["t"] = 30
+    fig.update_layout(
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+        margin=margin,
+    )
+
+    buffer = io.BytesIO()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        fig.write_image(buffer, format="png", width=width, height=height, scale=scale)
+    buffer.seek(0)
+    return buffer
 
 
-def _add_summary(pdf: _ReportPDF, metrics: dict, group_a: str, group_b: str, p_threshold: float):
-    pdf.add_page()
-    pdf.set_body_font(18, "B")
-    pdf.cell(0, 14, "Summary", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(4)
-    pdf.set_body_font(11)
-
-    rows = [
-        ["Features", str(metrics["features"])],
-        ["Samples", str(metrics["samples"])],
-        ["Groups", ", ".join(metrics["groups"])],
-        ["Missing values", f"{metrics['missing_pct']}%"],
-        ["Significant features", f"{metrics['significant']} (padj < {p_threshold})"],
-        ["Up-regulated", str(metrics["up"])],
-        ["Down-regulated", str(metrics["down"])],
-    ]
-    if metrics["qc_median_cv"] is not None:
-        rows.append(["QC median CV", f"{metrics['qc_median_cv']}%"])
-    if metrics["sample_to_blank"] is not None:
-        rows.append(["Sample/Blank ratio", f"{metrics['sample_to_blank']}x"])
-
-    col_widths = [90, 90]
-    for row in rows:
-        for i, text in enumerate(row):
-            pdf.cell(col_widths[i], 10, text, border=1, align="L")
-        pdf.ln()
-
-    pdf.ln(6)
-    pdf.set_body_font(12, "B")
-    pdf.cell(0, 10, f"Group counts", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_body_font(11)
-    for g, count in metrics["group_counts"].items():
-        pdf.cell(90, 8, str(g), border=1)
-        pdf.cell(90, 8, str(count), border=1, new_x="LMARGIN", new_y="NEXT")
-
-    if metrics["top_features"]:
-        pdf.ln(6)
-        pdf.set_body_font(12, "B")
-        pdf.cell(0, 10, f"Top 10 significant features ({group_b} vs {group_a})", new_x="LMARGIN", new_y="NEXT")
-        pdf.set_body_font(10)
-        pdf.cell(120, 8, "Feature", border=1)
-        pdf.cell(30, 8, "log2FC", border=1)
-        pdf.cell(40, 8, "padj", border=1, new_x="LMARGIN", new_y="NEXT")
-        for s in metrics["top_features"]:
-            pdf.cell(120, 8, str(s.get("feature_id", "")), border=1)
-            pdf.cell(30, 8, f"{_safe_float(s.get('log2fc'), 0.0):.3f}", border=1)
-            pdf.cell(40, 8, f"{_safe_float(s.get('padj'), 1.0):.3e}", border=1, new_x="LMARGIN", new_y="NEXT")
-
-
-SECTION_LAYOUTS: Dict[str, Dict[str, Any]] = {
-    "default": {"width": 1200, "height": 700, "orientation": "P"},
-    "heatmap_unclustered": {"width": 1600, "height": 900, "orientation": "L"},
-    "heatmap_clustered": {"width": 1600, "height": 900, "orientation": "L"},
-    "pca_score": {"width": 1200, "height": 900, "orientation": "P"},
-    "pca_loadings": {"width": 1200, "height": 700, "orientation": "P"},
-    "pca_scree": {"width": 800, "height": 600, "orientation": "P"},
-    "pls_da": {"width": 1400, "height": 900, "orientation": "L"},
-    "opls_da": {"width": 1400, "height": 900, "orientation": "L"},
-    "volcano": {"width": 1200, "height": 800, "orientation": "P"},
-    "per_lipid_bars": {"width": 600, "height": 400, "orientation": "P"},
-}
-
-
-def _add_plot_page(pdf: _ReportPDF, title: str, img_buffer: io.BytesIO, section: str = "default"):
-    layout = SECTION_LAYOUTS.get(section, SECTION_LAYOUTS["default"])
-    orientation = layout.get("orientation", "P")
-    pdf.add_page(orientation)
-    pdf.set_body_font(16, "B")
-    pdf.cell(0, 12, title, new_x="LMARGIN", new_y="NEXT")
-    # Landscape A4 usable width ~277 mm, portrait ~190 mm.
-    width_mm = 277 if orientation == "L" else 190
-    pdf.image(img_buffer, x=10, y=25, w=width_mm)
-
-
-def _add_multi_plot_page(pdf: _ReportPDF, title: str, buffers: List[io.BytesIO], per_page: int = 4):
-    pdf.add_page()
-    pdf.set_body_font(16, "B")
-    pdf.cell(0, 12, title, new_x="LMARGIN", new_y="NEXT")
-    positions = [(10, 35, 90, 60), (105, 35, 90, 60), (10, 115, 90, 60), (105, 115, 90, 60)]
-    for i, buf in enumerate(buffers):
-        if i > 0 and i % per_page == 0:
-            pdf.add_page()
-            pdf.set_body_font(16, "B")
-            pdf.cell(0, 12, title + " (continued)", new_x="LMARGIN", new_y="NEXT")
-        x, y, w, h = positions[i % per_page]
-        pdf.image(buf, x=x, y=y, w=w, h=h)
-
-
-def _section_params(section: str, group_a: str, group_b: str, stats_data: List[dict],
-                    req: schemas.PDFReportRequest) -> Optional[dict]:
-    p = {
-        "group_a": group_a,
-        "group_b": group_b,
-    }
+def _section_params(section: str, group_a: str, group_b: str, stats_data: List[dict], req: schemas.PDFReportRequest) -> Optional[dict]:
+    p = {"group_a": group_a, "group_b": group_b}
     if section == "heatmap_unclustered":
         return {
             "heatmap_type": "abundance",
@@ -319,7 +816,8 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
             **p,
         }
     if section in ("pca_score", "pca_loadings", "pca_scree"):
-        return {"plot": section.split("_")[1], **p}
+        plot_map = {"pca_score": "score", "pca_loadings": "loading", "pca_scree": "scree"}
+        return {"plot": plot_map[section], **p}
     if section == "pls_da":
         return {"n_components": 2, "n_perm": req.n_perm, **p}
     if section == "opls_da":
@@ -341,11 +839,31 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
     return p
 
 
+def _build_pdf_style(dataset: models.Dataset, project_name: str, req: schemas.PDFReportRequest, group_a: str, group_b: str, sections: List[str]) -> Dict[str, Any]:
+    style = dict(req.style or {})
+    style.setdefault("title", req.title or f"{dataset.name} Report")
+    style.setdefault("subtitle", req.subtitle or (f"{group_b} vs {group_a}" if group_b and group_a else ""))
+    style.setdefault("primary_comparison", f"{group_b} vs {group_a}" if group_a and group_b else "—")
+    style.setdefault("prepared_for", req.prepared_for or "—")
+    style.setdefault("prepared_by", req.prepared_by or "Metabolomics Platform")
+    style.setdefault("report_type", "Lipidomics Statistical Report")
+    style.setdefault("report_contents", "Untargeted Lipidomics Report")
+    style.setdefault("description", style.get("description") or "Global overview, differential analysis, and individual metabolite intensity plots")
+    style.setdefault("tags", style.get("tags") or _default_tags(sections))
+    style.setdefault("organization", style.get("organization") or "UCLA Metabolomics Center")
+    style.setdefault("footer_text", style.get("footer_text") or "Confidential")
+    style.setdefault("date", style.get("date") or dt.datetime.utcnow().strftime('%Y-%m-%d'))
+    style.setdefault("cover_style", style.get("cover_style") or "classic")
+    style["sections"] = sections
+    style["group_a"] = group_a
+    style["group_b"] = group_b
+    return style
+
+
 def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReportRequest) -> bytes:
     group_a, group_b = _comparison(dataset, req.group_a, req.group_b)
     sections = [s for s in req.sections if s in SECTION_TITLES]
 
-    # Precompute stats if needed
     needs_stats = any(s in ("volcano", "per_lipid_bars") for s in sections)
     stats_data = []
     if needs_stats and group_a and group_b:
@@ -360,31 +878,16 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
         stats_res = run_statistical_test(dataset, stats_req)
         stats_data = stats_res.get("results", [])
 
-    pdf = _ReportPDF()
-    pdf.set_auto_page_break(False)
+    style = _build_pdf_style(dataset, project_name, req, group_a, group_b, sections)
+    pdf = _ReportPDF(style=style)
 
-    title = req.title or f"{dataset.name} Report"
-    subtitle = req.subtitle or (f"{group_b} vs {group_a}" if group_b and group_a else "")
-    if "summary" in sections or "cover" in sections:
-        _add_cover(
-            pdf,
-            title,
-            subtitle,
-            dataset.name,
-            project_name,
-            group_a,
-            group_b,
-            req.prepared_for or "",
-            req.prepared_by or "Metabolomics Platform",
-            sections,
-        )
+    pdf._draw_cover()
 
     if "summary" in sections:
         metrics = _summary_metrics(dataset, group_a, group_b, stats_data, req.p_threshold)
-        _add_summary(pdf, metrics, group_a, group_b, req.p_threshold)
+        pdf._summary_page(metrics, group_a, group_b, req.p_threshold)
 
-    style = req.style or {}
-
+    plot_style = req.style or {}
     for section in sections:
         if section == "summary":
             continue
@@ -403,7 +906,7 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
         try:
             fig = generate_plot(
                 dataset,
-                schemas.PlotRequest(plot_type=plot_type, parameters=params, style=style),
+                schemas.PlotRequest(plot_type=plot_type, parameters=params, style=plot_style),
             )
         except Exception:
             continue
@@ -413,16 +916,16 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
         if section == "per_lipid_bars":
             if not isinstance(fig, list):
                 continue
-            buffers = [_fig_to_png(f, width=600, height=400, scale=2) for f in fig[:req.top_n]]
+            buffers = [_fig_to_png(f, width=600, height=400, scale=2) for f in fig[: req.top_n]]
             if buffers:
-                _add_multi_plot_page(pdf, title, buffers)
+                pdf._multi_plot_page(title, buffers)
         else:
             if isinstance(fig, list):
                 fig = fig[0] if fig else None
             if not isinstance(fig, dict):
                 continue
             img = _fig_to_png(fig, width=layout["width"], height=layout["height"], scale=2)
-            _add_plot_page(pdf, title, img, section=section)
+            pdf._plot_page(title, img, orientation=layout.get("orientation", "P"))
 
     return bytes(pdf.output())
 
@@ -436,88 +939,32 @@ def _qc_figure_title(fig: dict, default: str) -> str:
     return default
 
 
-def _add_qc_summary(pdf: _ReportPDF, metrics: dict):
-    pdf.add_page()
-    pdf.set_body_font(18, "B")
-    pdf.cell(0, 14, "QC Metrics Summary", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(4)
-    pdf.set_body_font(11)
-
-    rows = [
-        ["Total features", str(metrics["num_features"])],
-        ["Total samples", str(metrics["num_samples"])],
-        ["Groups", str(metrics["num_groups"])],
-        ["Total missing %", f"{metrics.get('total_missing_pct', 0)}%"],
-    ]
-    qc_cv = metrics.get("qc_median_cv_pct")
-    if qc_cv is not None:
-        rows.append(["QC median CV %", f"{qc_cv}%"])
-    blank_ratio = metrics.get("sample_to_blank_median_ratio")
-    if blank_ratio is not None:
-        rows.append(["Sample/Blank median ratio", f"{blank_ratio}x"])
-    rows.append(["PCA outlier count", str(metrics.get("pca_outlier_count", 0))])
-
-    col_widths = [90, 90]
-    for row in rows:
-        for i, text in enumerate(row):
-            pdf.cell(col_widths[i], 10, text, border=1, align="L")
-        pdf.ln()
-
-    pdf.ln(6)
-    pdf.set_body_font(12, "B")
-    pdf.cell(0, 10, "Group counts", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_body_font(11)
-    for g, cnt in metrics.get("group_counts", {}).items():
-        pdf.cell(90, 8, str(g), border=1)
-        pdf.cell(90, 8, str(cnt), border=1, new_x="LMARGIN", new_y="NEXT")
-
-    pdf.ln(6)
-    pdf.set_body_font(12, "B")
-    pdf.cell(0, 10, "Group median CV %", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_body_font(11)
-    for g, cv in metrics.get("group_cv_pct", {}).items():
-        cv_text = f"{cv}%" if cv is not None else "N/A"
-        pdf.cell(90, 8, str(g), border=1)
-        pdf.cell(90, 8, cv_text, border=1, new_x="LMARGIN", new_y="NEXT")
-
-    outlier_samples = metrics.get("pca_outlier_samples") or []
-    if outlier_samples:
-        pdf.ln(6)
-        pdf.set_body_font(12, "B")
-        pdf.cell(0, 10, "PCA outlier samples", new_x="LMARGIN", new_y="NEXT")
-        pdf.set_body_font(11)
-        for s in outlier_samples:
-            pdf.cell(0, 8, str(s), new_x="LMARGIN", new_y="NEXT")
-
-
 def build_qc_pdf(dataset: models.Dataset, project_name: str = "") -> bytes:
-    """Build a QC report PDF with summary tables and all QC figures."""
     from app.services.qc import qc_analysis
 
     result = qc_analysis(dataset)
     metrics = result["metrics"]
     figures = result.get("figures", {})
 
-    pdf = _ReportPDF()
-    pdf.add_page()
-    pdf.set_body_font(28, "B")
-    pdf.set_y(60)
-    pdf.cell(0, 20, "QC Report", align="C", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_body_font(14)
-    pdf.cell(0, 12, dataset.name or "Dataset", align="C", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(10)
-    pdf.set_body_font(12)
-    lines = []
-    if project_name:
-        lines.append(f"Project: {project_name}")
-    lines.append(f"Features: {metrics['num_features']}")
-    lines.append(f"Samples: {metrics['num_samples']}")
-    lines.append(f"Groups: {metrics['num_groups']}")
-    lines.append(f"Generated: {dt.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}")
-    for line in lines:
-        pdf.cell(0, 10, line, align="C", new_x="LMARGIN", new_y="NEXT")
-
-    _add_qc_summary(pdf, metrics)
+    style = {
+        "title": dataset.name,
+        "subtitle": "Quality control overview",
+        "report_type": "QC Report",
+        "description": "Quality control metrics and diagnostic plots",
+        "report_contents": "QC Report",
+        "organization": "UCLA Metabolomics Center",
+        "footer_text": "Confidential",
+        "date": dt.datetime.utcnow().strftime('%Y-%m-%d'),
+        "cover_style": "teal",
+        "tags": "QC, Metrics, Plots",
+        "primary_comparison": "—",
+        "prepared_for": "—",
+        "prepared_by": "Metabolomics Platform",
+        "sections": ["summary"],
+    }
+    pdf = _ReportPDF(style=style)
+    pdf._draw_cover()
+    pdf._qc_summary_page(metrics)
 
     figure_order = [
         ("tic", "default"),
@@ -536,7 +983,7 @@ def build_qc_pdf(dataset: models.Dataset, project_name: str = "") -> bytes:
         try:
             layout = SECTION_LAYOUTS.get(section, SECTION_LAYOUTS["default"])
             img = _fig_to_png(fig, width=layout["width"], height=layout["height"], scale=2)
-            _add_plot_page(pdf, title, img, section=section)
+            pdf._plot_page(title, img, orientation=layout.get("orientation", "P"))
         except Exception:
             continue
 

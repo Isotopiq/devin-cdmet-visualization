@@ -47,6 +47,14 @@ export default function PDFReportPanel() {
   const [multipleTesting, setMultipleTesting] = useState('fdr_bh')
   const [showLabels, setShowLabels] = useState(false)
   const [sections, setSections] = useState<string[]>(ALL_SECTIONS.map((s) => s.key))
+  const [coverStyle, setCoverStyle] = useState('classic')
+  const [organization, setOrganization] = useState('UCLA Metabolomics Center')
+  const [reportType, setReportType] = useState('Lipidomics Statistical Report')
+  const [reportContents, setReportContents] = useState('Untargeted Lipidomics Report')
+  const [description, setDescription] = useState('')
+  const [tags, setTags] = useState('')
+  const [footerText, setFooterText] = useState('Confidential')
+  const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -85,6 +93,16 @@ export default function PDFReportPanel() {
         test,
         multiple_testing: multipleTesting,
         show_labels: showLabels,
+        style: {
+          cover_style: coverStyle,
+          organization,
+          report_type: reportType,
+          report_contents: reportContents,
+          description,
+          tags,
+          footer_text: footerText,
+          date: reportDate,
+        },
       })
       const blob = new Blob([res.data], { type: 'application/pdf' })
       const url = window.URL.createObjectURL(blob)
@@ -124,6 +142,14 @@ export default function PDFReportPanel() {
             <div><label className="label-like">Prepared by</label><input type="text" value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} className="input" /></div>
             <div><label className="label-like">Group A</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map((g) => <option key={g} value={g}>{g}</option>)}</select></div>
             <div><label className="label-like">Group B</label><select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">{groups.map((g) => <option key={g} value={g}>{g}</option>)}</select></div>
+            <div><label className="label-like">Cover style</label><select value={coverStyle} onChange={(e) => setCoverStyle(e.target.value)} className="input"><option value="classic">Classic Deep</option><option value="minimal">Clean Minimal</option><option value="teal">Ocean Teal</option><option value="split">Split Panel</option></select></div>
+            <div><label className="label-like">Organization</label><input type="text" value={organization} onChange={(e) => setOrganization(e.target.value)} className="input" /></div>
+            <div><label className="label-like">Report type</label><input type="text" value={reportType} onChange={(e) => setReportType(e.target.value)} className="input" /></div>
+            <div><label className="label-like">Report contents</label><input type="text" value={reportContents} onChange={(e) => setReportContents(e.target.value)} className="input" /></div>
+            <div className="md:col-span-2"><label className="label-like">Description</label><input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className="input" placeholder="Brief description shown on the cover" /></div>
+            <div><label className="label-like">Tags (comma-separated)</label><input type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="input" placeholder="Heatmap, PCA, Volcano" /></div>
+            <div><label className="label-like">Footer text</label><input type="text" value={footerText} onChange={(e) => setFooterText(e.target.value)} className="input" /></div>
+            <div><label className="label-like">Report date</label><input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="input" /></div>
             <div><label className="label-like">Top N features (per-lipid bars)</label><input type="number" min={1} max={50} value={topN} onChange={(e) => setTopN(Number(e.target.value))} className="input" /></div>
             <div><label className="label-like">Permutations (PLS/OPLS-DA)</label><input type="number" min={10} max={500} value={nPerm} onChange={(e) => setNPerm(Number(e.target.value))} className="input" /></div>
             <div><label className="label-like">FC threshold</label><input type="number" step={0.1} value={fcThreshold} onChange={(e) => setFcThreshold(Number(e.target.value))} className="input" /></div>
