@@ -1,11 +1,20 @@
+import base64
+import io
 import json
 import math
 import re
 from typing import Dict, List
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+from matplotlib import cm
 import numpy as np
 import pandas as pd
+from PIL import Image
 import plotly.express as px
 import plotly.graph_objects as go
+import seaborn as sns
 from plotly.subplots import make_subplots
 from scipy.cluster.hierarchy import linkage, leaves_list, dendrogram as scipy_dendrogram
 from scipy.spatial.distance import pdist, mahalanobis as _mahalanobis
@@ -1422,6 +1431,231 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     return fig
 
 
+def _mpl_figure_to_plotly(fig: plt.Figure, title: str | None = None) -> go.Figure:
+    """Save a matplotlib figure to PNG and wrap it in a Plotly image figure."""
+    buf = io.BytesIO()
+    try:
+        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", pad_inches=0.08)
+        buf.seek(0)
+        img = Image.open(buf)
+        width, height = img.size
+        buf.seek(0)
+        png_b64 = base64.b64encode(buf.read()).decode("ascii")
+    finally:
+        plt.close(fig)
+    layout = {
+        "images": [{
+            "source": f"data:image/png;base64,{png_b64}",
+            "xref": "paper", "yref": "paper",
+            "x": 0, "y": 1,
+            "sizex": 1, "sizey": 1,
+            "xanchor": "left", "yanchor": "top",
+            "layer": "below",
+        }],
+        "xaxis": {"visible": False, "range": [0, 1]},
+        "yaxis": {"visible": False, "range": [0, 1], "scaleanchor": "x", "scaleratio": height / max(1, width)},
+        "width": width,
+        "height": height,
+        "margin": {"l": 0, "r": 0, "t": 40 if title else 0, "b": 0},
+        "paper_bgcolor": "white",
+        "plot_bgcolor": "white",
+    }
+    if title:
+        layout["title"] = {"text": title, "x": 0.5, "xanchor": "center", "font": {"size": 14, "color": "#1e293b"}}
+    return go.Figure(data=[go.Scatter(x=[0, 1], y=[0, 1], mode="markers", marker={"opacity": 0}, showlegend=False, hoverinfo="skip")], layout=layout)
+
+
+def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
+    """Render a clustered heatmap with seaborn and return as a Plotly image figure."""
+    top_n = int(params.get("top_n", 50))
+    metric = params.get("metric", "euclidean")
+    method = params.get("method", "average")
+    scale = params.get("scale", "row_zscore")
+    cluster_rows = bool(params.get("cluster_rows", True))
+    cluster_cols = bool(params.get("cluster_cols", True))
+    cmap = style.get("heatmap_colorscale", "RdBu_r")
+
+    plot_df = df.copy()
+    # top-N by row variance (on log10 if requested for consistency)
+    if scale == "log10":
+        plot_df = np.log10(plot_df.replace(0, np.nan)).fillna(0)
+    row_std = plot_df.std(axis=1, numeric_only=True)
+    top_idx = row_std.nlargest(min(top_n, len(plot_df))).index
+    plot_df = plot_df.loc[top_idx]
+
+    sample_groups = {c: sample_meta.get(c, "Unknown") for c in plot_df.columns}
+    present_groups = sorted(set(sample_groups.values()))
+    group_order = params.get("group_order") or present_groups
+    if isinstance(group_order, str):
+        group_order = [g.strip() for g in group_order.split(",") if g.strip()]
+    group_order = [g for g in group_order if g in present_groups]
+    group_order += [g for g in present_groups if g not in group_order]
+    if "Unknown" in group_order:
+        group_order = [g for g in group_order if g != "Unknown"] + ["Unknown"]
+    gcolor_map = _group_color_map(style, group_order)
+
+    # order columns by group order
+    ordered_cols = [c for g in group_order for c in plot_df.columns if sample_groups[c] == g]
+    ordered_cols += [c for c in plot_df.columns if c not in ordered_cols]
+    plot_df = plot_df[ordered_cols]
+    sample_groups = {c: sample_meta.get(c, "Unknown") for c in plot_df.columns}
+    col_colors = [gcolor_map.get(sample_groups.get(c, "Unknown"), "#94a3b8") for c in plot_df.columns]
+
+    # rename labels
+    plot_df.index = [_shorten_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx, 40) for idx in plot_df.index]
+    plot_df.columns = [_shorten_name(c, 35) for c in plot_df.columns]
+
+    # seaborn clustermap settings
+    z_score = 0 if scale == "row_zscore" else None
+    center = 0 if scale == "row_zscore" else None
+    standard_scale = None
+    if scale == "none":
+        standard_scale = None
+
+    m, n = plot_df.shape
+    fig_width = max(8, min(24, n * 0.3 + 2))
+    fig_height = max(6, min(24, m * 0.18 + 3))
+
+    try:
+        cg = sns.clustermap(
+            plot_df,
+            method=method,
+            metric=metric,
+            row_cluster=cluster_rows and m > 2,
+            col_cluster=cluster_cols and n > 2,
+            z_score=z_score,
+            standard_scale=standard_scale,
+            center=center,
+            cmap=cmap,
+            col_colors=col_colors,
+            figsize=(fig_width, fig_height),
+            dendrogram_ratio=0.15,
+            cbar_pos=(0.02, 0.78, 0.03, 0.15),
+            xticklabels=True,
+            yticklabels=True,
+        )
+        # improve tick readability
+        if cg.ax_heatmap.get_xticklabels():
+            cg.ax_heatmap.set_xticklabels(cg.ax_heatmap.get_xticklabels(), rotation=90, ha="center", fontsize=7)
+        if cg.ax_heatmap.get_yticklabels():
+            cg.ax_heatmap.set_yticklabels(cg.ax_heatmap.get_yticklabels(), fontsize=7)
+        title = params.get("title") or f"Top {m} most-variable features"
+        cg.fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
+        return _mpl_figure_to_plotly(cg.fig, title=None)
+    except Exception:
+        # fallback to a simple seaborn heatmap
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+        sns.heatmap(plot_df, cmap=cmap, center=center, ax=ax, cbar=True, xticklabels=True, yticklabels=True)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=90, ha="center", fontsize=7)
+        ax.set_yticklabels(ax.get_yticklabels(), fontsize=7)
+        return _mpl_figure_to_plotly(fig, params.get("title"))
+
+
+def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
+    """Render a clustered heatmap with matplotlib and return as a Plotly image figure."""
+    top_n = int(params.get("top_n", 50))
+    metric = params.get("metric", "euclidean")
+    method = params.get("method", "average")
+    scale = params.get("scale", "row_zscore")
+    cluster_rows = bool(params.get("cluster_rows", True))
+    cluster_cols = bool(params.get("cluster_cols", True))
+    cmap = style.get("heatmap_colorscale", "RdBu_r")
+
+    plot_df = df.copy()
+    if scale == "log10":
+        plot_df = np.log10(plot_df.replace(0, np.nan)).fillna(0)
+    row_std = plot_df.std(axis=1, numeric_only=True)
+    top_idx = row_std.nlargest(min(top_n, len(plot_df))).index
+    plot_df = plot_df.loc[top_idx]
+
+    sample_groups = {c: sample_meta.get(c, "Unknown") for c in plot_df.columns}
+    present_groups = sorted(set(sample_groups.values()))
+    group_order = params.get("group_order") or present_groups
+    if isinstance(group_order, str):
+        group_order = [g.strip() for g in group_order.split(",") if g.strip()]
+    group_order = [g for g in group_order if g in present_groups]
+    group_order += [g for g in present_groups if g not in group_order]
+    if "Unknown" in group_order:
+        group_order = [g for g in group_order if g != "Unknown"] + ["Unknown"]
+    gcolor_map = _group_color_map(style, group_order)
+
+    ordered_cols = [c for g in group_order for c in plot_df.columns if sample_groups[c] == g]
+    ordered_cols += [c for c in plot_df.columns if c not in ordered_cols]
+    plot_df = plot_df[ordered_cols]
+    sample_groups = {c: sample_meta.get(c, "Unknown") for c in plot_df.columns}
+    group_codes = {g: i for i, g in enumerate(group_order)}
+    group_color_matrix = np.array([[group_codes.get(sample_groups[c], 0) for c in plot_df.columns]])
+    group_cmap = ListedColormap([gcolor_map.get(g, "#94a3b8") for g in group_order])
+
+    # scaling
+    if scale == "row_zscore":
+        z = (plot_df.sub(plot_df.mean(axis=1), axis=0).div(plot_df.std(axis=1).replace(0, np.nan), axis=0)).fillna(0).values
+        vmin, vmax = -max(1.0, np.nanmax(np.abs(z))), max(1.0, np.nanmax(np.abs(z)))
+    else:
+        z = plot_df.values
+        vmin, vmax = np.nanmin(z), np.nanmax(z)
+
+    m, n = z.shape
+    row_order = list(range(m))
+    col_order = list(range(n))
+    try:
+        if cluster_rows and m > 2:
+            row_link = linkage(pdist(z, metric=metric), method=method)
+            row_order = leaves_list(row_link).tolist()
+        if cluster_cols and n > 2:
+            col_link = linkage(pdist(z.T, metric=metric), method=method)
+            col_order = leaves_list(col_link).tolist()
+    except Exception:
+        pass
+    z = z[row_order][:, col_order]
+    y_labels = [_shorten_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx, 40) for idx in plot_df.index[row_order]]
+    x_labels = [_shorten_name(plot_df.columns[i], 35) for i in col_order]
+
+    fig_width = max(8, min(24, n * 0.35 + 3))
+    fig_height = max(6, min(24, m * 0.18 + 3))
+    fig = plt.figure(figsize=(fig_width, fig_height))
+    gs = fig.add_gridspec(3, 3, width_ratios=[0.6, 6, 0.35], height_ratios=[0.6, 0.25, 6], wspace=0.05, hspace=0.05)
+
+    ax_col = fig.add_subplot(gs[0, 1])
+    ax_group = fig.add_subplot(gs[1, 1])
+    ax_row = fig.add_subplot(gs[2, 0])
+    ax_heatmap = fig.add_subplot(gs[2, 1])
+    ax_cbar = fig.add_subplot(gs[2, 2])
+
+    try:
+        if cluster_cols and n > 2:
+            col_link = linkage(pdist(z.T, metric=metric) if 'col_link' not in dir() else pdist(z.T, metric=metric), method=method)
+            scipy_dendrogram(col_link, orientation="top", no_labels=True, ax=ax_col, above_threshold_color="#64748b")
+        if cluster_rows and m > 2:
+            row_link = linkage(pdist(z, metric=metric), method=method)
+            scipy_dendrogram(row_link, orientation="left", no_labels=True, ax=ax_row, above_threshold_color="#64748b")
+    except Exception:
+        pass
+    ax_col.axis("off")
+    ax_row.axis("off")
+
+    ax_group.imshow(group_color_matrix[:, col_order], aspect="auto", cmap=group_cmap, interpolation="nearest")
+    ax_group.set_xticks([])
+    ax_group.set_yticks([0])
+    ax_group.set_yticklabels(["Group"], fontsize=8)
+    ax_group.set_frame_on(False)
+
+    im = ax_heatmap.imshow(z, aspect="auto", cmap=cmap, vmin=vmin, vmax=vmax, interpolation="nearest")
+    ax_heatmap.set_xticks(range(n))
+    ax_heatmap.set_xticklabels(x_labels, rotation=90, ha="center", fontsize=7)
+    ax_heatmap.set_yticks(range(m))
+    ax_heatmap.set_yticklabels(y_labels, fontsize=7)
+    ax_heatmap.set_xlabel("")
+    ax_heatmap.set_ylabel("")
+
+    fig.colorbar(im, cax=ax_cbar)
+
+    title = params.get("title") or f"Top {m} most-variable features"
+    fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
+    fig.subplots_adjust(left=0.08, right=0.94, top=0.94, bottom=0.16, wspace=0.05, hspace=0.05)
+    return _mpl_figure_to_plotly(fig, title=None)
+
+
 def _extract_lipid_class(feature_id: str, meta: dict) -> str:
     cls = meta.get("top_candidate_class") or meta.get("class") or meta.get("lipid_class")
     if cls:
@@ -1521,8 +1755,15 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
     elif plot_type == "heatmap":
         heatmap_type = params.get("heatmap_type", "abundance")
-        if heatmap_type != "correlation" and (style.get("engine") == "publication" or params.get("heatmap_style") == "lipidone"):
+        hstyle = params.get("heatmap_style") or style.get("engine")
+        if heatmap_type != "correlation" and hstyle in ("lipidone", "publication"):
             fig = _heatmap_publication(df, sample_meta, feature_metadata, style, params)
+            return json.loads(fig.to_json())
+        if heatmap_type != "correlation" and hstyle == "seaborn":
+            fig = _heatmap_seaborn(df, sample_meta, feature_metadata, style, params)
+            return json.loads(fig.to_json())
+        if heatmap_type != "correlation" and hstyle == "matplotlib":
+            fig = _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params)
             return json.loads(fig.to_json())
         top_n = int(params.get("top_n", 50))
         metric = params.get("metric", "euclidean")

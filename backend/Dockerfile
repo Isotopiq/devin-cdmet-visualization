@@ -6,7 +6,7 @@ ENV PYTHONPATH=/app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
-    libglib2.0-0 libnss3 libxss1 libfontconfig1 \
+    libglib2.0-0 libnss3 libxss1 libfontconfig1 libfreetype6 libpng16-16 \
     libxcomposite1 libxcursor1 libxdamage1 libxi6 libxtst6 \
     libgbm1 libasound2 fonts-liberation fonts-dejavu \
     && rm -rf /var/lib/apt/lists/*

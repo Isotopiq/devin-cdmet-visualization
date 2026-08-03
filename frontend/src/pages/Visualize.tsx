@@ -165,23 +165,20 @@ export default function Visualize() {
         })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'heatmap') {
-        const heatmapStyleReq: any = {
-          heatmap_type: heatmapType,
-          top_n: heatmapTopN,
-          scale: heatmapScale,
-          metric: heatmapMetric,
-          method: heatmapMethod,
-          cluster_rows: rowCluster,
-          cluster_cols: colCluster,
-          group_order: groupOrder,
-        }
-        if (heatmapStyle === 'lipidone') {
-          heatmapStyleReq.heatmap_style = 'lipidone'
-        }
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'heatmap',
-          parameters: withExcluded(heatmapStyleReq),
-          style: { ...backendStyle, engine: heatmapStyle === 'default' ? (backendStyle.engine || 'default') : 'publication' },
+          parameters: withExcluded({
+            heatmap_type: heatmapType,
+            heatmap_style: heatmapStyle,
+            top_n: heatmapTopN,
+            scale: heatmapScale,
+            metric: heatmapMetric,
+            method: heatmapMethod,
+            cluster_rows: rowCluster,
+            cluster_cols: colCluster,
+            group_order: groupOrder,
+          }),
+          style: backendStyle,
         })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'per_lipid_bars') {
@@ -274,7 +271,7 @@ export default function Visualize() {
     show_labels: showLabels,
     top_n: topN,
     heatmap_top_n: heatmapTopN,
-    heatmap_style: heatmapStyle === 'lipidone' ? 'lipidone' : undefined,
+    heatmap_style: heatmapStyle === 'default' ? undefined : heatmapStyle,
     scale: heatmapScale,
     metric: heatmapMetric,
     method: heatmapMethod,
@@ -487,7 +484,7 @@ export default function Visualize() {
         <div className="space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-10 gap-3 items-end">
             <div><label className="label-like">Type</label><select value={heatmapType} onChange={(e) => setHeatmapType(e.target.value)} className="input"><option value="abundance">Abundance</option><option value="correlation">Correlation</option></select></div>
-            <div><label className="label-like">Style</label><select value={heatmapStyle} onChange={(e) => setHeatmapStyle(e.target.value as any)} className="input"><option value="default">Default</option><option value="publication">Publication</option><option value="lipidone">LipidOne</option></select></div>
+            <div><label className="label-like">Style</label><select value={heatmapStyle} onChange={(e) => setHeatmapStyle(e.target.value as any)} className="input"><option value="default">Default</option><option value="publication">Publication</option><option value="lipidone">LipidOne</option><option value="seaborn">Seaborn</option><option value="matplotlib">Matplotlib</option></select></div>
             <div><label className="label-like">Scale</label><select value={heatmapScale} onChange={(e) => setHeatmapScale(e.target.value)} className="input">{SCALES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
             <div><label className="label-like">Distance</label><select value={heatmapMetric} onChange={(e) => setHeatmapMetric(e.target.value)} className="input">{METRICS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
             <div><label className="label-like">Linkage</label><select value={heatmapMethod} onChange={(e) => setHeatmapMethod(e.target.value)} className="input">{METHODS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
