@@ -200,6 +200,24 @@ def _shorten_name(name: str, max_len: int = 24) -> str:
     return s
 
 
+def _clean_lipid_name(name: str) -> str:
+    """Return a lipid species string with adducts and non-chain trailing tags removed."""
+    s = str(name).strip()
+    # Remove common trailing adducts such as [M-H]-, [M+H]+, [M+Na]+, [2M-H]-
+    s = re.sub(r"\s*\[[^\]]+\][+-]?\s*$", "", s)
+    # Remove trailing parenthetical annotations (isotope labels, duplicates, etc.)
+    # but keep parentheses that contain lipid chains (they have a colon or underscore).
+    while True:
+        m = re.search(r"\s*\(([^)]+)\)\s*$", s)
+        if not m:
+            break
+        inner = m.group(1)
+        if re.search(r"[:_]", inner):
+            break
+        s = s[:m.start()].strip()
+    return s
+
+
 def _tick_text_step(n: int, max_labels: int = 30) -> int:
     if n <= max_labels:
         return 1
@@ -1329,7 +1347,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
             tickfont={"size": 9},
         ),
         hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
-        customdata=np.array([[[_shorten_name(str(feature_ids[i]), 18), _shorten_name(c, 60)] for c in plot_df.columns] for i in range(m)]),
+        customdata=np.array([[[_shorten_name(_clean_lipid_name(str(feature_ids[i])), 60), _shorten_name(c, 60)] for c in plot_df.columns] for i in range(m)]),
     ), row=3, col=2)
 
     max_top = max(np.nanmax(np.abs(y_dend)) if (col_link is not None and y_dend) else 1.0, 1.0)
@@ -1345,7 +1363,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     fig.update_yaxes(range=[-0.5, m - 0.5], showticklabels=False, showgrid=False, zeroline=False, row=3, col=1)
 
     short_cols = [_shorten_name(c) for c in plot_df.columns]
-    short_rows = [_shorten_name(str(fid), 18) for fid in feature_ids]
+    short_rows = [_shorten_name(_clean_lipid_name(str(fid))) for fid in feature_ids]
     max_x_len = max([len(s) for s in short_cols], default=1)
     max_y_len = max([len(s) for s in short_rows], default=1)
 
@@ -1554,7 +1572,7 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
     sample_groups = {c: sample_meta.get(c, "Unknown") for c in plot_df.columns}
 
     # rename labels
-    plot_df.index = [_shorten_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx, 35) for idx in plot_df.index]
+    plot_df.index = [_shorten_name(_clean_lipid_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx), 35) for idx in plot_df.index]
     plot_df.columns = [_shorten_name(c, 30) for c in plot_df.columns]
 
     m, n = plot_df.shape
@@ -1717,7 +1735,7 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     except Exception:
         pass
     z = z[row_order][:, col_order]
-    y_labels = [_shorten_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx, 40) for idx in plot_df.index[row_order]]
+    y_labels = [_shorten_name(_clean_lipid_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx), 40) for idx in plot_df.index[row_order]]
     x_labels = [_shorten_name(plot_df.columns[i], 35) for i in col_order]
 
     fig_width = max(8, min(40, n * 0.4 + 3))
@@ -1985,7 +2003,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             height = max(600, min(1600, m * 16 + 260))
             feature_ids = [feature_metadata[i].get("feature_id", i) if i < len(feature_metadata) else i for i in plot_df.index]
             short_cols = [_shorten_name(c) for c in plot_df.columns]
-            short_rows = [_shorten_name(str(fid), 18) for fid in feature_ids]
+            short_rows = [_shorten_name(_clean_lipid_name(str(fid))) for fid in feature_ids]
             max_x_len = max([len(s) for s in short_cols], default=1)
             max_y_len = max([len(s) for s in short_rows], default=1)
 
@@ -2047,7 +2065,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     tickfont={"size": 9},
                 ),
                 hovertemplate="Feature: %{customdata[0]}<br>Sample: %{customdata[1]}<br>Value: %{z:.3f}<extra></extra>",
-                customdata=np.array([[[_shorten_name(str(feature_ids[i]), 18), _shorten_name(c, 60)] for c in plot_df.columns] for i in range(m)]),
+                customdata=np.array([[[_shorten_name(_clean_lipid_name(str(feature_ids[i])), 60), _shorten_name(c, 60)] for c in plot_df.columns] for i in range(m)]),
             ), row=2, col=1)
 
             for g in group_order:
