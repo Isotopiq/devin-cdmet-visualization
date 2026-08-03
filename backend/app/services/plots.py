@@ -319,8 +319,8 @@ def _volcano_publication(points, fc_thresh, padj_thresh, style, params):
     y_thr = -np.log10(padj_thresh)
     x_abs = max(abs(x_min), abs(x_max), fc_thresh)
     x_min, x_max = -x_abs, x_abs
-    x_pad = max((x_max - x_min) * 0.05, 0.1)
-    y_max = max(y_max, y_thr * 1.25) * 1.15
+    x_pad = max((x_max - x_min) * 0.08, 0.2)
+    y_max = max(y_max, y_thr * 1.25) * 1.45
     x_min -= x_pad
     x_max += x_pad
 
@@ -419,7 +419,7 @@ def _volcano_publication(points, fc_thresh, padj_thresh, style, params):
         ),
         plot_bgcolor="white",
         paper_bgcolor="white",
-        margin=dict(l=70, r=50, t=120, b=70),
+        margin=dict(l=80, r=90, t=140, b=70),
         font=dict(family=style.get("font_family"), color="#334155"),
     )
     return fig
@@ -2260,7 +2260,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
         y_thr = -np.log10(padj_thresh)
         x_abs = max(abs(min([p["lfc"] for p in points] or [-1], default=-1)), abs(max([p["lfc"] for p in points] or [1], default=1)), fc_thresh)
-        y_max = max(max([p["neglogp"] for p in points] or [0], default=0), y_thr * 1.25) * 1.15
+        y_max = max(max([p["neglogp"] for p in points] or [0], default=0), y_thr * 1.25) * 1.45
         line_color = "#475569"
         fig.add_hline(y=y_thr, line_dash="dash", line_color=line_color, line_width=1.5)
         fig.add_vline(x=fc_thresh, line_dash="dash", line_color=line_color, line_width=1.5)
@@ -2270,6 +2270,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             yaxis_title="-log10 p-value",
         )
         _apply_base_layout(fig, style, title="Volcano Plot")
+        fig.update_layout(margin=dict(l=80, r=90, t=140, b=70))
         fig.update_xaxes(range=[-x_abs, x_abs])
         fig.update_yaxes(range=[0, y_max])
 
@@ -2281,10 +2282,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 x_vals = [p["lfc"] for p in top]
                 y_vals = [p["neglogp"] for p in top]
                 labels = [_shorten_name(p["name"], 35) for p in top]
-                xs_all = [p["lfc"] for p in points]
-                ys_all = [p["neglogp"] for p in points]
-                x_min, x_max = min(xs_all) if xs_all else -1, max(xs_all) if xs_all else 1
-                y_min, y_max = 0, max(ys_all) if ys_all else 1
+                x_min, x_max = -x_abs, x_abs
+                y_min, y_max = 0, y_max
                 positions = list(_place_labels(x_vals, y_vals, labels, x_min, x_max, y_min, y_max))
                 fig.add_trace(go.Scatter(
                     x=[x for x, _, _ in positions],
