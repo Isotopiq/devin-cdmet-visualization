@@ -1893,8 +1893,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         figures = []
         for s in sorted_stats:
             fid = s.get("feature_id", "")
-            idx = _get_feature_index(dataset, fid)
-            if idx >= len(int_df):
+            idx = _get_feature_index(feature_metadata, fid)
+            if idx < 0 or idx >= len(int_df) or feature_metadata[idx].get('feature_id') != fid:
                 continue
             samples = int_df.columns.tolist()
             values = int_df.iloc[idx].values
