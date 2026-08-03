@@ -1725,6 +1725,8 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     m, n = z.shape
     row_order = list(range(m))
     col_order = list(range(n))
+    row_link = None
+    col_link = None
     try:
         if cluster_rows and m > 2:
             row_link = linkage(pdist(z, metric=metric), method=method)
@@ -1737,20 +1739,39 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     z = z[row_order][:, col_order]
     y_labels = [_shorten_name(_clean_lipid_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx), 40) for idx in plot_df.index[row_order]]
     x_labels = [_shorten_name(plot_df.columns[i], 35) for i in col_order]
+    max_y_len = max([len(s) for s in y_labels], default=1)
 
-    fig_width = max(8, min(40, n * 0.4 + 3))
+    fig_width = max(10, min(40, n * 0.45 + 4))
     fig_height = max(6, min(40, m * 0.25 + 3))
     y_font = max(5, min(10, int(fig_height * 36 / max(m, 1))))
     x_font = max(5, min(10, int(fig_width * 36 / max(n, 1))))
-    fig = plt.figure(figsize=(fig_width, fig_height))
-    gs = fig.add_gridspec(3, 4, width_ratios=[1.2, 6, 0.35, 1.5], height_ratios=[0.6, 0.25, 6], wspace=0.35, hspace=0.15)
 
-    ax_col = fig.add_subplot(gs[0, 1])
-    ax_group = fig.add_subplot(gs[1, 1])
+    # Reserve a left gutter wide enough for the row labels so they never overlap the dendrogram.
+    label_width_inches = max_y_len * y_font * 0.85 / 72 + 0.25
+    desired_gutter = label_width_inches * 1.5
+    row_dendro_ratio = 0.8 if cluster_rows else 0.001
+    heatmap_ratio = 6
+    cbar_ratio = 0.6
+    legend_ratio = 1.2
+    other_width = row_dendro_ratio + heatmap_ratio + cbar_ratio + legend_ratio
+    gutter_ratio = max(0.001, desired_gutter * other_width / max(0.1, fig_width - desired_gutter))
+    col_dendro_ratio = 0.6 if cluster_cols else 0.001
+
+    fig = plt.figure(figsize=(fig_width, fig_height))
+    gs = fig.add_gridspec(
+        3, 5,
+        width_ratios=[row_dendro_ratio, gutter_ratio, heatmap_ratio, cbar_ratio, legend_ratio],
+        height_ratios=[col_dendro_ratio, 0.25, 6],
+        wspace=0.12,
+        hspace=0.12,
+    )
+
+    ax_col = fig.add_subplot(gs[0, 2])
+    ax_group = fig.add_subplot(gs[1, 2])
     ax_row = fig.add_subplot(gs[2, 0])
-    ax_heatmap = fig.add_subplot(gs[2, 1])
-    ax_cbar = fig.add_subplot(gs[2, 2])
-    ax_legend = fig.add_subplot(gs[2, 3])
+    ax_heatmap = fig.add_subplot(gs[2, 2])
+    ax_cbar = fig.add_subplot(gs[2, 3])
+    ax_legend = fig.add_subplot(gs[2, 4])
 
     try:
         if cluster_cols and n > 2 and col_link is not None:
@@ -1777,9 +1798,9 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     ax_heatmap.set_xticklabels(x_labels, rotation=90, ha="center", fontsize=x_font)
     ax_heatmap.set_yticks(range(m))
     ax_heatmap.set_yticklabels(y_labels, fontsize=y_font)
-    # keep row labels on the left with extra padding so dendrogram lines and labels do not overlap
+    # Keep row labels on the left but close to the heatmap so they sit in the gutter, not the dendrogram.
     ax_heatmap.yaxis.tick_left()
-    ax_heatmap.tick_params(axis="y", labelleft=True, labelright=False, pad=15)
+    ax_heatmap.tick_params(axis="y", labelleft=True, labelright=False, pad=3)
     ax_heatmap.set_xlabel("")
     ax_heatmap.set_ylabel("")
 
