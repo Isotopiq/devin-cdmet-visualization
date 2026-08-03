@@ -26,6 +26,16 @@ def _safe_log2fc(mean_a: float, mean_b: float, eps: float = 1e-12) -> float:
 def run_statistical_test(dataset: models.Dataset, req: schemas.StatsRequest):
     df = to_dataframe(dataset)
     sample_meta = dataset.sample_metadata
+    feature_metadata = dataset.feature_metadata or []
+
+    # When isobaric resolution reports combined/representative species, drop
+    # non-representative component rows from statistical testing.
+    if feature_metadata:
+        keep_rows = [not bool(m.get("isobaric_substitution_rollup_exclude")) for m in feature_metadata]
+        if not all(keep_rows):
+            df = df[keep_rows].reset_index(drop=True)
+            feature_metadata = [m for m, ok in zip(feature_metadata, keep_rows) if ok]
+
     groups = {}
     for col, group in sample_meta.items():
         groups.setdefault(group, []).append(col)
@@ -74,7 +84,7 @@ def run_statistical_test(dataset: models.Dataset, req: schemas.StatsRequest):
         log2fc = _safe_log2fc(mean_a, mean_b)
 
         result = {
-            "feature_id": dataset.feature_metadata[idx].get("feature_id", idx) if idx < len(dataset.feature_metadata) else idx,
+            "feature_id": feature_metadata[idx].get("feature_id", idx) if idx < len(feature_metadata) else idx,
             "statistic": _to_json_safe(stat),
             "pvalue": _to_json_safe(p),
             "mean_a": _to_json_safe(mean_a),

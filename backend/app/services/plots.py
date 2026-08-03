@@ -114,12 +114,12 @@ def _apply_base_layout(fig: go.Figure, style: dict, title: str | None = None, x_
         fig.update_yaxes(tickangle=0)
 
 
-def _get_feature_index(dataset, feature_arg):
+def _get_feature_index(feature_metadata, feature_arg):
     if feature_arg is None:
         return 0
     if isinstance(feature_arg, int):
         return feature_arg
-    for i, meta in enumerate(dataset.feature_metadata):
+    for i, meta in enumerate(feature_metadata):
         if meta.get("feature_id") == feature_arg or meta.get("name") == feature_arg:
             return i
     return 0
@@ -1415,7 +1415,16 @@ def _group_stats(values_by_group: dict) -> tuple:
 def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
     df = to_dataframe(dataset)
     sample_meta = dataset.sample_metadata
-    feature_metadata = dataset.feature_metadata
+    feature_metadata = dataset.feature_metadata or []
+
+    # When isobaric resolution is set to report combined / keep one representative,
+    # drop the non-representative component rows from plots so combined species are shown once.
+    if feature_metadata:
+        keep_rows = [not bool(m.get("isobaric_substitution_rollup_exclude")) for m in feature_metadata]
+        if not all(keep_rows):
+            df = df[keep_rows].reset_index(drop=True)
+            feature_metadata = [m for m, ok in zip(feature_metadata, keep_rows) if ok]
+
     plot_type = req.plot_type
     params = req.parameters or {}
     style = _merge_style(req.style)
@@ -1432,8 +1441,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         return json.loads(fig.to_json())
 
     if plot_type in ("bar", "box", "violin", "dot"):
-        feature = _get_feature_index(dataset, params.get("feature"))
-        title = f"{dataset.feature_metadata[feature].get('feature_id', feature)}"
+        feature = _get_feature_index(feature_metadata, params.get("feature"))
+        title = f"{feature_metadata[feature].get('feature_id', feature)}"
         ordered_df = _reorder_columns(df, sample_meta, params.get("group_order", []))
         ordered_samples = ordered_df.columns.tolist()
         display_samples = [_shorten_name(s) for s in ordered_samples]
@@ -1722,7 +1731,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             _apply_base_layout(fig, style, title="PCA Scree Plot")
         elif ptype == "loading":
             loadings = pca.components_[0]
-            feat_ids = [m.get("feature_id", i) for i, m in enumerate(dataset.feature_metadata)]
+            feat_ids = [m.get("feature_id", i) for i, m in enumerate(feature_metadata)]
             top_idx = np.argsort(np.abs(loadings))[-50:]
             fig = px.bar(x=[feat_ids[i] for i in top_idx], y=[loadings[i] for i in top_idx],
                          labels={"x": "Feature", "y": "PC1 Loading"})
@@ -1739,7 +1748,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     hovertemplate="%{customdata[0]}<br>Group: %{customdata[1]}<extra></extra>",
                 ))
             loadings = pca.components_[:2]
-            feat_ids = [m.get("feature_id", i) for i, m in enumerate(dataset.feature_metadata)]
+            feat_ids = [m.get("feature_id", i) for i, m in enumerate(feature_metadata)]
             x_scale = max(np.abs(scores[:, 0]).max(), 1e-9)
             y_scale = max(np.abs(scores[:, 1]).max(), 1e-9)
             for i in range(min(20, len(loadings[0]))):
@@ -1844,11 +1853,11 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 ))
 
     elif plot_type == "lipid_class":
-        classes = [_extract_lipid_class(f.get("feature_id", ""), f) for f in dataset.feature_metadata]
+        classes = [_extract_lipid_class(f.get("feature_id", ""), f) for f in feature_metadata]
         if len(classes) != len(df):
             classes = classes[: len(df)]
         # Exclude rows marked as non-representative isobaric substitutions from class rollups.
-        exclude_mask = [bool(f.get("isobaric_substitution_rollup_exclude")) for f in dataset.feature_metadata]
+        exclude_mask = [bool(f.get("isobaric_substitution_rollup_exclude")) for f in feature_metadata]
         if len(exclude_mask) != len(df):
             exclude_mask = exclude_mask[: len(df)]
         keep = [not e for e in exclude_mask]
@@ -1948,30 +1957,30 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         fig = _outlier_plot(df, sample_meta, style, params)
 
     elif plot_type == "functional":
-        fig = _functional_volcano(df, sample_meta, dataset.feature_metadata, style, params)
+        fig = _functional_volcano(df, sample_meta, feature_metadata, style, params)
 
     elif plot_type == "food_profile":
-        fig = _food_profile(df, sample_meta, dataset.feature_metadata, style, params)
+        fig = _food_profile(df, sample_meta, feature_metadata, style, params)
 
     elif plot_type == "chain_space":
-        fig = _chain_space_figure(df, sample_meta, dataset.feature_metadata, style, params, history=dataset.processing_history)
+        fig = _chain_space_figure(df, sample_meta, feature_metadata, style, params, history=dataset.processing_history)
 
     elif plot_type == "pls_da":
-        fig = _pls_da_figure(df, sample_meta, dataset.feature_metadata, style, params)
+        fig = _pls_da_figure(df, sample_meta, feature_metadata, style, params)
 
     elif plot_type == "opls_da":
-        fig = _opls_da_figure(df, sample_meta, dataset.feature_metadata, style, params)
+        fig = _opls_da_figure(df, sample_meta, feature_metadata, style, params)
 
     elif plot_type == "biomarker":
-        fig = _biomarker_figure(df, sample_meta, dataset.feature_metadata, style, params)
+        fig = _biomarker_figure(df, sample_meta, feature_metadata, style, params)
 
     elif plot_type == "permanova":
-        fig = _permanova_figure(df, sample_meta, dataset.feature_metadata, style, params)
+        fig = _permanova_figure(df, sample_meta, feature_metadata, style, params)
 
     elif plot_type == "rt_mz":
-        mz = [_safe_float(f.get("mz", 0)) for f in dataset.feature_metadata]
-        rt = [_safe_float(f.get("rt", 0)) for f in dataset.feature_metadata]
-        grades = [str(f.get("grade", "unknown")) for f in dataset.feature_metadata]
+        mz = [_safe_float(f.get("mz", 0)) for f in feature_metadata]
+        rt = [_safe_float(f.get("rt", 0)) for f in feature_metadata]
+        grades = [str(f.get("grade", "unknown")) for f in feature_metadata]
         fig = px.scatter(x=mz, y=rt, color=grades,
                          labels={"x": "m/z", "y": "Retention Time"})
         _apply_base_layout(fig, style, title="Retention Time vs m/z")

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
-import { listAnalyses } from '../api'
-import { LuFileText, LuClock, LuDownload } from 'react-icons/lu'
+import { listAnalyses, deleteAnalysis } from '../api'
+import { LuFileText, LuClock, LuDownload, LuTrash2 } from 'react-icons/lu'
 import DatasetPicker from '../components/DatasetPicker'
 import PDFReportPanel from '../components/PDFReportPanel'
 
@@ -9,13 +9,27 @@ export default function Reports() {
   const { projectId, selectedDataset } = useWorkspace()
   const [analyses, setAnalyses] = useState<any[]>([])
 
-  useEffect(() => {
+  const load = () => {
     if (projectId) {
       listAnalyses(Number(projectId)).then((r) => setAnalyses(r.data)).catch(() => setAnalyses([]))
     } else {
       setAnalyses([])
     }
+  }
+
+  useEffect(() => {
+    load()
   }, [projectId, selectedDataset])
+
+  const handleDelete = async (analysisId: number) => {
+    if (!projectId || !analysisId) return
+    try {
+      await deleteAnalysis(Number(projectId), analysisId)
+      load()
+    } catch {
+      // swallow errors; list refreshes on success
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -25,6 +39,8 @@ export default function Reports() {
       </div>
 
       <DatasetPicker />
+
+      <PDFReportPanel />
 
       <div className="card p-5">
         <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuFileText /> Analyses</h3>
@@ -41,14 +57,15 @@ export default function Reports() {
                     <div className="text-xs text-slate-500 dark:text-slate-400">{new Date(a.created_at).toLocaleString()}</div>
                   </div>
                 </div>
-                <button className="btn-secondary text-xs"><LuDownload /> Export</button>
+                <div className="flex items-center gap-2">
+                  <button className="btn-secondary text-xs"><LuDownload /> Export</button>
+                  <button onClick={() => handleDelete(a.id)} className="btn-secondary text-xs text-red-600 dark:text-red-400"><LuTrash2 /> Delete</button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      <PDFReportPanel />
     </div>
   )
 }

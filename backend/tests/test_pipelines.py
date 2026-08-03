@@ -68,7 +68,25 @@ async def test_preprocess_total_area_no_infinities(dataset_for_preprocess):
     assert df.shape[0] > 0
     assert df.notna().all().all()
     assert not np.isinf(df.values).any()
-    # After total-area normalization, sample sums should be equal (median)
+    # Standard scaling is applied per feature (row), so each feature has
+    # mean ~0 and std ~1 across samples.
+    assert np.allclose(df.mean(axis=1), 0, atol=1e-6)
+    assert np.allclose(df.std(axis=1, ddof=0), 1, atol=1e-6)
+
+
+@pytest.mark.asyncio
+async def test_preprocess_total_area_normalizes_samples(dataset_for_preprocess):
+    params = schemas.PreprocessingParams(
+        missing_value_filter=0.2,
+        imputation="min",
+        log_transform=False,
+        scale="none",
+        normalization="total_area",
+    )
+    fake_db = _FakeAsyncSession()
+    new = await preprocess_dataset(fake_db, dataset_for_preprocess, params)
+    df = to_dataframe(new)
+    # After total-area normalization on raw intensities, sample sums equal the median total area.
     sample_sums = df.sum()
     assert sample_sums.max() - sample_sums.min() < 1e-6
 

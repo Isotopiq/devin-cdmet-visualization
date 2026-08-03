@@ -274,13 +274,13 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
             for col in cols:
                 df[col] = df[col] * scale
 
-    # 9. Scaling
+    # 9. Scaling (per feature, i.e. across samples; df rows are features)
     if params.scale == "standard":
-        df = pd.DataFrame(StandardScaler().fit_transform(df), columns=df.columns, index=df.index)
+        df = pd.DataFrame(StandardScaler().fit_transform(df.T).T, index=df.index, columns=df.columns)
     elif params.scale == "robust":
-        df = pd.DataFrame(RobustScaler().fit_transform(df), columns=df.columns, index=df.index)
+        df = pd.DataFrame(RobustScaler().fit_transform(df.T).T, index=df.index, columns=df.columns)
     elif params.scale == "minmax":
-        df = pd.DataFrame(MinMaxScaler().fit_transform(df), columns=df.columns, index=df.index)
+        df = pd.DataFrame(MinMaxScaler().fit_transform(df.T).T, index=df.index, columns=df.columns)
 
     new_dataset = from_dataframe(df, dataset, history, feature_metadata=current_meta)
     if params.output_name:

@@ -169,6 +169,20 @@ async def list_analyses(project_id: int, db: AsyncSession = Depends(get_db),
     return result.scalars().all()
 
 
+@router.delete("/{project_id}/analyses/{analysis_id}")
+async def delete_analysis(project_id: int, analysis_id: int, db: AsyncSession = Depends(get_db),
+                          current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Analysis).join(models.Project).where(
+        models.Analysis.id == analysis_id, models.Analysis.project_id == project_id,
+        models.Project.owner_id == current_user.id))
+    analysis = result.scalar_one_or_none()
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    await db.delete(analysis)
+    await db.commit()
+    return {"ok": True}
+
+
 def _fmt_export_value(v, floor: float) -> str:
     if v is None:
         return ""
@@ -202,6 +216,16 @@ async def export_dataset(
         raise HTTPException(status_code=404, detail="Dataset not found")
 
     df = to_dataframe(dataset)
+    feature_metadata = dataset.feature_metadata or []
+
+    # Only export representative (or combined) rows; skip isobaric component rows that
+    # were excluded from rollups by the "report combined" resolution modes.
+    if feature_metadata:
+        keep_rows = [not bool(m.get("isobaric_substitution_rollup_exclude")) for m in feature_metadata]
+        if not all(keep_rows):
+            df = df[keep_rows].reset_index(drop=True)
+            feature_metadata = [m for m, ok in zip(feature_metadata, keep_rows) if ok]
+
     for step in dataset.processing_history or []:
         if not isinstance(step, dict):
             continue
@@ -223,7 +247,7 @@ async def export_dataset(
     header = [header_key] + samples
     label_row = ["Label"] + groups
 
-    feature_ids = [m.get("feature_id", f"feature_{i}") for i, m in enumerate(dataset.feature_metadata or [])]
+    feature_ids = [m.get("feature_id", f"feature_{i}") for i, m in enumerate(feature_metadata)]
     if len(feature_ids) != len(df):
         feature_ids = [f"feature_{i}" for i in range(len(df))]
 

@@ -69,6 +69,7 @@ export const updateSampleGroups = (projectId: number, datasetId: number, sampleM
   API.put(`/analysis/${projectId}/dataset/${datasetId}/sample_groups`, { sample_metadata: sampleMetadata })
 
 export const listAnalyses = (projectId: number) => API.get(`/analysis/${projectId}/analyses`)
+export const deleteAnalysis = (projectId: number, analysisId: number) => API.delete(`/analysis/${projectId}/analyses/${analysisId}`)
 
 export const runStats = (projectId: number, datasetId: number, params: any) => API.post(`/stats/${projectId}/dataset/${datasetId}/stats`, params)
 export const generatePlot = (projectId: number, datasetId: number, params: any) => API.post(`/plots/${projectId}/dataset/${datasetId}/plot`, params)
