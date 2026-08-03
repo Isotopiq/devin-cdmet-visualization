@@ -9,6 +9,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from matplotlib import cm
+import matplotlib.patches as mpatches
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -644,6 +645,8 @@ def _category_volcano_figure(items, title, style, params=None):
     top_items = [it for it in top_items if abs(it["log2fc"]) >= fc_thresh and it["padj"] < p_thresh][:max(10, len(top_items) // 2 + 1)]
     top_items = sorted(top_items, key=lambda it: it["padj"])
     table_colors = [cat_colors[it["category"]] for it in top_items]
+    n_rows = len(top_items)
+    font_colors = ["#FFFFFF"] * n_rows if n_rows else "#334155"
     fig.add_trace(go.Table(
         header=dict(values=["Index", "Category", "log2FC", "adj. P", "Interpretation"], fill_color="#f1f5f9", align="left", font=dict(size=11, color="#1e293b")),
         cells=dict(
@@ -656,7 +659,7 @@ def _category_volcano_figure(items, title, style, params=None):
             ],
             fill_color=[table_colors, table_colors, "white", "white", "white"],
             align="left",
-            font=dict(size=10, color="#334155"),
+            font=dict(size=10, color=[font_colors, font_colors, "#334155", "#334155", "#334155"]),
             height=22,
         ),
     ), row=2, col=1)
@@ -1437,7 +1440,7 @@ def _mpl_figure_to_plotly(fig: plt.Figure, title: str | None = None) -> go.Figur
     """Save a matplotlib figure to PNG and wrap it in a Plotly image figure."""
     buf = io.BytesIO()
     try:
-        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", pad_inches=0.08)
+        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", pad_inches=0.05)
         buf.seek(0)
         img = Image.open(buf)
         width, height = img.size
@@ -1446,18 +1449,18 @@ def _mpl_figure_to_plotly(fig: plt.Figure, title: str | None = None) -> go.Figur
     finally:
         plt.close(fig)
     layout = {
+        "autosize": True,
         "images": [{
             "source": f"data:image/png;base64,{png_b64}",
             "xref": "paper", "yref": "paper",
             "x": 0, "y": 1,
             "sizex": 1, "sizey": 1,
             "xanchor": "left", "yanchor": "top",
+            "sizing": "contain",
             "layer": "below",
         }],
-        "xaxis": {"visible": False, "range": [0, 1]},
-        "yaxis": {"visible": False, "range": [0, 1], "scaleanchor": "x", "scaleratio": height / max(1, width)},
-        "width": width,
-        "height": height,
+        "xaxis": {"visible": False, "range": [0, 1], "fixedrange": True},
+        "yaxis": {"visible": False, "range": [0, 1], "fixedrange": True},
         "margin": {"l": 0, "r": 0, "t": 40 if title else 0, "b": 0},
         "paper_bgcolor": "white",
         "plot_bgcolor": "white",
@@ -1543,6 +1546,12 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
             cg.ax_heatmap.set_yticklabels(cg.ax_heatmap.get_yticklabels(), fontsize=7)
         title = params.get("title") or f"Top {m} most-variable features"
         cg.fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
+        # group color legend
+        try:
+            legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
+            cg.ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.02, 1), title="Group", fontsize=7, frameon=True)
+        except Exception:
+            pass
         return _mpl_figure_to_plotly(cg.fig, title=None)
     except Exception:
         # fallback to a simple seaborn heatmap
@@ -1550,6 +1559,8 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
         sns.heatmap(plot_df, cmap=cmap, center=center, ax=ax, cbar=True, xticklabels=True, yticklabels=True)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=90, ha="center", fontsize=7)
         ax.set_yticklabels(ax.get_yticklabels(), fontsize=7)
+        legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
+        ax.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.02, 1), title="Group", fontsize=7, frameon=True)
         return _mpl_figure_to_plotly(fig, params.get("title"))
 
 
@@ -1635,6 +1646,11 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
         pass
     ax_col.axis("off")
     ax_row.axis("off")
+    # hide any residual dendrogram leaf labels
+    for txt in getattr(ax_col, "texts", []):
+        txt.set_visible(False)
+    for txt in getattr(ax_row, "texts", []):
+        txt.set_visible(False)
 
     ax_group.imshow(group_color_matrix[:, col_order], aspect="auto", cmap=group_cmap, interpolation="nearest")
     ax_group.set_xticks([])
@@ -1651,6 +1667,13 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     ax_heatmap.set_ylabel("")
 
     fig.colorbar(im, cax=ax_cbar)
+
+    # group color legend
+    try:
+        legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
+        ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.02, 1), title="Group", fontsize=7, frameon=True)
+    except Exception:
+        pass
 
     title = params.get("title") or f"Top {m} most-variable features"
     fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
