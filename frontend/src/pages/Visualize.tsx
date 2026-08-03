@@ -98,7 +98,7 @@ export default function Visualize() {
   const [heatmapMetric, setHeatmapMetric] = useState('euclidean')
   const [heatmapMethod, setHeatmapMethod] = useState('average')
   const [heatmapTopN, setHeatmapTopN] = useState(50)
-  const [heatmapStyle, setHeatmapStyle] = useState<'default' | 'publication' | 'lipidone'>('default')
+  const [heatmapStyle, setHeatmapStyle] = useState<'default' | 'publication' | 'lipidone' | 'seaborn' | 'matplotlib'>('default')
   const [rowCluster, setRowCluster] = useState(true)
   const [colCluster, setColCluster] = useState(true)
   const [groupOrder, setGroupOrder] = useState<string[]>([])

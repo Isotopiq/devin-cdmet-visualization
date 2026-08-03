@@ -65,3 +65,52 @@ def test_build_pdf_empty_sections():
     pdf = build_pdf(dataset, "Test Project", req)
     assert pdf.startswith(b"%PDF")
     assert len(pdf) > 100
+
+
+@pytest.mark.parametrize("hstyle", ["lipidone", "seaborn", "matplotlib", "publication"])
+def test_build_pdf_heatmap_styles_and_per_lipid(hstyle):
+    dataset = _make_dataset()
+    req = PDFReportRequest(
+        title="Style Test",
+        group_a="A",
+        group_b="B",
+        sections=["summary", "heatmap_clustered", "per_lipid_bars"],
+        parameters={
+            "heatmap_top_n": 15,
+            "heatmap_style": hstyle,
+            "scale": "row_zscore",
+            "metric": "euclidean",
+            "method": "average",
+            "cluster_rows": True,
+            "cluster_cols": False,
+            "selected_groups": ["A", "B"],
+            "per_lipid_top_n": 3,
+            "test": "anova",
+        },
+    )
+    pdf = build_pdf(dataset, "Test Project", req)
+    assert pdf.startswith(b"%PDF")
+    assert len(pdf) > 1000
+
+
+def test_build_pdf_heatmap_top_n_flows_through():
+    dataset = _make_dataset()
+    req_small = PDFReportRequest(
+        title="TopN Test",
+        group_a="A",
+        group_b="B",
+        sections=["heatmap_clustered"],
+        parameters={"heatmap_top_n": 5},
+    )
+    req_large = PDFReportRequest(
+        title="TopN Test",
+        group_a="A",
+        group_b="B",
+        sections=["heatmap_clustered"],
+        parameters={"heatmap_top_n": 15},
+    )
+    pdf_small = build_pdf(dataset, "Test Project", req_small)
+    pdf_large = build_pdf(dataset, "Test Project", req_large)
+    assert pdf_small.startswith(b"%PDF")
+    assert pdf_large.startswith(b"%PDF")
+    assert len(pdf_large) >= len(pdf_small)
