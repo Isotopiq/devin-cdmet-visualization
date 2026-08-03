@@ -804,6 +804,7 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
             "cluster_rows": params.get("heatmap_cluster_rows", False),
             "cluster_cols": params.get("heatmap_cluster_cols", False),
             "heatmap_style": params.get("heatmap_style"),
+            "linkage_color": params.get("heatmap_linkage_color"),
             **p,
         }
     if section == "heatmap_clustered":
@@ -816,6 +817,7 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
             "cluster_rows": params.get("heatmap_cluster_rows", True),
             "cluster_cols": params.get("heatmap_cluster_cols", True),
             "heatmap_style": params.get("heatmap_style"),
+            "linkage_color": params.get("heatmap_linkage_color"),
             **p,
         }
     if section in ("pca_score", "pca_loadings", "pca_scree"):

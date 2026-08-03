@@ -44,6 +44,16 @@ const METHODS = [
   { value: 'single', label: 'Single' },
 ]
 
+const LINKAGE_COLORS = [
+  { value: '#2ca02c', label: 'Green' },
+  { value: '#ff7f0e', label: 'Orange' },
+  { value: '#1f77b4', label: 'Blue' },
+  { value: '#d62728', label: 'Red' },
+  { value: '#9467bd', label: 'Purple' },
+  { value: '#000000', label: 'Black' },
+  { value: '#808080', label: 'Gray' },
+]
+
 const LIPIDS_PER_PAGE = [4, 6, 8, 12, 16, 24, 32]
 
 const ALL_PLOT_KEYS = [
@@ -100,6 +110,7 @@ export default function Visualize() {
   const [heatmapTopN, setHeatmapTopN] = useState(50)
   const [heatmapTopNInput, setHeatmapTopNInput] = useState('50')
   const [heatmapStyle, setHeatmapStyle] = useState<'default' | 'publication' | 'lipidone' | 'seaborn' | 'matplotlib'>('default')
+  const [heatmapLinkageColor, setHeatmapLinkageColor] = useState('#2ca02c')
   const [rowCluster, setRowCluster] = useState(true)
   const [colCluster, setColCluster] = useState(true)
   const [groupOrder, setGroupOrder] = useState<string[]>([])
@@ -186,6 +197,7 @@ export default function Visualize() {
             scale: heatmapScale,
             metric: heatmapMetric,
             method: heatmapMethod,
+            linkage_color: heatmapLinkageColor,
             cluster_rows: rowCluster,
             cluster_cols: colCluster,
             group_order: groupOrder,
@@ -251,7 +263,7 @@ export default function Visualize() {
   useEffect(() => {
     if ((figure || figures.length) && !loading) generate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [style, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups])
+  }, [style, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups])
 
   const toggleInclude = (key: string) => {
     setIncludePlots((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -284,6 +296,7 @@ export default function Visualize() {
     top_n: topN,
     heatmap_top_n: heatmapTopN,
     heatmap_style: heatmapStyle === 'default' ? undefined : heatmapStyle,
+    heatmap_linkage_color: heatmapLinkageColor,
     scale: heatmapScale,
     metric: heatmapMetric,
     method: heatmapMethod,
@@ -497,6 +510,9 @@ export default function Visualize() {
           <div className="grid grid-cols-2 md:grid-cols-10 gap-3 items-end">
             <div><label className="label-like">Type</label><select value={heatmapType} onChange={(e) => setHeatmapType(e.target.value)} className="input"><option value="abundance">Abundance</option><option value="correlation">Correlation</option></select></div>
             <div><label className="label-like">Style</label><select value={heatmapStyle} onChange={(e) => setHeatmapStyle(e.target.value as any)} className="input"><option value="default">Default</option><option value="publication">Publication</option><option value="lipidone">LipidOne</option><option value="seaborn">Seaborn</option><option value="matplotlib">Matplotlib</option></select></div>
+            {(heatmapStyle === 'seaborn' || heatmapStyle === 'matplotlib') && (
+              <div><label className="label-like">Linkage color</label><select value={heatmapLinkageColor} onChange={(e) => setHeatmapLinkageColor(e.target.value)} className="input">{LINKAGE_COLORS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
+            )}
             <div><label className="label-like">Scale</label><select value={heatmapScale} onChange={(e) => setHeatmapScale(e.target.value)} className="input">{SCALES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
             <div><label className="label-like">Distance</label><select value={heatmapMetric} onChange={(e) => setHeatmapMetric(e.target.value)} className="input">{METRICS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
             <div><label className="label-like">Linkage</label><select value={heatmapMethod} onChange={(e) => setHeatmapMethod(e.target.value)} className="input">{METHODS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>

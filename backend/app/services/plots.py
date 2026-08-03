@@ -1478,6 +1478,7 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
     scale = params.get("scale", "row_zscore")
     cluster_rows = bool(params.get("cluster_rows", True))
     cluster_cols = bool(params.get("cluster_cols", True))
+    linkage_color = params.get("linkage_color", "#2ca02c")
     cmap = style.get("heatmap_colorscale", "RdBu_r")
 
     plot_df = df.copy()
@@ -1521,6 +1522,7 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
     fig_width = max(8, min(24, n * 0.3 + 2))
     fig_height = max(6, min(24, m * 0.18 + 3))
 
+    tree_kws = {"color": linkage_color, "linewidths": 1.0}
     try:
         cg = sns.clustermap(
             plot_df,
@@ -1538,6 +1540,7 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
             cbar_pos=(0.02, 0.78, 0.03, 0.15),
             xticklabels=True,
             yticklabels=True,
+            tree_kws=tree_kws,
         )
         # improve tick readability
         if cg.ax_heatmap.get_xticklabels():
@@ -1572,6 +1575,7 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     scale = params.get("scale", "row_zscore")
     cluster_rows = bool(params.get("cluster_rows", True))
     cluster_cols = bool(params.get("cluster_cols", True))
+    linkage_color = params.get("linkage_color", "#2ca02c")
     cmap = style.get("heatmap_colorscale", "RdBu_r")
 
     plot_df = df.copy()
@@ -1627,7 +1631,7 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     fig_width = max(8, min(24, n * 0.35 + 3))
     fig_height = max(6, min(24, m * 0.18 + 3))
     fig = plt.figure(figsize=(fig_width, fig_height))
-    gs = fig.add_gridspec(3, 3, width_ratios=[0.6, 6, 0.35], height_ratios=[0.6, 0.25, 6], wspace=0.05, hspace=0.05)
+    gs = fig.add_gridspec(3, 3, width_ratios=[1.2, 6, 0.35], height_ratios=[0.6, 0.25, 6], wspace=0.25, hspace=0.15)
 
     ax_col = fig.add_subplot(gs[0, 1])
     ax_group = fig.add_subplot(gs[1, 1])
@@ -1638,10 +1642,10 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     try:
         if cluster_cols and n > 2:
             col_link = linkage(pdist(z.T, metric=metric) if 'col_link' not in dir() else pdist(z.T, metric=metric), method=method)
-            scipy_dendrogram(col_link, orientation="top", no_labels=True, ax=ax_col, above_threshold_color="#64748b")
+            scipy_dendrogram(col_link, orientation="top", no_labels=True, show_leaf_counts=False, ax=ax_col, color_threshold=0, above_threshold_color=linkage_color)
         if cluster_rows and m > 2:
             row_link = linkage(pdist(z, metric=metric), method=method)
-            scipy_dendrogram(row_link, orientation="left", no_labels=True, ax=ax_row, above_threshold_color="#64748b")
+            scipy_dendrogram(row_link, orientation="left", no_labels=True, show_leaf_counts=False, ax=ax_row, color_threshold=0, above_threshold_color=linkage_color)
     except Exception:
         pass
     ax_col.axis("off")
@@ -1663,6 +1667,7 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     ax_heatmap.set_xticklabels(x_labels, rotation=90, ha="center", fontsize=7)
     ax_heatmap.set_yticks(range(m))
     ax_heatmap.set_yticklabels(y_labels, fontsize=7)
+    ax_heatmap.tick_params(axis='y', pad=10)
     ax_heatmap.set_xlabel("")
     ax_heatmap.set_ylabel("")
 
@@ -1677,7 +1682,7 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
 
     title = params.get("title") or f"Top {m} most-variable features"
     fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
-    fig.subplots_adjust(left=0.08, right=0.94, top=0.94, bottom=0.16, wspace=0.05, hspace=0.05)
+    fig.subplots_adjust(left=0.06, right=0.94, top=0.94, bottom=0.16, wspace=0.1, hspace=0.1)
     return _mpl_figure_to_plotly(fig, title=None)
 
 
