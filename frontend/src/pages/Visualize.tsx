@@ -89,6 +89,7 @@ export default function Visualize() {
   const [includedGroups, setIncludedGroups] = useState<Set<string>>(new Set())
   const [fcThreshold, setFcThreshold] = useState(1)
   const [pThreshold, setPThreshold] = useState(0.05)
+  const [multipleTesting, setMultipleTesting] = useState('fdr_bh')
   const [showLabels, setShowLabels] = useState(true)
   const [topN, setTopN] = useState(15)
 
@@ -154,7 +155,7 @@ export default function Visualize() {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'permanova', parameters: withExcluded({ group_a: groupA, group_b: groupB, metric: 'braycurtis', title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'volcano') {
-        const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
+        const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: multipleTesting, alpha: pThreshold })
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'volcano',
           parameters: withExcluded({ stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, show_labels: showLabels, top_n: topN, group_a: groupA, group_b: groupB, title: reportTitle }),
@@ -178,7 +179,7 @@ export default function Visualize() {
         })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'per_lipid_bars') {
-        const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
+        const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: multipleTesting, alpha: pThreshold })
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'per_lipid_bars',
           parameters: withExcluded({ stats: statsRes.data.results, group_a: groupA, group_b: groupB, top_n: allLipids ? 1000 : lipidsPerPage }),
@@ -234,7 +235,7 @@ export default function Visualize() {
   useEffect(() => {
     if ((figure || figures.length) && !loading) generate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [style])
+  }, [style, fcThreshold, pThreshold, multipleTesting])
 
   const toggleInclude = (key: string) => {
     setIncludePlots((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -258,7 +259,7 @@ export default function Visualize() {
     group_a: groupA,
     group_b: groupB,
     paired: false,
-    multiple_testing: 'fdr_bh',
+    multiple_testing: multipleTesting,
     alpha: pThreshold,
     fc_threshold: fcThreshold,
     p_threshold: pThreshold,
@@ -451,11 +452,20 @@ export default function Visualize() {
   const tabControls = () => {
     if (tab === 'volcano') {
       return (
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-3 items-end">
+        <div className="grid grid-cols-2 md:grid-cols-8 gap-3 items-end">
           <div><label className="label-like">Group A</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
           <div><label className="label-like">Group B</label><select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
           <div><label className="label-like">log2FC cutoff</label><input type="number" step="0.1" value={fcThreshold} onChange={(e) => setFcThreshold(Number(e.target.value))} className="input" /></div>
           <div><label className="label-like">p-value cutoff</label><input type="number" step="0.01" value={pThreshold} onChange={(e) => setPThreshold(Number(e.target.value))} className="input" /></div>
+          <div>
+            <label className="label-like">Multiple testing</label>
+            <select value={multipleTesting} onChange={(e) => setMultipleTesting(e.target.value)} className="input">
+              <option value="fdr_bh">Benjamini-Hochberg (FDR)</option>
+              <option value="bonferroni">Bonferroni</option>
+              <option value="holm">Holm</option>
+              <option value="none">None</option>
+            </select>
+          </div>
           <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="labels" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /><label htmlFor="labels">Label top</label></div>
           <div><input type="number" min={1} max={50} value={topN} onChange={(e) => setTopN(Number(e.target.value))} className="input" /></div>
           <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
