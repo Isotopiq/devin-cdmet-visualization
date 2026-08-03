@@ -1267,15 +1267,25 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         group_colorscale = [[i / (n_groups - 1), gcolor_map[g]] for i, g in enumerate(group_order)]
 
     m, n = plot_df.shape
+    height = max(600, min(1600, m * 16 + 260))
+    is_lipidone = params.get("heatmap_style") == "lipidone"
     feature_ids = [feature_metadata[i].get("feature_id", i) if i < len(feature_metadata) else i for i in plot_df.index]
+    # Keep the top dendrogram and group color bar at fixed pixel heights so they do not
+    # become oversized when the overall figure grows for larger top-N values.
+    vertical_spacing = 0.01
+    available = 1 - 2 * vertical_spacing
+    top_frac = 80 / height
+    group_frac = 50 / height
+    heatmap_frac = max(0.5, available - top_frac - group_frac)
+    row_heights = [top_frac, group_frac, heatmap_frac]
     fig = make_subplots(
         rows=3, cols=2,
         specs=[[None, {}], [None, {}], [{}, {}]],
         shared_xaxes=False,
         shared_yaxes=False,
         column_widths=[0.12, 0.88],
-        row_heights=[0.10, 0.08, 0.82],
-        vertical_spacing=0.02,
+        row_heights=row_heights,
+        vertical_spacing=vertical_spacing,
         horizontal_spacing=0.02,
     )
 
@@ -1344,7 +1354,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     x_tickvals = list(range(0, n, x_step))
     x_ticktext = [short_cols[i] for i in x_tickvals]
     x_tick_size = max(8, min(10 if long_x_labels else 13, int(300 / max(n, 1))))
-    y_tick_size = max(8, min(12, int(320 / max(m, 1))))
+    y_tick_size = max(8, min(12, int(height * 0.45 / max(m, 1))))
     if max_x_len > 16:
         x_tickangle = -60
     elif long_x_labels or n > 15:
@@ -1353,13 +1363,21 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         x_tickangle = -60
     else:
         x_tickangle = 0
-    y_step = _tick_text_step(m, max_labels=35)
+    if is_lipidone:
+        x_tickangle = -90
+    y_step = _tick_text_step(m, max_labels=max(35, int(height / 22)))
 
     max_group_len = max([len(str(g)) for g in group_order], default=0)
     group_legend_width = max_group_len * 8 + 55
     right_margin = max(220, int(max_y_len * y_tick_size * 0.65) + 140 + group_legend_width)
-    x_label_extra = int(max_x_len * x_tick_size * 0.6) + 40 if x_tickangle != 0 else x_tick_size + 30
-    bottom_margin = max(120, x_label_extra + 70)
+    if is_lipidone:
+        x_label_extra = max_x_len * x_tick_size + 30
+        bottom_margin = max(180, x_label_extra + 70)
+        footer_y = - (bottom_margin - 50) / height
+    else:
+        x_label_extra = int(max_x_len * x_tick_size * 0.6) + 40 if x_tickangle != 0 else x_tick_size + 30
+        bottom_margin = max(120, x_label_extra + 70)
+        footer_y = None
 
     _apply_base_layout(fig, style, title=f"Top {m} most-variable features", x_labels=short_cols, y_labels=short_rows)
 
@@ -1411,12 +1429,13 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
             font=dict(size=10),
         ),
         margin=dict(l=80, r=right_margin, t=100, b=bottom_margin),
+        height=height,
         paper_bgcolor=style.get("paper_bgcolor"),
         plot_bgcolor="white",
         font=dict(family=style.get("font_family"), color="#334155"),
     )
 
-    if params.get("heatmap_style") == "lipidone":
+    if is_lipidone:
         for trace in fig.data:
             if trace.type == "heatmap" and hasattr(trace, "z") and len(trace.z) > 1:
                 trace.colorscale = "RdYlBu_r"
@@ -1428,7 +1447,6 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
             paper_bgcolor="white",
             plot_bgcolor="white",
         )
-        fig.update_xaxes(tickangle=-90, row=3, col=2)
         # Group label above the group color bar
         fig.add_annotation(
             x=-0.5, y=1.12,
@@ -1441,12 +1459,12 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         # Footer summary
         footer = f"Top features: {m}, Ranking: p-value (t-test/ANOVA), Distance: {metric}"
         fig.add_annotation(
-            x=0, y=-0.12,
+            x=0.5, y=footer_y,
             xref="paper", yref="paper",
             text=footer,
             showarrow=False,
             font=dict(size=10, color="#334155"),
-            xanchor="left", yanchor="top",
+            xanchor="center", yanchor="top",
         )
 
     return fig

@@ -46,10 +46,14 @@ def _compute_mahalanobis_outliers(scores: np.ndarray, quantile: float = 0.99) ->
 def _filter_by_groups(df: pd.DataFrame, sample_meta: dict, selected_groups: list | None) -> tuple[pd.DataFrame, dict]:
     if not selected_groups:
         return df, sample_meta
-    selected_cols = [c for c in df.columns if sample_meta.get(c, "Unknown") in selected_groups]
+    # Normalize whitespace on both sides so a leading/trailing space in the stored metadata
+    # does not cause the selection to silently fall back to the full dataset.
+    selected_set = {str(g).strip() for g in selected_groups}
+    norm_meta = {c: str(sample_meta.get(c, "Unknown")).strip() for c in df.columns}
+    selected_cols = [c for c in df.columns if norm_meta[c] in selected_set]
     if not selected_cols:
-        return df, sample_meta
-    return df[selected_cols], {c: sample_meta[c] for c in selected_cols}
+        return df.iloc[:, 0:0], {}
+    return df[selected_cols], {c: str(sample_meta[c]).strip() for c in selected_cols}
 
 
 def _build_filtered_dataset(dataset: models.Dataset, df: pd.DataFrame, sample_meta: dict) -> models.Dataset:

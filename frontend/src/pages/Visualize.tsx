@@ -702,7 +702,7 @@ export default function Visualize() {
                   <PlotWithDownload
                     data={figure.data}
                     layout={figure.layout}
-                    style={{ width: '100%', height: tab === 'heatmap' ? '800px' : ['pls_da','opls_da','biomarker','permanova','chain_space'].includes(tab) ? '700px' : ['functional','food_profile'].includes(tab) ? '650px' : '550px' }}
+                    style={{ width: '100%', height: figure.layout?.height ? `${figure.layout.height}px` : (tab === 'heatmap' ? '800px' : ['pls_da','opls_da','biomarker','permanova','chain_space'].includes(tab) ? '700px' : ['functional','food_profile'].includes(tab) ? '650px' : '550px') }}
                     filename={`${tab}_${reportTitle.replace(/\s+/g, '_')}`}
                   />
                 </div>
