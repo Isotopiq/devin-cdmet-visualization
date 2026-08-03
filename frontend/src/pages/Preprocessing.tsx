@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import { preprocess } from '../api'
@@ -25,6 +25,8 @@ export default function Preprocessing() {
     normalization: 'total_area',
     imputation: 'min',
     qc_cv_filter: 0,
+    blank_subtraction: false,
+    blank_columns: [] as string[],
     enable_isobaric_substitution_check: true,
     isobaric_substitution_mode: 'flag_ambiguous',
     isobaric_substitution_rules: [DEFAULT_ISOBARIC_RULE],
@@ -33,6 +35,13 @@ export default function Preprocessing() {
     isobaric_rt_tolerance: 0.2,
     isobaric_rollup_preference: 'alphabetical',
   })
+
+  const sampleMeta = selectedDataset?.sample_metadata || {}
+  const blankSamples = useMemo(() => {
+    return Object.entries(sampleMeta)
+      .filter(([_, group]) => /blank|solvent|ntc/i.test(String(group)))
+      .map(([sample]) => sample)
+  }, [sampleMeta])
 
   const isLipid = selectedDataset?.feature_type === 'lipid'
 
@@ -55,8 +64,8 @@ export default function Preprocessing() {
         scale: params.scale,
         normalization: params.normalization,
         imputation: params.imputation,
-        blank_subtraction: false,
-        blank_columns: [],
+        blank_subtraction: params.blank_subtraction,
+        blank_columns: params.blank_columns,
         qc_cv_filter: params.qc_cv_filter,
         qc_columns: [],
         duplicate_handling: 'mean',
@@ -161,6 +170,41 @@ export default function Preprocessing() {
                 <input type="checkbox" id="log" checked={params.log_transform} onChange={(e) => setParams({ ...params, log_transform: e.target.checked })} className="rounded border-slate-300" />
                 <label htmlFor="log" className="text-sm text-slate-700 dark:text-slate-200">Log2 transform</label>
               </div>
+              <div className="md:col-span-3 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="blank-subtraction"
+                    checked={params.blank_subtraction}
+                    onChange={(e) => {
+                      const enabled = e.target.checked
+                      setParams({
+                        ...params,
+                        blank_subtraction: enabled,
+                        blank_columns: enabled ? blankSamples : [],
+                      })
+                    }}
+                    className="rounded border-slate-300"
+                  />
+                  <label htmlFor="blank-subtraction" className="text-sm text-slate-700 dark:text-slate-200">Subtract blank samples (recommended for lipidomics)</label>
+                </div>
+                {params.blank_subtraction && (
+                  <div>
+                    <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Blank samples to subtract</label>
+                    <select
+                      multiple
+                      value={params.blank_columns}
+                      onChange={(e) => setParams({ ...params, blank_columns: Array.from(e.target.selectedOptions).map((o) => o.value) })}
+                      className="input h-32"
+                    >
+                      {Object.keys(sampleMeta).map((s) => (
+                        <option key={s} value={s}>{s} ({sampleMeta[s] || 'unknown'})</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-slate-500 mt-1">Hold Ctrl/Cmd to select multiple. Detected blank groups are pre-selected.</p>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="mt-5">
               <button onClick={run} disabled={loading} className="btn-primary"><LuPlay /> {loading ? 'Running...' : 'Apply Pipeline'}</button>
@@ -190,6 +234,7 @@ export default function Preprocessing() {
                       <select value={params.isobaric_substitution_mode} onChange={(e) => setParams({ ...params, isobaric_substitution_mode: e.target.value })} className="input">
                         <option value="flag_ambiguous">Flag ambiguous</option>
                         <option value="report_combined">Report combined</option>
+                        <option value="flag_and_combine">Flag ambiguous and report combined</option>
                         <option value="keep_separate_with_flag">Keep separate, one for rollups</option>
                       </select>
                     </div>

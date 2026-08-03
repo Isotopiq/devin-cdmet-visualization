@@ -429,6 +429,51 @@ def apply_isobaric_substitution(
         summary["rows_flagged"] = len(flagged_indices)
         return new_df.reset_index(drop=True), new_meta, summary
 
+    if mode == "flag_and_combine":
+        combined_dfs: List[pd.DataFrame] = []
+        combined_meta: List[Dict[str, Any]] = []
+        for root, idxs in isobaric_groups.items():
+            group_counter += 1
+            match = find_isobaric_substitution_matches(_candidate_name(meta[idxs[0]]), _candidate_name(meta[idxs[1]]), rules)
+            rule_name = match.get("name", "isobaric") if match else "isobaric"
+
+            # Flag the original ambiguous rows and keep them, but exclude them
+            # from class-level rollups so the combined representative is counted once.
+            for i in idxs:
+                flagged_indices.add(i)
+                meta[i]["isobaric_substitution_flag"] = True
+                meta[i]["isobaric_substitution_rule"] = rule_name
+                meta[i]["isobaric_substitution_group_id"] = f"ISB_{group_counter}"
+                meta[i]["isobaric_substitution_resolution"] = "flag_and_combine"
+                meta[i]["isobaric_substitution_rollup_representative"] = False
+                meta[i]["isobaric_substitution_rollup_exclude"] = True
+
+            comp_metas = [meta[k] for k in idxs]
+            component_names = [_candidate_name(m) for m in comp_metas]
+            new_meta = deepcopy(comp_metas[0])
+            new_meta["feature_id"] = _combine_feature_id(comp_metas, match or rules[0])
+            new_meta["isobaric_substitution_flag"] = True
+            new_meta["isobaric_substitution_rule"] = rule_name
+            new_meta["isobaric_substitution_group_id"] = f"ISB_{group_counter}"
+            new_meta["isobaric_substitution_resolution"] = "flag_and_combine"
+            new_meta["isobaric_substitution_rollup_representative"] = True
+            new_meta["isobaric_substitution_rollup_exclude"] = False
+            new_meta["isobaric_substitution_component_names"] = component_names
+            new_meta["isobaric_substitution_component_count"] = len(comp_metas)
+
+            sub_df = df.iloc[idxs]
+            merged = sub_df.sum(numeric_only=True) if merge_method == "sum" else sub_df.mean(numeric_only=True)
+            merged_df = pd.DataFrame([merged], columns=df.columns)
+            combined_dfs.append(merged_df)
+            combined_meta.append(new_meta)
+            summary["rows_combined"] += len(idxs)
+            flagged_indices.update(idxs)
+
+        new_df = pd.concat([df] + combined_dfs, ignore_index=True)
+        new_meta = meta + combined_meta
+        summary["rows_flagged"] = len(flagged_indices)
+        return new_df.reset_index(drop=True), new_meta, summary
+
     if mode == "keep_separate_with_flag":
         for root, idxs in isobaric_groups.items():
             group_counter += 1
