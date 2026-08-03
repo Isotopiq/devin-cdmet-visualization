@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import { preprocess } from '../api'
@@ -34,7 +34,14 @@ export default function Preprocessing() {
     isobaric_mz_tolerance: 0.005,
     isobaric_rt_tolerance: 0.2,
     isobaric_rollup_preference: 'alphabetical',
+    output_name: '',
   })
+
+  useEffect(() => {
+    if (selectedDataset && !params.output_name) {
+      setParams((prev: any) => ({ ...prev, output_name: `${selectedDataset.name}_processed` }))
+    }
+  }, [selectedDataset])
 
   const sampleMeta = selectedDataset?.sample_metadata || {}
   const blankSamples = useMemo(() => {
@@ -79,6 +86,7 @@ export default function Preprocessing() {
         isobaric_mz_tolerance: params.isobaric_mz_tolerance,
         isobaric_rt_tolerance: params.isobaric_rt_tolerance,
         isobaric_rollup_preference: params.isobaric_rollup_preference,
+        output_name: params.output_name || undefined,
       }
       await preprocess(Number(projectId), Number(datasetId), body)
       setMessage('Preprocessing applied. New dataset created.')
@@ -206,8 +214,14 @@ export default function Preprocessing() {
                 )}
               </div>
             </div>
-            <div className="mt-5">
-              <button onClick={run} disabled={loading} className="btn-primary"><LuPlay /> {loading ? 'Running...' : 'Apply Pipeline'}</button>
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Processed dataset name</label>
+                <input type="text" value={params.output_name} onChange={(e) => setParams({ ...params, output_name: e.target.value })} className="input" placeholder="e.g., mydataset_processed" />
+              </div>
+              <div>
+                <button onClick={run} disabled={loading} className="btn-primary w-full"><LuPlay /> {loading ? 'Running...' : 'Apply Pipeline'}</button>
+              </div>
             </div>
             {message && <div className="mt-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 flex items-center gap-2 text-sm"><LuCheckCircle2 /> {message}</div>}
             {error && <div className="mt-4 p-3 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 flex items-center gap-2 text-sm"><LuAlertCircle /> {error}</div>}

@@ -203,6 +203,8 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
         df = pd.DataFrame(MinMaxScaler().fit_transform(df), columns=df.columns, index=df.index)
 
     new_dataset = from_dataframe(df, dataset, history, feature_metadata=current_meta)
+    if params.output_name:
+        new_dataset.name = params.output_name
     db.add(new_dataset)
     await db.commit()
     await db.refresh(new_dataset)
