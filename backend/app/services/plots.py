@@ -1,6 +1,7 @@
 import json
 import math
 import re
+from typing import Dict, List
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -1384,6 +1385,40 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         plot_bgcolor="white",
         font=dict(family=style.get("font_family"), color="#334155"),
     )
+
+    if params.get("heatmap_style") == "lipidone":
+        for trace in fig.data:
+            if trace.type == "heatmap" and hasattr(trace, "z") and len(trace.z) > 1:
+                trace.colorscale = "RdYlBu_r"
+                trace.zmid = 0
+                if trace.colorbar:
+                    trace.colorbar.title = "z-score"
+        fig.update_layout(
+            title=dict(text=""),
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+        )
+        fig.update_xaxes(tickangle=-90, row=3, col=2)
+        # Group label above the group color bar
+        fig.add_annotation(
+            x=-0.5, y=1.12,
+            xref="paper", yref="paper",
+            text="Group",
+            showarrow=False,
+            font=dict(size=11, color="#334155"),
+            xanchor="right", yanchor="bottom",
+        )
+        # Footer summary
+        footer = f"Top features: {m}, Ranking: p-value (t-test/ANOVA), Distance: {metric}"
+        fig.add_annotation(
+            x=0, y=-0.12,
+            xref="paper", yref="paper",
+            text=footer,
+            showarrow=False,
+            font=dict(size=10, color="#334155"),
+            xanchor="left", yanchor="top",
+        )
+
     return fig
 
 
@@ -1486,7 +1521,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
     elif plot_type == "heatmap":
         heatmap_type = params.get("heatmap_type", "abundance")
-        if heatmap_type != "correlation" and style.get("engine") == "publication":
+        if heatmap_type != "correlation" and (style.get("engine") == "publication" or params.get("heatmap_style") == "lipidone"):
             fig = _heatmap_publication(df, sample_meta, feature_metadata, style, params)
             return json.loads(fig.to_json())
         top_n = int(params.get("top_n", 50))
@@ -1886,11 +1921,13 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         stats_data = params.get("stats", [])
         group_a = params.get("group_a", "A")
         group_b = params.get("group_b", "B")
+        selected_groups = params.get("groups") or [group_a, group_b]
+        selected_groups = [g for g in selected_groups if g]
         top_n = int(params.get("top_n", 8))
         int_df = _intensity_df(df, dataset.processing_history)
-        # sort by p-value ascending
         sorted_stats = sorted([s for s in stats_data if s.get("padj") is not None], key=lambda s: _safe_float(s.get("padj", 1), 1.0))[:top_n]
         figures = []
+        color_map = _group_color_map(style, selected_groups)
         for s in sorted_stats:
             fid = s.get("feature_id", "")
             idx = _get_feature_index(feature_metadata, fid)
@@ -1898,29 +1935,28 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 continue
             samples = int_df.columns.tolist()
             values = int_df.iloc[idx].values
-            groups = [sample_meta.get(c, "unknown") for c in samples]
-            color_map = _group_color_map(style, [group_a, group_b])
-            group_vals = {group_a: [], group_b: []}
-            for c, g in zip(samples, groups):
-                if g == group_a or g == group_b:
-                    group_vals.setdefault(g, []).append(_safe_float(values[samples.index(c)]))
-            ordered = [g for g in [group_a, group_b] if group_vals.get(g)]
+            sample_groups = [sample_meta.get(c, "unknown") for c in samples]
+            group_vals: Dict[str, List[float]] = {g: [] for g in selected_groups}
+            for c, g in zip(samples, sample_groups):
+                if g in group_vals:
+                    group_vals[g].append(_safe_float(values[samples.index(c)]))
+            ordered = [g for g in selected_groups if group_vals.get(g)]
+            if not ordered:
+                continue
             means = []
             sems_up = []
             sems_down = []
-            all_vals = []
             y_max = 0
             for g in ordered:
                 vals = np.array(group_vals[g])
-                all_vals.extend(vals.tolist())
                 mean = float(np.mean(vals))
                 sem = float(scipy_stats.sem(vals)) if len(vals) > 1 else 0.0
                 means.append(mean)
                 sems_up.append(sem)
                 sems_down.append(min(sem, mean))
                 y_max = max(y_max, mean + sem, max(vals) if len(vals) else 0)
-            fig = go.Figure()
             xpos = list(range(len(ordered)))
+            fig = go.Figure()
             fig.add_trace(go.Bar(
                 x=xpos,
                 y=means,
@@ -1928,7 +1964,6 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 error_y=dict(type="data", array=sems_up, arrayminus=sems_down, visible=True, symmetric=False),
                 showlegend=False,
             ))
-            # overlay individual points
             np.random.seed(42)
             for i, g in enumerate(ordered):
                 vals = group_vals[g]
@@ -1942,13 +1977,26 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     hoverinfo="skip",
                 ))
             title = f"{_shorten_name(fid, 45)}"
-            if s.get("padj", 1) < 0.01:
+            padj = _safe_float(s.get("padj"), 1.0)
+            if padj < 0.001:
+                title += " ***"
+            elif padj < 0.01:
                 title += " **"
-            elif s.get("padj", 1) < 0.05:
+            elif padj < 0.05:
                 title += " *"
+            test_label = s.get("test", params.get("test", "t-test"))
+            subtitle = f"p={padj:.3g} ({test_label})"
             fig.update_xaxes(tickmode="array", tickvals=xpos, ticktext=ordered, tickangle=0)
             fig.update_layout(xaxis_title="", yaxis_title="Mean intensity")
             _apply_base_layout(fig, style, title=title)
+            fig.add_annotation(
+                text=subtitle,
+                xref="paper", yref="paper",
+                x=0.99, y=0.99,
+                showarrow=False,
+                font=dict(size=10, color="#64748b"),
+                xanchor="right", yanchor="top",
+            )
             fig.update_yaxes(range=[0, y_max * 1.15])
             figures.append(json.loads(fig.to_json()))
         return figures

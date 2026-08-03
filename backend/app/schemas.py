@@ -191,6 +191,7 @@ class StatsRequest(BaseModel):
     test: str
     group_a: Optional[str] = None
     group_b: Optional[str] = None
+    selected_groups: Optional[List[str]] = None
     value_column: Optional[str] = None
     group_column: Optional[str] = None
     paired: bool = False
@@ -245,6 +246,7 @@ class PDFReportRequest(BaseModel):
     multiple_testing: str = "fdr_bh"
     test: str = "t_test"
     show_labels: bool = False
+    parameters: Dict[str, Any] = {}
     style: Dict[str, Any] = {}
 
 

@@ -791,28 +791,31 @@ def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int
     return buffer
 
 
-def _section_params(section: str, group_a: str, group_b: str, stats_data: List[dict], req: schemas.PDFReportRequest) -> Optional[dict]:
+def _section_params(section: str, group_a: str, group_b: str, stats_data: List[dict], req: schemas.PDFReportRequest, selected_groups: Optional[List[str]] = None) -> Optional[dict]:
     p = {"group_a": group_a, "group_b": group_b}
+    params = req.parameters or {}
     if section == "heatmap_unclustered":
         return {
             "heatmap_type": "abundance",
-            "top_n": 50,
-            "scale": "row_zscore",
-            "metric": "euclidean",
-            "method": "average",
-            "cluster_rows": False,
-            "cluster_cols": False,
+            "top_n": params.get("heatmap_top_n", 50),
+            "scale": params.get("heatmap_scale", "row_zscore"),
+            "metric": params.get("heatmap_metric", "euclidean"),
+            "method": params.get("heatmap_method", "average"),
+            "cluster_rows": params.get("heatmap_cluster_rows", False),
+            "cluster_cols": params.get("heatmap_cluster_cols", False),
+            "heatmap_style": params.get("heatmap_style"),
             **p,
         }
     if section == "heatmap_clustered":
         return {
             "heatmap_type": "abundance",
-            "top_n": 50,
-            "scale": "row_zscore",
-            "metric": "euclidean",
-            "method": "average",
-            "cluster_rows": True,
-            "cluster_cols": True,
+            "top_n": params.get("heatmap_top_n", 50),
+            "scale": params.get("heatmap_scale", "row_zscore"),
+            "metric": params.get("heatmap_metric", "euclidean"),
+            "method": params.get("heatmap_method", "average"),
+            "cluster_rows": params.get("heatmap_cluster_rows", True),
+            "cluster_cols": params.get("heatmap_cluster_cols", True),
+            "heatmap_style": params.get("heatmap_style"),
             **p,
         }
     if section in ("pca_score", "pca_loadings", "pca_scree"):
@@ -822,7 +825,19 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
         return {"n_components": 2, "n_perm": req.n_perm, **p}
     if section == "opls_da":
         return {"n_orth": 1, "n_perm": req.n_perm, **p}
-    if section in ("volcano", "per_lipid_bars"):
+    if section == "per_lipid_bars":
+        return {
+            "stats": stats_data,
+            "fc_threshold": req.fc_threshold,
+            "p_threshold": req.p_threshold,
+            "padj_threshold": req.p_threshold,
+            "show_labels": req.show_labels,
+            "top_n": params.get("per_lipid_top_n", req.top_n),
+            "groups": selected_groups,
+            "test": params.get("test", req.test),
+            **p,
+        }
+    if section == "volcano":
         return {
             "stats": stats_data,
             "fc_threshold": req.fc_threshold,
@@ -863,14 +878,17 @@ def _build_pdf_style(dataset: models.Dataset, project_name: str, req: schemas.PD
 def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReportRequest) -> bytes:
     group_a, group_b = _comparison(dataset, req.group_a, req.group_b)
     sections = [s for s in req.sections if s in SECTION_TITLES]
+    params = req.parameters or {}
+    selected_groups = params.get("selected_groups") or ([group_a, group_b] if group_a and group_b else [])
 
     needs_stats = any(s in ("volcano", "per_lipid_bars") for s in sections)
     stats_data = []
-    if needs_stats and group_a and group_b:
+    if needs_stats and selected_groups:
         stats_req = schemas.StatsRequest(
-            test=req.test,
+            test=params.get("test", req.test),
             group_a=group_a,
             group_b=group_b,
+            selected_groups=selected_groups,
             paired=False,
             multiple_testing=req.multiple_testing,
             alpha=req.alpha,
@@ -891,8 +909,8 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
     for section in sections:
         if section == "summary":
             continue
-        params = _section_params(section, group_a, group_b, stats_data, req)
-        if params is None:
+        section_params = _section_params(section, group_a, group_b, stats_data, req, selected_groups=selected_groups)
+        if section_params is None:
             continue
         plot_type = section
         if section in ("heatmap_unclustered", "heatmap_clustered"):
@@ -906,7 +924,7 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
         try:
             fig = generate_plot(
                 dataset,
-                schemas.PlotRequest(plot_type=plot_type, parameters=params, style=plot_style),
+                schemas.PlotRequest(plot_type=plot_type, parameters=section_params, style=plot_style),
             )
         except Exception:
             continue

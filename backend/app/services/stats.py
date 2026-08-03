@@ -43,35 +43,47 @@ def run_statistical_test(dataset: models.Dataset, req: schemas.StatsRequest):
     group_a_cols = groups.get(req.group_a, []) if req.group_a else []
     group_b_cols = groups.get(req.group_b, []) if req.group_b else []
 
+    selected = req.selected_groups or list(groups.keys())
+    selected = [g for g in selected if g in groups and len(groups[g]) > 1]
+    # For two-group tests, ensure group_a and group_b are defined.
+    if req.test in ("t_test", "welch", "mannwhitney", "paired", "wilcoxon"):
+        if not selected:
+            selected = [req.group_a, req.group_b]
+        if not req.group_a and selected:
+            group_a_cols = groups.get(selected[0], [])
+        if not req.group_b and len(selected) > 1:
+            group_b_cols = groups.get(selected[1], [])
+
     results = []
     for idx in df.index:
         a = df.loc[idx, group_a_cols].dropna().values if group_a_cols else np.array([])
         b = df.loc[idx, group_b_cols].dropna().values if group_b_cols else np.array([])
-        if len(a) < 2 or len(b) < 2:
-            continue
 
         stat = None
         p = None
         try:
-            if req.test == "t_test":
-                stat, p = stats.ttest_ind(a, b, equal_var=True)
-            elif req.test == "welch":
-                stat, p = stats.ttest_ind(a, b, equal_var=False)
-            elif req.test == "mannwhitney":
-                stat, p = stats.mannwhitneyu(a, b, alternative="two-sided")
-            elif req.test == "paired":
-                if len(a) == len(b):
-                    stat, p = stats.ttest_rel(a, b)
-            elif req.test == "wilcoxon":
-                if len(a) == len(b):
-                    stat, p = stats.wilcoxon(a, b)
-            elif req.test == "anova":
-                arrays = [df.loc[idx, cols].dropna().values for cols in groups.values() if len(cols) > 1]
-                if len(arrays) >= 2:
+            if req.test in ("t_test", "welch", "mannwhitney", "paired", "wilcoxon"):
+                if len(a) < 2 or len(b) < 2:
+                    continue
+                if req.test == "t_test":
+                    stat, p = stats.ttest_ind(a, b, equal_var=True)
+                elif req.test == "welch":
+                    stat, p = stats.ttest_ind(a, b, equal_var=False)
+                elif req.test == "mannwhitney":
+                    stat, p = stats.mannwhitneyu(a, b, alternative="two-sided")
+                elif req.test == "paired":
+                    if len(a) == len(b):
+                        stat, p = stats.ttest_rel(a, b)
+                elif req.test == "wilcoxon":
+                    if len(a) == len(b):
+                        stat, p = stats.wilcoxon(a, b)
+            elif req.test in ("anova", "kruskal"):
+                arrays = [df.loc[idx, groups[g]].dropna().values for g in selected if len(groups[g]) > 1]
+                if len(arrays) < 2:
+                    continue
+                if req.test == "anova":
                     stat, p = stats.f_oneway(*arrays)
-            elif req.test == "kruskal":
-                arrays = [df.loc[idx, cols].dropna().values for cols in groups.values() if len(cols) > 1]
-                if len(arrays) >= 2:
+                else:
                     stat, p = stats.kruskal(*arrays)
         except Exception:
             continue
@@ -79,12 +91,20 @@ def run_statistical_test(dataset: models.Dataset, req: schemas.StatsRequest):
         if p is None or not math.isfinite(p):
             continue
 
-        mean_a = float(np.mean(a))
-        mean_b = float(np.mean(b))
-        log2fc = _safe_log2fc(mean_a, mean_b)
+        if a.size and b.size:
+            mean_a = float(np.mean(a))
+            mean_b = float(np.mean(b))
+        elif selected:
+            vals = [v for g in selected for v in df.loc[idx, groups[g]].dropna().values]
+            mean_a = float(np.mean(vals)) if vals else None
+            mean_b = None
+        else:
+            mean_a = mean_b = None
+        log2fc = _safe_log2fc(mean_a, mean_b) if mean_a is not None and mean_b is not None else None
 
+        feature_id = feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx
         result = {
-            "feature_id": feature_metadata[idx].get("feature_id", idx) if idx < len(feature_metadata) else idx,
+            "feature_id": feature_id,
             "statistic": _to_json_safe(stat),
             "pvalue": _to_json_safe(p),
             "mean_a": _to_json_safe(mean_a),

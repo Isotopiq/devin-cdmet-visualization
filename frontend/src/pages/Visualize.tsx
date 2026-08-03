@@ -98,6 +98,7 @@ export default function Visualize() {
   const [heatmapMetric, setHeatmapMetric] = useState('euclidean')
   const [heatmapMethod, setHeatmapMethod] = useState('average')
   const [heatmapTopN, setHeatmapTopN] = useState(50)
+  const [heatmapStyle, setHeatmapStyle] = useState<'default' | 'publication' | 'lipidone'>('default')
   const [rowCluster, setRowCluster] = useState(true)
   const [colCluster, setColCluster] = useState(true)
   const [groupOrder, setGroupOrder] = useState<string[]>([])
@@ -105,6 +106,7 @@ export default function Visualize() {
 
   const [lipidsPerPage, setLipidsPerPage] = useState(8)
   const [allLipids, setAllLipids] = useState(false)
+  const [perLipidTest, setPerLipidTest] = useState('t_test')
 
   const [showContents, setShowContents] = useState(false)
   const [groupFilterOpen, setGroupFilterOpen] = useState(true)
@@ -163,26 +165,31 @@ export default function Visualize() {
         })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'heatmap') {
+        const heatmapStyleReq: any = {
+          heatmap_type: heatmapType,
+          top_n: heatmapTopN,
+          scale: heatmapScale,
+          metric: heatmapMetric,
+          method: heatmapMethod,
+          cluster_rows: rowCluster,
+          cluster_cols: colCluster,
+          group_order: groupOrder,
+        }
+        if (heatmapStyle === 'lipidone') {
+          heatmapStyleReq.heatmap_style = 'lipidone'
+        }
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'heatmap',
-          parameters: withExcluded({
-            heatmap_type: heatmapType,
-            top_n: heatmapTopN,
-            scale: heatmapScale,
-            metric: heatmapMetric,
-            method: heatmapMethod,
-            cluster_rows: rowCluster,
-            cluster_cols: colCluster,
-            group_order: groupOrder,
-          }),
-          style: backendStyle,
+          parameters: withExcluded(heatmapStyleReq),
+          style: { ...backendStyle, engine: heatmapStyle === 'default' ? (backendStyle.engine || 'default') : 'publication' },
         })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'per_lipid_bars') {
-        const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: multipleTesting, alpha: pThreshold })
+        const selectedGroups = Array.from(includedGroups).filter(g => groups.includes(g))
+        const statsRes = await runStats(base.projectId, base.datasetId, { test: perLipidTest, group_a: groupA, group_b: groupB, selected_groups: selectedGroups, paired: false, multiple_testing: multipleTesting, alpha: pThreshold })
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'per_lipid_bars',
-          parameters: withExcluded({ stats: statsRes.data.results, group_a: groupA, group_b: groupB, top_n: allLipids ? 1000 : lipidsPerPage }),
+          parameters: withExcluded({ stats: statsRes.data.results, group_a: groupA, group_b: groupB, groups: selectedGroups, test: perLipidTest, top_n: allLipids ? 1000 : lipidsPerPage }),
           style: backendStyle,
         })
         if (tabRef.current === requestTab) {
@@ -235,7 +242,7 @@ export default function Visualize() {
   useEffect(() => {
     if ((figure || figures.length) && !loading) generate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [style, fcThreshold, pThreshold, multipleTesting])
+  }, [style, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups])
 
   const toggleInclude = (key: string) => {
     setIncludePlots((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -255,9 +262,10 @@ export default function Visualize() {
   }
 
   const buildReportParams = () => ({
-    test: 't_test',
+    test: perLipidTest,
     group_a: groupA,
     group_b: groupB,
+    selected_groups: Array.from(includedGroups).filter(g => groups.includes(g)),
     paired: false,
     multiple_testing: multipleTesting,
     alpha: pThreshold,
@@ -266,6 +274,7 @@ export default function Visualize() {
     show_labels: showLabels,
     top_n: topN,
     heatmap_top_n: heatmapTopN,
+    heatmap_style: heatmapStyle === 'lipidone' ? 'lipidone' : undefined,
     scale: heatmapScale,
     metric: heatmapMetric,
     method: heatmapMethod,
@@ -407,6 +416,7 @@ export default function Visualize() {
         test: reportParams.test,
         multiple_testing: reportParams.multiple_testing,
         show_labels: reportParams.show_labels,
+        parameters: reportParams,
         style: backendStyle,
       })
       const blob = new Blob([res.data], { type: 'application/pdf' })
@@ -475,12 +485,13 @@ export default function Visualize() {
     if (tab === 'heatmap') {
       return (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-9 gap-3 items-end">
+          <div className="grid grid-cols-2 md:grid-cols-10 gap-3 items-end">
             <div><label className="label-like">Type</label><select value={heatmapType} onChange={(e) => setHeatmapType(e.target.value)} className="input"><option value="abundance">Abundance</option><option value="correlation">Correlation</option></select></div>
+            <div><label className="label-like">Style</label><select value={heatmapStyle} onChange={(e) => setHeatmapStyle(e.target.value as any)} className="input"><option value="default">Default</option><option value="publication">Publication</option><option value="lipidone">LipidOne</option></select></div>
             <div><label className="label-like">Scale</label><select value={heatmapScale} onChange={(e) => setHeatmapScale(e.target.value)} className="input">{SCALES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
             <div><label className="label-like">Distance</label><select value={heatmapMetric} onChange={(e) => setHeatmapMetric(e.target.value)} className="input">{METRICS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
             <div><label className="label-like">Linkage</label><select value={heatmapMethod} onChange={(e) => setHeatmapMethod(e.target.value)} className="input">{METHODS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
-            <div><label className="label-like">Top N</label><input type="number" value={heatmapTopN} onChange={(e) => setHeatmapTopN(Number(e.target.value))} className="input" /></div>
+            <div><label className="label-like">Top N</label><input type="number" min={5} value={heatmapTopN} onChange={(e) => setHeatmapTopN(Number(e.target.value))} className="input" /></div>
             <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="rowCluster" checked={rowCluster} onChange={(e) => setRowCluster(e.target.checked)} /><label htmlFor="rowCluster">Rows</label></div>
             <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="colCluster" checked={colCluster} onChange={(e) => setColCluster(e.target.checked)} /><label htmlFor="colCluster">Cols</label></div>
             <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
@@ -528,12 +539,29 @@ export default function Visualize() {
     }
     if (tab === 'per_lipid_bars') {
       return (
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
-          <div><label className="label-like">Group A</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
-          <div><label className="label-like">Group B</label><select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
-          <div><label className="label-like">Lipids/page</label><select value={lipidsPerPage} onChange={(e) => setLipidsPerPage(Number(e.target.value))} className="input">{LIPIDS_PER_PAGE.map(n => <option key={n} value={n}>{n}</option>)}</select></div>
-          <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="allLipids" checked={allLipids} onChange={(e) => setAllLipids(e.target.checked)} /><label htmlFor="allLipids">All lipids</label></div>
-          <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 md:grid-cols-8 gap-3 items-end">
+            <div><label className="label-like">Group A</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
+            <div><label className="label-like">Group B</label><select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
+            <div><label className="label-like">Test</label><select value={perLipidTest} onChange={(e) => setPerLipidTest(e.target.value)} className="input"><option value="t_test">t-test</option><option value="welch">Welch</option><option value="mannwhitney">Mann-Whitney</option><option value="anova">ANOVA</option><option value="kruskal">Kruskal-Wallis</option></select></div>
+            <div><label className="label-like">Lipids/page</label><select value={lipidsPerPage} onChange={(e) => setLipidsPerPage(Number(e.target.value))} className="input">{LIPIDS_PER_PAGE.map(n => <option key={n} value={n}>{n}</option>)}</select></div>
+            <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="allLipids" checked={allLipids} onChange={(e) => setAllLipids(e.target.checked)} /><label htmlFor="allLipids">All lipids</label></div>
+            <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <span className="label-like">Groups to display:</span>
+            {groups.map((g) => (
+              <label key={g} className={`flex items-center gap-1 ${(g === groupA || g === groupB) ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'}`}>
+                <input
+                  type="checkbox"
+                  checked={includedGroups.has(g)}
+                  disabled={g === groupA || g === groupB}
+                  onChange={() => toggleGroup(g)}
+                />
+                {g}
+              </label>
+            ))}
+          </div>
         </div>
       )
     }
