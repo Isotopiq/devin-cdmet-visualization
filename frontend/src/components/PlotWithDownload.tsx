@@ -11,19 +11,40 @@ interface Props {
   config?: any
 }
 
+function parseDim(value: any): number | null {
+  if (typeof value === 'number' && !Number.isNaN(value) && value > 0) {
+    return value
+  }
+  if (typeof value === 'string') {
+    const px = value.match(/^(\d+(?:\.\d+)?)px?$/i)
+    if (px) return parseFloat(px[1])
+  }
+  return null
+}
+
 export default function PlotWithDownload({ data, layout, style, filename = 'plot.png', config }: Props) {
-  const [graphDiv, setGraphDiv] = useState<any>(null)
+  const [graphDiv, setGraphDiv] = useState<HTMLDivElement | null>(null)
 
   const downloadPng = useCallback(async () => {
     if (!graphDiv) return
-    const width = layout?.width || (style?.width ? Number(style.width) : 1200)
-    const height = layout?.height || (style?.height ? Number(style.height) : 700)
     try {
-      const url = await Plotly.toImage(graphDiv, { format: 'png', width, height })
+      const rect = graphDiv.getBoundingClientRect()
+      const width = parseDim(layout?.width) || parseDim(style?.width) || Math.round(rect.width) || 1200
+      const height = parseDim(layout?.height) || parseDim(style?.height) || Math.round(rect.height) || 700
+
+      const url = await Plotly.toImage(graphDiv, {
+        format: 'png',
+        width,
+        height,
+        scale: 2,
+      })
+
       const a = document.createElement('a')
       a.href = url
       a.download = filename.endsWith('.png') ? filename : `${filename}.png`
+      document.body.appendChild(a)
       a.click()
+      a.remove()
     } catch (err) {
       console.error('PNG export failed', err)
     }
@@ -39,7 +60,7 @@ export default function PlotWithDownload({ data, layout, style, filename = 'plot
         layout={layout}
         style={style}
         config={config}
-        onInitialized={(figure: any, gd: any) => setGraphDiv(gd)}
+        onInitialized={(_figure: any, gd: any) => setGraphDiv(gd)}
       />
     </div>
   )
