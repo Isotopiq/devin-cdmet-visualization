@@ -30,11 +30,34 @@ export default function QC() {
   const [data, setData] = useState<QCData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set())
+
+  const allGroups = selectedDataset?.sample_metadata
+    ? Array.from(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>)))
+    : []
+
+  const toggleGroup = (g: string) => {
+    setSelectedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(g)) next.delete(g)
+      else next.add(g)
+      return next
+    })
+  }
+
+  useEffect(() => {
+    setData(null)
+    if (selectedDataset?.sample_metadata) {
+      setSelectedGroups(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>)))
+    } else {
+      setSelectedGroups(new Set())
+    }
+  }, [selectedDataset])
 
   const handleExportExcel = async () => {
     if (!projectId || !datasetId || !selectedDataset) return
     try {
-      const res = await exportQCExcel(Number(projectId), Number(datasetId))
+      const res = await exportQCExcel(Number(projectId), Number(datasetId), Array.from(selectedGroups))
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement('a')
       link.href = url
@@ -53,7 +76,7 @@ export default function QC() {
     setLoading(true)
     setError('')
     try {
-      const res = await exportQCPdf(Number(projectId), Number(datasetId))
+      const res = await exportQCPdf(Number(projectId), Number(datasetId), Array.from(selectedGroups))
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
       const link = document.createElement('a')
       link.href = url
@@ -70,11 +93,11 @@ export default function QC() {
   }
 
   const load = async () => {
-    if (!projectId || !datasetId) return
+    if (!projectId || !datasetId || selectedGroups.size === 0) return
     setLoading(true)
     setError('')
     try {
-      const res = await getQC(Number(projectId), Number(datasetId))
+      const res = await getQC(Number(projectId), Number(datasetId), Array.from(selectedGroups))
       setData(res.data)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load QC data')
@@ -99,11 +122,29 @@ export default function QC() {
       {selectedDataset && (
         <>
           <div className="card p-5 flex items-end gap-4 flex-wrap">
-            <button onClick={load} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Run QC</button>
-            <button onClick={handleExportExcel} disabled={!selectedDataset} className="btn-secondary"><LuDownload /> Export Excel Summary</button>
-            <button onClick={handleExportPdf} disabled={!selectedDataset || loading} className="btn-secondary"><LuFileText /> Export QC PDF Report</button>
+            <button onClick={load} disabled={loading || selectedGroups.size === 0} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Run QC</button>
+            <button onClick={handleExportExcel} disabled={!selectedDataset || selectedGroups.size === 0} className="btn-secondary"><LuDownload /> Export Excel Summary</button>
+            <button onClick={handleExportPdf} disabled={!selectedDataset || loading || selectedGroups.size === 0} className="btn-secondary"><LuFileText /> Export QC PDF Report</button>
             {error && <span className="text-sm text-red-600 dark:text-red-400">{error}</span>}
           </div>
+
+          {selectedDataset && allGroups.length > 0 && (
+            <div className="card p-4">
+              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Groups to include in QC</div>
+              <div className="flex flex-wrap gap-4">
+                {allGroups.map((g) => (
+                  <label key={g} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={selectedGroups.has(g)}
+                      onChange={() => toggleGroup(g)}
+                    />
+                    {g}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {data && (
             <>

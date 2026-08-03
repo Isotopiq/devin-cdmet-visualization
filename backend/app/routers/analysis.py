@@ -2,7 +2,7 @@ import io
 import csv
 import math
 from typing import List, Literal
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -81,6 +81,7 @@ async def list_datasets(project_id: int, db: AsyncSession = Depends(get_db),
 async def get_qc(
     project_id: int,
     dataset_id: int,
+    selected_groups: List[str] | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ):
@@ -89,13 +90,14 @@ async def get_qc(
     dataset = result.scalar_one_or_none()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    return qc_analysis(dataset)
+    return qc_analysis(dataset, selected_groups=selected_groups)
 
 
 @router.get("/{project_id}/dataset/{dataset_id}/qc/excel")
 async def get_qc_excel(
     project_id: int,
     dataset_id: int,
+    selected_groups: List[str] | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ):
@@ -104,7 +106,7 @@ async def get_qc_excel(
     dataset = result.scalar_one_or_none()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    excel_bytes = qc_export_excel(dataset)
+    excel_bytes = qc_export_excel(dataset, selected_groups=selected_groups)
     filename = f"{dataset.name.replace(' ', '_')}_qc_summary.xlsx"
     return StreamingResponse(
         io.BytesIO(excel_bytes),
@@ -117,6 +119,7 @@ async def get_qc_excel(
 async def get_qc_pdf(
     project_id: int,
     dataset_id: int,
+    selected_groups: List[str] | None = Body(None),
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ):
@@ -134,7 +137,7 @@ async def get_qc_pdf(
         raise HTTPException(status_code=404, detail="Dataset not found")
     dataset, project = row
 
-    pdf_bytes = build_qc_pdf(dataset, project.name if project else "")
+    pdf_bytes = build_qc_pdf(dataset, project.name if project else "", selected_groups=selected_groups)
     s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db)
     filename = f"{dataset.name.replace(' ', '_')}_qc_report.pdf"
     headers = {"Content-Disposition": f"attachment; filename={filename}"}

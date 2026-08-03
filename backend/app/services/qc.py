@@ -43,11 +43,35 @@ def _compute_mahalanobis_outliers(scores: np.ndarray, quantile: float = 0.99) ->
     return distances > threshold
 
 
-def qc_analysis(dataset: models.Dataset, style: dict | None = None) -> dict:
+def _filter_by_groups(df: pd.DataFrame, sample_meta: dict, selected_groups: list | None) -> tuple[pd.DataFrame, dict]:
+    if not selected_groups:
+        return df, sample_meta
+    selected_cols = [c for c in df.columns if sample_meta.get(c, "Unknown") in selected_groups]
+    if not selected_cols:
+        return df, sample_meta
+    return df[selected_cols], {c: sample_meta[c] for c in selected_cols}
+
+
+def _build_filtered_dataset(dataset: models.Dataset, df: pd.DataFrame, sample_meta: dict) -> models.Dataset:
+    return models.Dataset(
+        id=dataset.id,
+        project_id=dataset.project_id,
+        source_file_id=dataset.source_file_id,
+        name=dataset.name,
+        feature_type=dataset.feature_type,
+        data_matrix=df.to_dict("list"),
+        sample_metadata=sample_meta,
+        feature_metadata=list(dataset.feature_metadata or []),
+        processing_history=list(dataset.processing_history or []),
+    )
+
+
+def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_groups: list | None = None) -> dict:
     style = _merge_style(style)
     df = _as_floats(to_dataframe(dataset))
     sample_meta = dataset.sample_metadata or {}
     feature_meta = dataset.feature_metadata or []
+    df, sample_meta = _filter_by_groups(df, sample_meta, selected_groups)
 
     samples = list(df.columns)
     groups = [sample_meta.get(s, "Unknown") for s in samples]
@@ -180,9 +204,11 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None) -> dict:
         "cv_by_group": _cv_box_figure(),
     }
 
+    filtered_dataset = _build_filtered_dataset(dataset, df, sample_meta)
+
     try:
         figures["pca"] = generate_plot(
-            dataset,
+            filtered_dataset,
             schemas.PlotRequest(plot_type="pca", parameters={"plot": "score"}, style=style),
         )
     except Exception:
@@ -190,7 +216,7 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None) -> dict:
 
     try:
         figures["correlation_heatmap"] = generate_plot(
-            dataset,
+            filtered_dataset,
             schemas.PlotRequest(plot_type="heatmap", parameters={"heatmap_type": "correlation"}, style=style),
         )
     except Exception:
@@ -217,11 +243,13 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None) -> dict:
     }
 
 
-def qc_export_excel(dataset: models.Dataset, style: dict | None = None) -> bytes:
+def qc_export_excel(dataset: models.Dataset, style: dict | None = None, selected_groups: list | None = None) -> bytes:
     """Build a styled, color-coded Excel QC summary workbook."""
-    result = qc_analysis(dataset, style)
+    result = qc_analysis(dataset, style, selected_groups)
     metrics = result["metrics"]
     sample_meta = dataset.sample_metadata or {}
+    full_df = _as_floats(to_dataframe(dataset))
+    _, sample_meta = _filter_by_groups(full_df, sample_meta, selected_groups)
     style = _merge_style(style)
 
     wb = Workbook()

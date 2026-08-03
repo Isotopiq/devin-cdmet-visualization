@@ -108,10 +108,11 @@ export const getAnalysisCount = () => API.get('/admin/analyses/count')
 export const resetAnalyses = () => API.post('/admin/analyses/reset')
 export const exportDataset = (projectId: number, datasetId: number, format: 'metaboanalyst' | 'lipidone') =>
   API.get(`/analysis/${projectId}/dataset/${datasetId}/export`, { params: { format }, responseType: 'blob' })
-export const getQC = (projectId: number, datasetId: number) => API.get(`/analysis/${projectId}/dataset/${datasetId}/qc`)
-export const exportQCExcel = (projectId: number, datasetId: number) =>
-  API.get(`/analysis/${projectId}/dataset/${datasetId}/qc/excel`, { responseType: 'blob' })
-export const exportQCPdf = (projectId: number, datasetId: number) =>
-  API.post(`/analysis/${projectId}/dataset/${datasetId}/qc/pdf`, {}, { responseType: 'blob' })
+export const getQC = (projectId: number, datasetId: number, selectedGroups: string[] = []) =>
+  API.get(`/analysis/${projectId}/dataset/${datasetId}/qc`, { params: selectedGroups.length ? { selected_groups: selectedGroups } : {} })
+export const exportQCExcel = (projectId: number, datasetId: number, selectedGroups: string[] = []) =>
+  API.get(`/analysis/${projectId}/dataset/${datasetId}/qc/excel`, { params: selectedGroups.length ? { selected_groups: selectedGroups } : {}, responseType: 'blob' })
+export const exportQCPdf = (projectId: number, datasetId: number, selectedGroups: string[] = []) =>
+  API.post(`/analysis/${projectId}/dataset/${datasetId}/qc/pdf`, selectedGroups.length ? { selected_groups: selectedGroups } : {}, { responseType: 'blob' })
 export const generatePDFReport = (projectId: number, datasetId: number, data: any) =>
   API.post(`/plots/${projectId}/dataset/${datasetId}/report/pdf`, data, { responseType: 'blob' })

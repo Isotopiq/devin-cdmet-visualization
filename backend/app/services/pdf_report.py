@@ -957,10 +957,10 @@ def _qc_figure_title(fig: dict, default: str) -> str:
     return default
 
 
-def build_qc_pdf(dataset: models.Dataset, project_name: str = "") -> bytes:
+def build_qc_pdf(dataset: models.Dataset, project_name: str = "", selected_groups: list | None = None) -> bytes:
     from app.services.qc import qc_analysis
 
-    result = qc_analysis(dataset)
+    result = qc_analysis(dataset, selected_groups=selected_groups)
     metrics = result["metrics"]
     figures = result.get("figures", {})
 
