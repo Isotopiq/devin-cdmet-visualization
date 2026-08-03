@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
-import { preprocess, uploadFile } from '../api'
+import { preprocess, uploadFile, exportDataset } from '../api'
 import { LuSlidersHorizontal, LuPlay, LuHistory, LuAlertCircle, LuCheckCircle2, LuPlus, LuTrash2, LuDownload, LuUpload } from 'react-icons/lu'
 
 const DEFAULT_ISOBARIC_RULE = {
@@ -14,10 +14,11 @@ const DEFAULT_ISOBARIC_RULE = {
 }
 
 export default function Preprocessing() {
-  const { projectId, datasetId, selectedDataset } = useWorkspace()
+  const { projectId, datasetId, selectedDataset, refreshDatasets } = useWorkspace()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [processedDataset, setProcessedDataset] = useState<any | null>(null)
   const [params, setParams] = useState({
     missing_value_filter: 0.2,
     log_transform: true,
@@ -62,6 +63,7 @@ export default function Preprocessing() {
     setMessage('')
     setError('')
     try {
+      setProcessedDataset(null)
       const rules = params.isobaric_substitution_rules.map((r: any) => ({
         name: r.name,
         applicable_classes: r.applicable_classes.split(',').map((s: string) => s.trim()).filter(Boolean),
@@ -94,12 +96,32 @@ export default function Preprocessing() {
         isobaric_rollup_preference: params.isobaric_rollup_preference,
         output_name: params.output_name || undefined,
       }
-      await preprocess(Number(projectId), Number(datasetId), body)
-      setMessage('Preprocessing applied. New dataset created.')
+      const res = await preprocess(Number(projectId), Number(datasetId), body)
+      setProcessedDataset(res.data)
+      setMessage(`Preprocessing applied. New dataset "${res.data.name}" created.`)
+      refreshDatasets()
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Preprocessing failed')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const exportProcessed = async (format: 'metaboanalyst' | 'lipidone') => {
+    if (!projectId || !processedDataset?.id) return
+    try {
+      const res = await exportDataset(Number(projectId), Number(processedDataset.id), format)
+      const blob = new Blob([res.data], { type: 'text/csv' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${processedDataset.name}_${format}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      alert(err.response?.data?.detail || `Failed to export ${format}`)
     }
   }
 
@@ -292,6 +314,19 @@ export default function Preprocessing() {
             {message && <div className="mt-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 flex items-center gap-2 text-sm"><LuCheckCircle2 /> {message}</div>}
             {error && <div className="mt-4 p-3 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 flex items-center gap-2 text-sm"><LuAlertCircle /> {error}</div>}
           </div>
+
+          {processedDataset && (
+            <div className="card p-5">
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2"><LuDownload /> Export processed dataset</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                <span className="font-medium">{processedDataset.name}</span> is ready. Download in the format you need for downstream analysis.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button onClick={() => exportProcessed('metaboanalyst')} className="btn-secondary"><LuDownload /> MetaboAnalyst CSV</button>
+                <button onClick={() => exportProcessed('lipidone')} className="btn-secondary"><LuDownload /> LipidOne CSV</button>
+              </div>
+            </div>
+          )}
 
           {isLipid && (
             <div className="card p-5">
