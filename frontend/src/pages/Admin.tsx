@@ -20,6 +20,7 @@ export default function Admin() {
   const [analysisCount, setAnalysisCount] = useState(0)
 
   const [settings, setSettings] = useState<any>({})
+  const [pdfPreparedBy, setPdfPreparedBy] = useState('')
   const [smtp, setSmtp] = useState<any>({ host: '', port: 587, user: '', from_address: '', use_tls: true })
   const [smtpPassword, setSmtpPassword] = useState('')
   const [s3, setS3] = useState<any>({ enabled: false, endpoint_url: '', bucket: '', region: 'us-east-1', use_path_style: false })
@@ -43,6 +44,7 @@ export default function Admin() {
     try {
       const [sRes, mRes] = await Promise.all([getSettings(), getSMTPSettings()])
       setSettings(sRes.data)
+      setPdfPreparedBy(sRes.data?.pdf_prepared_by || '')
       setSmtp(mRes.data)
       const s3Data = sRes.data || {}
       setS3({
@@ -142,6 +144,18 @@ export default function Admin() {
       setSuccess(`${type} logo uploaded`)
     } catch (err: any) {
       setError(err.response?.data?.detail || `Failed to upload ${type} logo`)
+    }
+  }
+
+  const savePdfPreparedBy = async (value: string) => {
+    setError('')
+    setSuccess('')
+    try {
+      await updateSettings({ pdf_prepared_by: value || null })
+      await loadSettings()
+      setSuccess('Default Prepared By saved')
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to save default Prepared By')
     }
   }
 
@@ -398,6 +412,20 @@ export default function Admin() {
               <img src={`${settings.pdf_footer_logo_url}?t=${previewTimestamp}`} alt="PDF footer logo" className="h-10 w-auto object-contain mb-2 border border-slate-200 dark:border-slate-700 rounded p-1" />
             )}
             <input type="file" accept="image/png,image/jpeg" onChange={(e) => upload('pdf_footer', e.target.files?.[0] || null)} />
+          </div>
+          <div>
+            <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white flex items-center gap-2"><LuSettings /> PDF Report Defaults</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Default value for the Prepared By field. It can still be overridden on individual QC and pathway PDF exports.</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                className="input flex-1"
+                value={pdfPreparedBy}
+                onChange={(e) => setPdfPreparedBy(e.target.value)}
+                placeholder="Metabolomics Platform"
+              />
+              <button className="btn-primary" onClick={() => savePdfPreparedBy(pdfPreparedBy)}>Save</button>
+            </div>
           </div>
           <div>
             <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white flex items-center gap-2"><LuSettings /> Favicon</h3>

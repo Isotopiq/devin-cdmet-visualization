@@ -8,7 +8,7 @@ from app.database import get_db
 from app.auth import get_current_active_user
 from app import models, schemas
 from app.services.pathways import create_pathway_job, run_pathway_job, get_job
-from app.services.pdf_report import build_pathway_pdf, get_pdf_footer_logo_path
+from app.services.pdf_report import build_pathway_pdf, get_pdf_footer_logo_path, get_pdf_prepared_by
 
 router = APIRouter()
 
@@ -72,6 +72,9 @@ async def pathway_pdf(
         raise HTTPException(status_code=404, detail="Dataset not found")
 
     footer_logo_path = await get_pdf_footer_logo_path(db)
+    default_prepared_by = await get_pdf_prepared_by(db)
+    if not body.prepared_by:
+        body.prepared_by = default_prepared_by or "Metabolomics Platform"
     pdf_bytes = build_pathway_pdf(
         body.result,
         dataset_name=dataset.name,

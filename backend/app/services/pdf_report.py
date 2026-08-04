@@ -40,6 +40,13 @@ async def get_pdf_footer_logo_path(db) -> Optional[str]:
             return full
     return None
 
+
+async def get_pdf_prepared_by(db) -> Optional[str]:
+    from sqlalchemy import select
+    result = await db.execute(select(models.SiteSetting).where(models.SiteSetting.key == "pdf_prepared_by"))
+    row = result.scalar_one_or_none()
+    return row.value if row and row.value else None
+
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"(?s).*Kaleido versions less than 1\.0\.0.*")
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"(?s).*Use of plotly\.io\.kaleido\.scope.*")
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"(?s).*setDaemon.*")

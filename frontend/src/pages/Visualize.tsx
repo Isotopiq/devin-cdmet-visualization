@@ -5,7 +5,7 @@ import { usePlotConfig, styleToBackend } from '../context/PlotConfigContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import PlotStyling from '../components/PlotStyling'
-import { generatePlot, runStats, generatePDFReport } from '../api'
+import { generatePlot, runStats, generatePDFReport, getSettings } from '../api'
 import { LuRefreshCw, LuFileDown, LuPrinter, LuChevronDown, LuChevronUp, LuX, LuDownload, LuFileText, LuFilter } from 'react-icons/lu'
 
 const TABS = [
@@ -127,6 +127,7 @@ export default function Visualize() {
   const [reportLoading, setReportLoading] = useState(false)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrStatus, setOcrStatus] = useState('')
+  const [pdfPreparedBy, setPdfPreparedBy] = useState('Metabolomics Platform')
   const reportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -139,6 +140,17 @@ export default function Visualize() {
       setPerLipidTest('t_test')
     }
   }, [groups, perLipidTest])
+
+  useEffect(() => {
+    getSettings()
+      .then((res: any) => {
+        const defaultPrepared = res.data?.pdf_prepared_by
+        if (defaultPrepared) {
+          setPdfPreparedBy(defaultPrepared)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     setIncludedGroups((prev) => new Set([...Array.from(prev), groupA, groupB].filter(Boolean)))
@@ -427,7 +439,7 @@ export default function Visualize() {
       const res = await generatePDFReport(Number(projectId), Number(datasetId), {
         title: reportTitle || `${selectedDataset?.name || 'Dataset'} Report`,
         subtitle: `${groupB} vs ${groupA}`,
-        prepared_by: 'Metabolomics Platform',
+        prepared_by: pdfPreparedBy,
         group_a: groupA,
         group_b: groupB,
         sections,

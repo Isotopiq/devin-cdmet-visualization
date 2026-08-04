@@ -59,6 +59,7 @@ class SiteSettingsOut(BaseModel):
     dashboard_logo_url: Optional[str]
     pdf_footer_logo_url: Optional[str]
     favicon_url: Optional[str]
+    pdf_prepared_by: Optional[str]
     smtp_host: Optional[str]
     smtp_port: Optional[int]
     smtp_user: Optional[str]
@@ -228,7 +229,7 @@ class QCPdfRequest(BaseModel):
     selected_groups: Optional[List[str]] = None
     primary_comparison: Optional[str] = None
     prepared_for: Optional[str] = None
-    prepared_by: Optional[str] = "Metabolomics Platform"
+    prepared_by: Optional[str] = None
     report_contents: Optional[str] = None
     report_type: Optional[str] = "QC Report"
     subtitle: Optional[str] = None
@@ -242,7 +243,7 @@ class PDFReportRequest(BaseModel):
     title: Optional[str] = None
     subtitle: Optional[str] = None
     prepared_for: Optional[str] = None
-    prepared_by: Optional[str] = "Metabolomics Platform"
+    prepared_by: Optional[str] = None
     group_a: Optional[str] = None
     group_b: Optional[str] = None
     sections: List[str] = [
@@ -320,7 +321,7 @@ class PathwayPdfRequest(BaseModel):
     subtitle: Optional[str] = None
     primary_comparison: Optional[str] = None
     prepared_for: Optional[str] = None
-    prepared_by: Optional[str] = "Metabolomics Platform"
+    prepared_by: Optional[str] = None
     report_contents: Optional[str] = "Pathway Mapping Report"
     report_type: Optional[str] = "Pathway Mapping Report"
     description: Optional[str] = None
@@ -333,6 +334,7 @@ class SiteSettingsUpdate(BaseModel):
     login_logo_url: Optional[str] = None
     dashboard_logo_url: Optional[str] = None
     favicon_url: Optional[str] = None
+    pdf_prepared_by: Optional[str] = None
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = None
     smtp_user: Optional[str] = None

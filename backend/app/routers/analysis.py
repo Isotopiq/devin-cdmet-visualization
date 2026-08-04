@@ -12,7 +12,7 @@ from app import models, schemas
 from app.services.preprocessing import preprocess_dataset, to_dataframe
 from app.services.qc import qc_analysis, qc_export_excel
 from app.services.batch import combine_datasets
-from app.services.pdf_report import build_qc_pdf, get_pdf_footer_logo_path
+from app.services.pdf_report import build_qc_pdf, get_pdf_footer_logo_path, get_pdf_prepared_by
 from app.services import storage
 
 router = APIRouter()
@@ -212,6 +212,9 @@ async def get_qc_pdf(
     dataset, project = row
 
     footer_logo_path = await get_pdf_footer_logo_path(db)
+    default_prepared_by = await get_pdf_prepared_by(db)
+    if not body.prepared_by:
+        body.prepared_by = default_prepared_by or "Metabolomics Platform"
     pdf_bytes = build_qc_pdf(
         dataset,
         project.name if project else "",

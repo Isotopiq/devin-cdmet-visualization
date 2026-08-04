@@ -291,6 +291,7 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
     dashboard = await _get_setting(db, "dashboard_logo")
     pdf_footer = await _get_setting(db, "pdf_footer_logo")
     favicon = await _get_setting(db, "favicon")
+    pdf_prepared_by = await _get_setting(db, "pdf_prepared_by")
     smtp_host = await _get_setting(db, "smtp_host")
     smtp_port = await _get_setting(db, "smtp_port")
     smtp_user = await _get_setting(db, "smtp_user")
@@ -303,6 +304,7 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
         "dashboard_logo_url": "/api/admin/settings/logo/dashboard" if dashboard and dashboard.value else None,
         "pdf_footer_logo_url": "/api/admin/settings/logo/pdf_footer" if pdf_footer and pdf_footer.value else None,
         "favicon_url": "/api/admin/settings/favicon" if favicon and favicon.value else None,
+        "pdf_prepared_by": pdf_prepared_by.value if pdf_prepared_by else None,
         "smtp_host": smtp_host.value if smtp_host else None,
         "smtp_port": int(smtp_port.value) if smtp_port and smtp_port.value else None,
         "smtp_user": smtp_user.value if smtp_user else None,
@@ -330,6 +332,8 @@ async def update_settings(
         await _set_setting(db, "dashboard_logo", body.dashboard_logo_url)
     if body.favicon_url is not None:
         await _set_setting(db, "favicon", body.favicon_url)
+    if body.pdf_prepared_by is not None:
+        await _set_setting(db, "pdf_prepared_by", body.pdf_prepared_by)
     if body.smtp_host is not None:
         await _set_setting(db, "smtp_host", body.smtp_host)
     if body.smtp_port is not None:

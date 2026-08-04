@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
-import { buildPathway, getPathwayJob, exportPathwayPdf } from '../api'
+import { buildPathway, getPathwayJob, exportPathwayPdf, getSettings } from '../api'
 import { LuGitMerge, LuRefreshCw, LuFileText, LuEye, LuX } from 'react-icons/lu'
 
 const FONT_OPTIONS = [
@@ -53,6 +53,17 @@ export default function Pathway() {
   }, [groups])
 
   useEffect(() => { setResult(null); setError('') }, [selectedDataset, pathwaySource])
+
+  useEffect(() => {
+    getSettings()
+      .then((res: any) => {
+        const defaultPrepared = res.data?.pdf_prepared_by
+        if (defaultPrepared) {
+          setPdfMeta((prev) => ({ ...prev, prepared_by: defaultPrepared }))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     return () => {

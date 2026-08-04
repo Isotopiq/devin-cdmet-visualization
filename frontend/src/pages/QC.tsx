@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
-import { getQC, exportQCExcel, exportQCPdf } from '../api'
+import { getQC, exportQCExcel, exportQCPdf, getSettings } from '../api'
 import { LuActivity, LuRefreshCw, LuDownload, LuFileText, LuEye, LuX } from 'react-icons/lu'
 
 interface QCData {
@@ -86,6 +86,17 @@ export default function QC() {
       setSelectedGroups(new Set())
     }
   }, [selectedDataset])
+
+  useEffect(() => {
+    getSettings()
+      .then((res: any) => {
+        const defaultPrepared = res.data?.pdf_prepared_by
+        if (defaultPrepared) {
+          setPdfMeta((prev) => ({ ...prev, prepared_by: defaultPrepared }))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const buildPdfPayload = () => {
     const payload: any = {
