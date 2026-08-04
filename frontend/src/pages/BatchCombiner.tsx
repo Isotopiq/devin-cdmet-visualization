@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
-import { listAllDatasets, combineDatasets } from '../api'
-import { Dataset } from '../types'
+import { listAllDatasets, combineDatasets, listProjects } from '../api'
+import { Dataset, Project } from '../types'
 import { LuCombine, LuAlertCircle, LuCheckCircle2, LuFlaskConical, LuActivity, LuBarChart2 } from 'react-icons/lu'
 import PlotWithDownload from '../components/PlotWithDownload'
 
@@ -95,9 +95,21 @@ const METHODS: Record<string, { label: string; description: string; needsRef: bo
   },
 }
 
+const DEFAULT_LIMIT = 20
+
 export default function BatchCombiner() {
   const { projectId, refreshDatasets } = useWorkspace()
+
+  const [projects, setProjects] = useState<Project[]>([])
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<number>>(new Set())
+
   const [datasets, setDatasets] = useState<Dataset[]>([])
+  const [datasetMap, setDatasetMap] = useState<Record<number, Dataset>>({})
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(DEFAULT_LIMIT)
+  const [datasetsLoading, setDatasetsLoading] = useState(false)
+
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [batchLabels, setBatchLabels] = useState<Record<number, string>>({})
   const [method, setMethod] = useState<string>('reference_group')
@@ -107,6 +119,7 @@ export default function BatchCombiner() {
   const [controlFeatures, setControlFeatures] = useState<string[]>([])
   const [nUnwantedFactors, setNUnwantedFactors] = useState<number>(1)
   const [includeQCPlots, setIncludeQCPlots] = useState<boolean>(false)
+
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -121,46 +134,98 @@ export default function BatchCombiner() {
     setBatchLabels({})
     setPerDatasetRef({})
     setControlFeatures([])
+    setSelectedProjectIds(new Set())
+    setPage(1)
+    setDatasetMap({})
+    setDatasets([])
+    setTotal(0)
+
     if (!projectId) {
-      setDatasets([])
+      setProjects([])
       return
     }
-    listAllDatasets()
-      .then((res) => setDatasets(res.data))
-      .catch(() => setError('Failed to load datasets'))
+    listProjects()
+      .then((res) => setProjects(res.data))
+      .catch(() => setError('Failed to load projects'))
   }, [projectId])
 
   useEffect(() => {
     setMessage('')
     setError('')
-    // Reset method-specific state when method changes.
     setControlFeatures([])
   }, [selected, method])
 
+  useEffect(() => {
+    if (!projectId) return
+    setDatasetsLoading(true)
+    listAllDatasets({
+      project_ids: Array.from(selectedProjectIds),
+      limit,
+      offset: (page - 1) * limit,
+    })
+      .then((res) => {
+        const items: Dataset[] = res.data.items || []
+        const totalCount: number = res.data.total || 0
+        setDatasets(items)
+        setTotal(totalCount)
+        setDatasetMap((prev) => {
+          const next = { ...prev }
+          for (const ds of items) {
+            next[ds.id] = ds
+          }
+          return next
+        })
+      })
+      .catch(() => setError('Failed to load datasets'))
+      .finally(() => setDatasetsLoading(false))
+  }, [projectId, selectedProjectIds, page, limit])
+
   const allGroups = useMemo(() => {
     const groups = new Set<string>()
-    for (const ds of datasets) {
-      if (selected.has(ds.id) && ds.sample_metadata) {
+    for (const id of selected) {
+      const ds = datasetMap[id]
+      if (ds?.sample_metadata) {
         Object.values(ds.sample_metadata as Record<string, string>).forEach((g) => groups.add(g))
       }
     }
     return Array.from(groups).sort()
-  }, [datasets, selected])
+  }, [datasetMap, selected])
 
   const allFeatureIds = useMemo(() => {
     const ids = new Set<string>()
-    for (const ds of datasets) {
-      if (selected.has(ds.id) && ds.feature_metadata) {
+    for (const id of selected) {
+      const ds = datasetMap[id]
+      if (ds?.feature_metadata) {
         for (const m of ds.feature_metadata) {
           if (m.feature_id) ids.add(String(m.feature_id))
         }
       }
     }
     return Array.from(ids).sort()
-  }, [datasets, selected])
+  }, [datasetMap, selected])
+
+  const selectedDatasets = useMemo(() => {
+    return Array.from(selected)
+      .map((id) => datasetMap[id])
+      .filter((d): d is Dataset => d !== undefined)
+  }, [datasetMap, selected])
+
+  const totalSamples = useMemo(() => {
+    return selectedDatasets.reduce((sum, d) => sum + Object.keys(d.sample_metadata || {}).length, 0)
+  }, [selectedDatasets])
 
   const datasetGroups = (ds: Dataset) => {
     return Array.from(new Set(Object.values(ds.sample_metadata || {}))).sort()
+  }
+
+  const toggleProject = (id: number) => {
+    setSelectedProjectIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    setPage(1)
   }
 
   const toggleDataset = (id: number) => {
@@ -175,7 +240,7 @@ export default function BatchCombiner() {
         })
       } else {
         next.add(id)
-        const ds = datasets.find((d) => d.id === id)
+        const ds = datasetMap[id]
         if (ds) {
           const groups = datasetGroups(ds)
           const defaultRef = groups.includes(referenceGroup) ? referenceGroup : groups[0] || ''
@@ -267,8 +332,7 @@ export default function BatchCombiner() {
     }
   }
 
-  const selectedDatasets = datasets.filter((d) => selected.has(d.id))
-  const totalSamples = selectedDatasets.reduce((sum, d) => sum + Object.keys(d.sample_metadata || {}).length, 0)
+  const totalPages = Math.max(1, Math.ceil(total / limit))
 
   return (
     <div className="space-y-6">
@@ -287,91 +351,173 @@ export default function BatchCombiner() {
 
       {projectId && (
         <>
-          <div className="card p-5">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">1. Select datasets</h2>
-            {datasets.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">No datasets in this project yet.</p>
+          <div className="card p-5 space-y-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">1. Select projects</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Pick one or more projects to browse their datasets. Datasets from all selected projects can be combined.
+            </p>
+            {projects.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">No projects available.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-700 text-left">
-                      <th className="py-2 pr-4">Include</th>
-                      <th className="py-2 pr-4">Dataset</th>
-                      <th className="py-2 pr-4">Project</th>
-                      <th className="py-2 pr-4">Type</th>
-                      <th className="py-2 pr-4">Samples</th>
-                      <th className="py-2 pr-4">Groups</th>
-                      {METHODS[method].needsRef && <th className="py-2 pr-4">Reference group</th>}
-                      <th className="py-2">Batch label</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {datasets.map((ds) => {
-                      const groups = Array.from(new Set(Object.values(ds.sample_metadata || {}))).join(', ')
-                      const dsGroups = datasetGroups(ds)
-                      return (
-                        <tr key={ds.id} className="border-b border-slate-100 dark:border-slate-800">
-                          <td className="py-3 pr-4">
-                            <input
-                              type="checkbox"
-                              checked={selected.has(ds.id)}
-                              onChange={() => toggleDataset(ds.id)}
-                              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                          </td>
-                          <td className="py-3 pr-4 font-medium text-slate-900 dark:text-slate-100">{ds.name}</td>
-                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{ds.project_name || '-'}</td>
-                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{ds.feature_type}</td>
-                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
-                            {Object.keys(ds.sample_metadata || {}).length}
-                          </td>
-                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300 max-w-xs truncate" title={groups}>
-                            {groups}
-                          </td>
-                          {METHODS[method].needsRef && (
-                            <td className="py-3 pr-4">
-                              <select
-                                value={perDatasetRef[ds.id] || ''}
-                                onChange={(e) => updatePerDatasetRef(ds.id, e.target.value)}
-                                disabled={!selected.has(ds.id) || dsGroups.length === 0}
-                                className="select disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {dsGroups.length === 0 && <option value="">No groups</option>}
-                                {dsGroups.map((g) => (
-                                  <option key={g} value={g}>
-                                    {g}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                          )}
-                          <td className="py-3">
-                            <input
-                              type="text"
-                              value={batchLabels[ds.id] || `batch_${ds.id}`}
-                              onChange={(e) => updateBatchLabel(ds.id, e.target.value)}
-                              disabled={!selected.has(ds.id)}
-                              className="input disabled:opacity-50 disabled:cursor-not-allowed"
-                              placeholder="Batch label"
-                            />
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {projects.map((p) => (
+                  <label
+                    key={p.id}
+                    className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedProjectIds.has(p.id)}
+                      onChange={() => toggleProject(p.id)}
+                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-slate-800 dark:text-slate-200 truncate" title={p.name}>
+                      {p.name}
+                    </span>
+                  </label>
+                ))}
               </div>
             )}
+          </div>
+
+          <div className="card p-5 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">2. Select datasets</h2>
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-slate-600 dark:text-slate-300">Per page</label>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value))
+                    setPage(1)
+                  }}
+                  className="select text-sm"
+                >
+                  {[10, 20, 50, 100].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {datasetsLoading ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">Loading datasets…</p>
+            ) : datasets.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {selectedProjectIds.size === 0
+                  ? 'Select at least one project above to browse its datasets.'
+                  : 'No datasets found in the selected projects.'}
+              </p>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700 text-left">
+                        <th className="py-2 pr-4">Include</th>
+                        <th className="py-2 pr-4">Dataset</th>
+                        <th className="py-2 pr-4">Project</th>
+                        <th className="py-2 pr-4">Type</th>
+                        <th className="py-2 pr-4">Samples</th>
+                        <th className="py-2 pr-4">Groups</th>
+                        {METHODS[method].needsRef && <th className="py-2 pr-4">Reference group</th>}
+                        <th className="py-2">Batch label</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {datasets.map((ds) => {
+                        const groups = Array.from(new Set(Object.values(ds.sample_metadata || {}))).join(', ')
+                        const dsGroups = datasetGroups(ds)
+                        return (
+                          <tr key={ds.id} className="border-b border-slate-100 dark:border-slate-800">
+                            <td className="py-3 pr-4">
+                              <input
+                                type="checkbox"
+                                checked={selected.has(ds.id)}
+                                onChange={() => toggleDataset(ds.id)}
+                                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                            </td>
+                            <td className="py-3 pr-4 font-medium text-slate-900 dark:text-slate-100">{ds.name}</td>
+                            <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{ds.project_name || '-'}</td>
+                            <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{ds.feature_type}</td>
+                            <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
+                              {Object.keys(ds.sample_metadata || {}).length}
+                            </td>
+                            <td className="py-3 pr-4 text-slate-600 dark:text-slate-300 max-w-xs truncate" title={groups}>
+                              {groups}
+                            </td>
+                            {METHODS[method].needsRef && (
+                              <td className="py-3 pr-4">
+                                <select
+                                  value={perDatasetRef[ds.id] || ''}
+                                  onChange={(e) => updatePerDatasetRef(ds.id, e.target.value)}
+                                  disabled={!selected.has(ds.id) || dsGroups.length === 0}
+                                  className="select disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {dsGroups.length === 0 && <option value="">No groups</option>}
+                                  {dsGroups.map((g) => (
+                                    <option key={g} value={g}>
+                                      {g}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                            )}
+                            <td className="py-3">
+                              <input
+                                type="text"
+                                value={batchLabels[ds.id] || `batch_${ds.id}`}
+                                onChange={(e) => updateBatchLabel(ds.id, e.target.value)}
+                                disabled={!selected.has(ds.id)}
+                                className="input disabled:opacity-50 disabled:cursor-not-allowed"
+                                placeholder="Batch label"
+                              />
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-2">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Page {page} of {totalPages} ({total} dataset{total === 1 ? '' : 's'})
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
             {selectedDatasets.length > 0 && (
-              <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {selectedDatasets.length} dataset(s) selected, {totalSamples} sample(s) total.
               </p>
             )}
           </div>
 
           <div className="card p-5 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">2. Batch-correction method</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">3. Batch-correction method</h2>
             <div>
               <label className="label-like">Normalization method</label>
               <select

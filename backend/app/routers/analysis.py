@@ -5,7 +5,7 @@ from typing import List, Literal
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.database import get_db
 from app.auth import get_current_active_user
 from app import models, schemas
@@ -86,18 +86,42 @@ async def list_datasets(project_id: int, db: AsyncSession = Depends(get_db),
     return datasets
 
 
-@router.get("/datasets/all", response_model=List[schemas.DatasetOut])
-async def list_all_datasets(db: AsyncSession = Depends(get_db),
-                            current_user: models.User = Depends(get_current_active_user)):
-    result = await db.execute(select(models.Dataset).join(models.Project).where(
-        models.Project.owner_id == current_user.id))
+@router.get("/datasets/all", response_model=schemas.PaginatedDatasetOut)
+async def list_all_datasets(
+    project_ids: List[int] = Query(default=[]),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    where_clause = models.Project.owner_id == current_user.id
+    if project_ids:
+        where_clause = where_clause & models.Dataset.project_id.in_(project_ids)
+
+    result = await db.execute(
+        select(models.Dataset)
+        .join(models.Project)
+        .where(where_clause)
+        .offset(offset)
+        .limit(limit)
+    )
     datasets = result.scalars().all()
-    project_ids = {d.project_id for d in datasets}
-    project_result = await db.execute(select(models.Project).where(models.Project.id.in_(project_ids)))
+
+    count_result = await db.execute(
+        select(func.count(models.Dataset.id))
+        .select_from(models.Dataset)
+        .join(models.Project)
+        .where(where_clause)
+    )
+    total = count_result.scalar() or 0
+
+    loaded_project_ids = {d.project_id for d in datasets}
+    project_result = await db.execute(select(models.Project).where(models.Project.id.in_(loaded_project_ids)))
     project_names = {p.id: p.name for p in project_result.scalars().all()}
     for d in datasets:
         d.project_name = project_names.get(d.project_id)
-    return datasets
+
+    return {"items": datasets, "total": total}
 
 
 @router.post("/{project_id}/datasets/combine", response_model=schemas.BatchCombineOut)

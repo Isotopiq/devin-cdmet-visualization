@@ -63,7 +63,15 @@ export const previewImport = (fileId: number, sheet?: string, alignmentFileId?: 
 export const importDataset = (fileId: number, featureType: string, alignmentFileId?: number, sheet?: string) => API.post(`/import/${fileId}/import`, null, { params: { feature_type: featureType, alignment_file_id: alignmentFileId, sheet } })
 
 export const listDatasets = (projectId: number) => API.get(`/analysis/${projectId}/datasets`)
-export const listAllDatasets = () => API.get('/analysis/datasets/all')
+export const listAllDatasets = (params?: { project_ids?: number[]; limit?: number; offset?: number }) => {
+  const qs = new URLSearchParams()
+  if (params?.project_ids) {
+    params.project_ids.forEach((id) => qs.append('project_ids', String(id)))
+  }
+  if (params?.limit !== undefined) qs.append('limit', String(params.limit))
+  if (params?.offset !== undefined) qs.append('offset', String(params.offset))
+  return API.get(`/analysis/datasets/all?${qs.toString()}`)
+}
 export const combineDatasets = (projectId: number, data: any) =>
   API.post(`/analysis/${projectId}/datasets/combine`, data)
 export const getDataset = (projectId: number, datasetId: number) => API.get(`/analysis/${projectId}/dataset/${datasetId}`)

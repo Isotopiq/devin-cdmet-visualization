@@ -126,6 +126,12 @@ class DatasetOut(BaseModel):
     created_at: dt.datetime
 
 
+class PaginatedDatasetOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    items: List[DatasetOut]
+    total: int
+
+
 class AnalysisOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
