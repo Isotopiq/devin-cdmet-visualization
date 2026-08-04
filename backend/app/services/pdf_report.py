@@ -210,7 +210,7 @@ class _ReportPDF(FPDF):
         self.set_auto_page_break(False)
         self.margin = 12
         self.header_h = 14
-        self.footer_h = 10
+        self.footer_h = 14
         self.card_radius = 5
 
     def _set_fonts(self):
@@ -296,31 +296,38 @@ class _ReportPDF(FPDF):
         y = self.h - self.footer_h
         logo_path = self.style.get("footer_logo_path")
         logo_w = 0.0
+        logo_h = 0.0
+        logo_right_edge = self.w - self.margin - 4
         if logo_path and os.path.exists(logo_path):
             try:
-                logo_h = self.footer_h - 2
+                logo_h = self.footer_h - 4
                 with Image.open(logo_path) as img:
                     iw, ih = img.size
                     logo_w = logo_h * (iw / ih)
-                self.image(logo_path, x=self.w - self.margin - logo_w, y=y + 1, h=logo_h)
+                logo_x = logo_right_edge - logo_w
+                logo_y = y + (self.footer_h - logo_h) / 2
+                self.image(logo_path, x=logo_x, y=logo_y, h=logo_h)
             except Exception:
                 logo_w = 0.0
+                logo_h = 0.0
 
         _color(self, "#94a3b8")
         self.set_body_font(8)
+        text_y = y + (self.footer_h - 5) / 2
 
         if logo_w > 0:
-            logo_left_x = self.w - self.margin - logo_w
-            # Keep date text on the left; page number ends just left of the logo
-            self.set_xy(x, y)
-            date_text_w = logo_left_x - x - 30
-            self.cell(max(date_text_w, 60), 5, f"Generated {date_str} | {footer_text}", align="L")
-            self.set_xy(logo_left_x - 28, y)
-            self.cell(25, 5, f"Page {page}", align="R")
+            logo_left_x = logo_right_edge - logo_w
+            # Date text on the left
+            self.set_xy(x + 4, text_y)
+            date_text_w = max(60, logo_left_x - x - 40)
+            self.cell(date_text_w, 5, f"Generated {date_str} | {footer_text}", align="L")
+            # Page number centered between date and logo
+            self.set_xy(logo_left_x - 28, text_y)
+            self.cell(24, 5, f"Page {page}", align="R")
         else:
-            self.set_xy(x, y)
+            self.set_xy(x + 4, text_y)
             self.cell(w * 0.8, 5, f"Generated {date_str} | {footer_text}", align="L")
-            self.set_xy(x + w * 0.75, y)
+            self.set_xy(x + w * 0.75, text_y)
             self.cell(w * 0.17, 5, f"Page {page}", align="R")
 
     def _content_card(self, title: str, y: float, h: float) -> float:
