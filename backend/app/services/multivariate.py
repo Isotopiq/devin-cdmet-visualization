@@ -173,6 +173,7 @@ def pls_da_analysis(
         "auc": float(roc_auc_score(y, y_pred)) if len(np.unique(y)) == 2 else None,
         "confusion": cm,
         "permutation": {"r2y": r2s, "q2y": q2s, "accuracy": accs},
+        "model": pls,
     }
 
 
@@ -276,6 +277,8 @@ def opls_da_analysis(
         "orthogonal_distance": orth_dist.tolist(),
         "p_pred": p_p.tolist(),
         "p_orth": [p.tolist() for p in P_orth],
+        "w_p": w_p.tolist(),
+        "w_orth": [w.tolist() for w in W_orth],
         "vip": vip.tolist(),
         "vip_table": vip_table,
         "splot": splot,

@@ -26,7 +26,7 @@ from app import models, schemas
 from app.services.preprocessing import to_dataframe, _to_json_safe
 from app.services.lipid_indices import compute_functional_indices, compute_food_profile_indices
 from app.services.lipid_building_blocks import compute_building_blocks
-from app.services.multivariate import pls_da_analysis, opls_da_analysis
+from app.services.multivariate import pls_da_analysis, opls_da_analysis, _prepare_X
 from app.services.biomarkers import biomarker_analysis
 from app.services.permanova import permanova_analysis
 
@@ -934,11 +934,10 @@ def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
         _apply_base_layout(fig, style, title=f"PLS-DA: {result['error']}")
         return fig
 
-    groups = result["groups"]
-    y = np.array(result["y"])
-    scores = np.array(result["scores"])
-    display_samples = [_shorten_name(s) for s in result["samples"]]
-    color_map = _group_color_map(style, [group_a, group_b])
+    all_samples = df.columns.tolist()
+    all_groups = [sample_meta.get(s, "Unknown") for s in all_samples]
+    display_samples = [_shorten_name(s) for s in all_samples]
+    color_map = _group_color_map(style, sorted(set(all_groups)))
 
     fig = make_subplots(
         rows=2, cols=2,
@@ -947,15 +946,21 @@ def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
         horizontal_spacing=0.14,
     )
 
-    # Score plot
-    if scores.shape[1] >= 2:
-        x = scores[:, 0]
-        yv = scores[:, 1]
+    # Score plot: project all selected samples using the A/B fitted model
+    pls = result.get("model")
+    if pls:
+        X_all = _prepare_X(df, all_samples)
+        all_scores = np.array(pls.transform(X_all))
     else:
-        x = scores[:, 0]
+        all_scores = np.array(result["scores"])
+    if all_scores.shape[1] >= 2:
+        x = all_scores[:, 0]
+        yv = all_scores[:, 1]
+    else:
+        x = all_scores[:, 0]
         yv = np.zeros(len(x))
-    for g, gname in enumerate(groups):
-        idx = np.where(y == g)[0]
+    for gname in sorted(set(all_groups)):
+        idx = [i for i, g in enumerate(all_groups) if g == gname]
         fig.add_trace(go.Scatter(
             x=x[idx], y=yv[idx], mode="markers", name=gname,
             marker=dict(color=color_map.get(gname, "#2e6575"), size=style.get("marker_size")),
@@ -1017,14 +1022,26 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
         _apply_base_layout(fig, style, title=f"OPLS-DA: {result['error']}")
         return fig
 
-    groups = result["groups"]
-    y = np.array(result["y"])
-    pred_score = np.array(result["predictive_score"])
-    orth_scores = result.get("orthogonal_scores", [])
-    orth_dist = np.array(result["orthogonal_distance"])
+    all_samples = df.columns.tolist()
+    all_groups = [sample_meta.get(s, "Unknown") for s in all_samples]
+    display_samples = [_shorten_name(s) for s in all_samples]
+    color_map = _group_color_map(style, sorted(set(all_groups)))
+
+    # Project all selected samples using the A/B fitted OPLS model
+    w_p = np.array(result.get("w_p", []))
+    W_orth = [np.array(w) for w in (result.get("w_orth") or [])]
+    P_orth = [np.array(p) for p in (result.get("p_orth") or [])]
+    X_all = _prepare_X(df, all_samples)
+    X_o = X_all.copy()
+    pred_score = X_o @ w_p if w_p.size else np.zeros(len(all_samples))
+    orth_scores_list = []
+    for w_o, p_o in zip(W_orth, P_orth):
+        t_o = X_o @ w_o
+        orth_scores_list.append(t_o)
+        X_o = X_o - np.outer(t_o, p_o)
+    orth1 = orth_scores_list[0] if orth_scores_list else np.zeros(len(all_samples))
+    orth_dist = np.sqrt(np.sum(np.stack([t ** 2 for t in orth_scores_list], axis=0), axis=0)) if orth_scores_list else np.zeros(len(all_samples))
     splot = result["splot"]
-    display_samples = [_shorten_name(s) for s in result["samples"]]
-    color_map = _group_color_map(style, [group_a, group_b])
 
     fig = make_subplots(
         rows=2, cols=2,
@@ -1034,9 +1051,8 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
     )
 
     # Score plot
-    orth1 = np.array(orth_scores[0]) if orth_scores else np.zeros(len(pred_score))
-    for g, gname in enumerate(groups):
-        idx = np.where(y == g)[0]
+    for gname in sorted(set(all_groups)):
+        idx = [i for i, g in enumerate(all_groups) if g == gname]
         fig.add_trace(go.Scatter(
             x=pred_score[idx], y=orth1[idx], mode="markers", name=gname,
             marker=dict(color=color_map.get(gname, "#2e6575"), size=style.get("marker_size")),
@@ -1069,8 +1085,8 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_yaxes(title_text="|p_pred|", row=2, col=1)
 
     # Diagnostics
-    for g, gname in enumerate(groups):
-        idx = np.where(y == g)[0]
+    for gname in sorted(set(all_groups)):
+        idx = [i for i, g in enumerate(all_groups) if g == gname]
         fig.add_trace(go.Scatter(
             x=pred_score[idx], y=orth_dist[idx], mode="markers", name=gname,
             marker=dict(color=color_map.get(gname, "#2e6575"), size=style.get("marker_size")),
