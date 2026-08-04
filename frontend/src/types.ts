@@ -49,6 +49,7 @@ export interface UploadedFile {
 export interface Dataset {
   id: number
   project_id: number
+  project_name?: string
   source_file_id?: number
   name: string
   feature_type: string

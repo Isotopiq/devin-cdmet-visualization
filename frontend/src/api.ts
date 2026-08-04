@@ -63,6 +63,7 @@ export const previewImport = (fileId: number, sheet?: string, alignmentFileId?: 
 export const importDataset = (fileId: number, featureType: string, alignmentFileId?: number, sheet?: string) => API.post(`/import/${fileId}/import`, null, { params: { feature_type: featureType, alignment_file_id: alignmentFileId, sheet } })
 
 export const listDatasets = (projectId: number) => API.get(`/analysis/${projectId}/datasets`)
+export const listAllDatasets = () => API.get('/analysis/datasets/all')
 export const combineDatasets = (projectId: number, data: any) =>
   API.post(`/analysis/${projectId}/datasets/combine`, data)
 export const getDataset = (projectId: number, datasetId: number) => API.get(`/analysis/${projectId}/dataset/${datasetId}`)

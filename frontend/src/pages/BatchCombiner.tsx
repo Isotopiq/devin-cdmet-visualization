@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
-import { listDatasets, combineDatasets } from '../api'
+import { listAllDatasets, combineDatasets } from '../api'
 import { Dataset } from '../types'
 import { LuCombine, LuAlertCircle, LuCheckCircle2, LuFlaskConical, LuActivity, LuBarChart2 } from 'react-icons/lu'
 import PlotWithDownload from '../components/PlotWithDownload'
@@ -102,6 +102,7 @@ export default function BatchCombiner() {
   const [batchLabels, setBatchLabels] = useState<Record<number, string>>({})
   const [method, setMethod] = useState<string>('reference_group')
   const [referenceGroup, setReferenceGroup] = useState<string>('')
+  const [perDatasetRef, setPerDatasetRef] = useState<Record<number, string>>({})
   const [outputName, setOutputName] = useState<string>('')
   const [controlFeatures, setControlFeatures] = useState<string[]>([])
   const [nUnwantedFactors, setNUnwantedFactors] = useState<number>(1)
@@ -118,12 +119,13 @@ export default function BatchCombiner() {
     setQcReport(null)
     setSelected(new Set())
     setBatchLabels({})
+    setPerDatasetRef({})
     setControlFeatures([])
     if (!projectId) {
       setDatasets([])
       return
     }
-    listDatasets(Number(projectId))
+    listAllDatasets()
       .then((res) => setDatasets(res.data))
       .catch(() => setError('Failed to load datasets'))
   }, [projectId])
@@ -157,23 +159,39 @@ export default function BatchCombiner() {
     return Array.from(ids).sort()
   }, [datasets, selected])
 
-  useEffect(() => {
-    if (allGroups.length > 0 && !referenceGroup) {
-      setReferenceGroup(allGroups[0])
-    }
-  }, [allGroups, referenceGroup])
+  const datasetGroups = (ds: Dataset) => {
+    return Array.from(new Set(Object.values(ds.sample_metadata || {}))).sort()
+  }
 
   const toggleDataset = (id: number) => {
     setSelected((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+        setPerDatasetRef((refs) => {
+          const updated = { ...refs }
+          delete updated[id]
+          return updated
+        })
+      } else {
+        next.add(id)
+        const ds = datasets.find((d) => d.id === id)
+        if (ds) {
+          const groups = datasetGroups(ds)
+          const defaultRef = groups.includes(referenceGroup) ? referenceGroup : groups[0] || ''
+          setPerDatasetRef((refs) => ({ ...refs, [id]: refs[id] || defaultRef }))
+        }
+      }
       return next
     })
   }
 
   const updateBatchLabel = (id: number, label: string) => {
     setBatchLabels((prev) => ({ ...prev, [id]: label }))
+  }
+
+  const updatePerDatasetRef = (id: number, group: string) => {
+    setPerDatasetRef((prev) => ({ ...prev, [id]: group }))
   }
 
   const handleControlFeatureChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -187,9 +205,16 @@ export default function BatchCombiner() {
       setError('Select at least two datasets to combine.')
       return
     }
-    if (METHODS[method].needsRef && !referenceGroup) {
-      setError('Select a reference/control group for this method.')
-      return
+    if (METHODS[method].needsRef) {
+      const missingRef = selectedDatasets.some((d) => {
+        const dsGroups = datasetGroups(d)
+        const ref = perDatasetRef[d.id] || referenceGroup
+        return !ref || !dsGroups.includes(ref)
+      })
+      if (missingRef) {
+        setError('Select a reference/control group for each selected dataset.')
+        return
+      }
     }
     if (METHODS[method].needsControls && controlFeatures.length === 0) {
       setError('Select at least one negative control feature for RUV-III-C.')
@@ -211,7 +236,14 @@ export default function BatchCombiner() {
       include_qc_plots: includeQCPlots,
     }
     if (METHODS[method].needsRef) {
-      payload.reference_group = referenceGroup
+      const perDatasetMap: Record<string, string> = {}
+      for (const d of selectedDatasets) {
+        perDatasetMap[d.id] = perDatasetRef[d.id] || referenceGroup
+      }
+      payload.per_dataset_reference_group = perDatasetMap
+      if (referenceGroup) {
+        payload.reference_group = referenceGroup
+      }
     }
     if (METHODS[method].needsControls) {
       payload.control_features = controlFeatures
@@ -266,15 +298,18 @@ export default function BatchCombiner() {
                     <tr className="border-b border-slate-200 dark:border-slate-700 text-left">
                       <th className="py-2 pr-4">Include</th>
                       <th className="py-2 pr-4">Dataset</th>
+                      <th className="py-2 pr-4">Project</th>
                       <th className="py-2 pr-4">Type</th>
                       <th className="py-2 pr-4">Samples</th>
                       <th className="py-2 pr-4">Groups</th>
+                      {METHODS[method].needsRef && <th className="py-2 pr-4">Reference group</th>}
                       <th className="py-2">Batch label</th>
                     </tr>
                   </thead>
                   <tbody>
                     {datasets.map((ds) => {
                       const groups = Array.from(new Set(Object.values(ds.sample_metadata || {}))).join(', ')
+                      const dsGroups = datasetGroups(ds)
                       return (
                         <tr key={ds.id} className="border-b border-slate-100 dark:border-slate-800">
                           <td className="py-3 pr-4">
@@ -286,6 +321,7 @@ export default function BatchCombiner() {
                             />
                           </td>
                           <td className="py-3 pr-4 font-medium text-slate-900 dark:text-slate-100">{ds.name}</td>
+                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{ds.project_name || '-'}</td>
                           <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{ds.feature_type}</td>
                           <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
                             {Object.keys(ds.sample_metadata || {}).length}
@@ -293,6 +329,23 @@ export default function BatchCombiner() {
                           <td className="py-3 pr-4 text-slate-600 dark:text-slate-300 max-w-xs truncate" title={groups}>
                             {groups}
                           </td>
+                          {METHODS[method].needsRef && (
+                            <td className="py-3 pr-4">
+                              <select
+                                value={perDatasetRef[ds.id] || ''}
+                                onChange={(e) => updatePerDatasetRef(ds.id, e.target.value)}
+                                disabled={!selected.has(ds.id) || dsGroups.length === 0}
+                                className="select disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {dsGroups.length === 0 && <option value="">No groups</option>}
+                                {dsGroups.map((g) => (
+                                  <option key={g} value={g}>
+                                    {g}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          )}
                           <td className="py-3">
                             <input
                               type="text"
@@ -337,13 +390,14 @@ export default function BatchCombiner() {
 
             {METHODS[method].needsRef && (
               <div>
-                <label className="label-like">Reference / control group</label>
+                <label className="label-like">Default reference / control group (optional)</label>
                 <select
                   className="select"
                   value={referenceGroup}
                   onChange={(e) => setReferenceGroup(e.target.value)}
                   disabled={allGroups.length === 0}
                 >
+                  <option value="">Use per-dataset reference groups</option>
                   {allGroups.length === 0 && <option value="">No groups available</option>}
                   {allGroups.map((g) => (
                     <option key={g} value={g}>
@@ -352,7 +406,7 @@ export default function BatchCombiner() {
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Each batch must contain at least one sample from this group.
+                  Choose a group for each dataset in the table, or set a default here to apply to datasets without their own selection.
                 </p>
               </div>
             )}

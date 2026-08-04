@@ -26,6 +26,9 @@ async def get_dataset(project_id: int, dataset_id: int, db: AsyncSession = Depen
     dataset = result.scalar_one_or_none()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
+    project_result = await db.execute(select(models.Project).where(models.Project.id == project_id))
+    project = project_result.scalar_one_or_none()
+    dataset.project_name = project.name if project else None
     return dataset
 
 
@@ -75,7 +78,26 @@ async def list_datasets(project_id: int, db: AsyncSession = Depends(get_db),
                         current_user: models.User = Depends(get_current_active_user)):
     result = await db.execute(select(models.Dataset).join(models.Project).where(
         models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
-    return result.scalars().all()
+    datasets = result.scalars().all()
+    project_result = await db.execute(select(models.Project).where(models.Project.id == project_id))
+    project = project_result.scalar_one_or_none()
+    for d in datasets:
+        d.project_name = project.name if project else None
+    return datasets
+
+
+@router.get("/datasets/all", response_model=List[schemas.DatasetOut])
+async def list_all_datasets(db: AsyncSession = Depends(get_db),
+                            current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Dataset).join(models.Project).where(
+        models.Project.owner_id == current_user.id))
+    datasets = result.scalars().all()
+    project_ids = {d.project_id for d in datasets}
+    project_result = await db.execute(select(models.Project).where(models.Project.id.in_(project_ids)))
+    project_names = {p.id: p.name for p in project_result.scalars().all()}
+    for d in datasets:
+        d.project_name = project_names.get(d.project_id)
+    return datasets
 
 
 @router.post("/{project_id}/datasets/combine", response_model=schemas.BatchCombineOut)
@@ -93,6 +115,7 @@ async def batch_combine(
         method=body.method,
         batch_assignment=body.batch_assignment,
         reference_group=body.reference_group,
+        per_dataset_reference_group=body.per_dataset_reference_group,
         output_name=body.output_name,
         control_features=body.control_features,
         n_unwanted_factors=body.n_unwanted_factors or 1,

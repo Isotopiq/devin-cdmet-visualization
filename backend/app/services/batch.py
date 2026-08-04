@@ -72,12 +72,13 @@ def _unique_sample_name(col: str, batch_label: str, used: set) -> str:
 def _build_combined_frame(
     datasets: List[models.Dataset],
     batch_assignment: Optional[Dict[str, str]],
-) -> tuple[pd.DataFrame, Dict[str, str], Dict[str, str], List[Dict[str, Any]]]:
-    """Return combined DataFrame, sample metadata, sample->batch map, and feature metadata."""
+) -> tuple[pd.DataFrame, Dict[str, str], Dict[str, str], List[Dict[str, Any]], Dict[str, int]]:
+    """Return combined DataFrame, sample metadata, sample->batch map, feature metadata, and sample->dataset map."""
     batch_assignment = {int(k): v for k, v in (batch_assignment or {}).items()}
     frames: List[pd.DataFrame] = []
     sample_meta: Dict[str, str] = {}
     sample_batch: Dict[str, str] = {}
+    sample_to_dataset: Dict[str, int] = {}
     used_samples: set = set()
     feature_meta_by_id: Dict[str, Dict[str, Any]] = {}
 
@@ -114,6 +115,7 @@ def _build_combined_frame(
             rename_map[raw_col] = new_col
             sample_meta[new_col] = str(original_meta.get(raw_col, "unknown"))
             sample_batch[new_col] = batch_label
+            sample_to_dataset[new_col] = dataset.id
 
         if rename_map:
             df = df.rename(columns=rename_map)
@@ -127,27 +129,37 @@ def _build_combined_frame(
         feature_meta_by_id.get(fid, {"feature_id": fid})
         for fid in combined.index
     ]
-    return combined, sample_meta, sample_batch, combined_feature_meta
+    return combined, sample_meta, sample_batch, combined_feature_meta, sample_to_dataset
 
 
 def _reference_control_scale(
     df: pd.DataFrame,
     sample_meta: Dict[str, str],
     sample_batch: Dict[str, str],
-    reference_group: str,
+    sample_reference: Dict[str, str],
 ) -> pd.DataFrame:
-    """Divide each sample by the mean of the reference group within its batch."""
+    """Divide each sample by the mean of its assigned reference group within its batch.
+
+    ``sample_reference`` maps each sample to the reference group chosen for its
+    source dataset. A sample only contributes to the reference mean if its own
+    biological group (``sample_meta``) matches that chosen reference group.
+    """
     result = df.copy()
     batches = sorted(set(sample_batch.values()))
     for batch in batches:
         cols = [c for c in df.columns if sample_batch.get(c) == batch]
-        ref_cols = [c for c in cols if sample_meta.get(c) == reference_group]
-        if not ref_cols:
+        ref_groups = sorted({sample_reference.get(c) for c in cols if sample_reference.get(c)})
+        if not ref_groups:
             continue
-        ref_mean = df[ref_cols].replace(0, np.nan).mean(axis=1)
-        ref_mean = ref_mean.replace(0, np.nan)
-        for col in cols:
-            result[col] = df[col].replace(0, np.nan).div(ref_mean)
+        for rg in ref_groups:
+            ref_cols = [c for c in cols if sample_reference.get(c) == rg and sample_meta.get(c) == rg]
+            if not ref_cols:
+                continue
+            ref_mean = df[ref_cols].replace(0, np.nan).mean(axis=1)
+            ref_mean = ref_mean.replace(0, np.nan)
+            target_cols = [c for c in cols if sample_reference.get(c) == rg]
+            for col in target_cols:
+                result[col] = df[col].replace(0, np.nan).div(ref_mean)
     return result
 
 
@@ -155,22 +167,27 @@ def _log2fc_control(
     df: pd.DataFrame,
     sample_meta: Dict[str, str],
     sample_batch: Dict[str, str],
-    reference_group: str,
+    sample_reference: Dict[str, str],
 ) -> pd.DataFrame:
-    """Convert each sample to log2 fold-change vs the batch reference group mean."""
+    """Convert each sample to log2 fold-change vs its assigned reference group mean."""
     floor = _positive_floor(df) / 2.0
     result = df.copy()
     batches = sorted(set(sample_batch.values()))
     for batch in batches:
         cols = [c for c in df.columns if sample_batch.get(c) == batch]
-        ref_cols = [c for c in cols if sample_meta.get(c) == reference_group]
-        if not ref_cols:
+        ref_groups = sorted({sample_reference.get(c) for c in cols if sample_reference.get(c)})
+        if not ref_groups:
             continue
-        ref_mean = df[ref_cols].replace(0, np.nan).mean(axis=1)
-        ref_mean = ref_mean.replace(0, np.nan).fillna(floor)
-        for col in cols:
-            values = df[col].replace(0, floor).fillna(floor)
-            result[col] = np.log2(values / ref_mean)
+        for rg in ref_groups:
+            ref_cols = [c for c in cols if sample_reference.get(c) == rg and sample_meta.get(c) == rg]
+            if not ref_cols:
+                continue
+            ref_mean = df[ref_cols].replace(0, np.nan).mean(axis=1)
+            ref_mean = ref_mean.replace(0, np.nan).fillna(floor)
+            target_cols = [c for c in cols if sample_reference.get(c) == rg]
+            for col in target_cols:
+                values = df[col].replace(0, floor).fillna(floor)
+                result[col] = np.log2(values / ref_mean)
     return result
 
 
@@ -523,18 +540,27 @@ def _apply_batch_correction(
     method: str,
     sample_meta: Dict[str, str],
     sample_batch: Dict[str, str],
+    sample_to_dataset: Dict[str, int],
     reference_group: Optional[str] = None,
+    per_dataset_reference_group: Optional[Dict[str, str]] = None,
     control_features: Optional[List[str]] = None,
     n_unwanted_factors: int = 1,
 ) -> pd.DataFrame:
+    per_dataset_reference_group = {str(k): v for k, v in (per_dataset_reference_group or {}).items() if v}
+    sample_reference: Dict[str, str] = {}
+    for s in sample_meta:
+        ds_id = str(sample_to_dataset.get(s, ""))
+        rg = per_dataset_reference_group.get(ds_id) or reference_group
+        sample_reference[s] = rg or ""
+
     if method == "reference_group":
-        if not reference_group:
+        if not any(sample_reference.values()):
             raise HTTPException(status_code=400, detail="reference_group is required for reference_group scaling")
-        return _reference_control_scale(df, sample_meta, sample_batch, reference_group)
+        return _reference_control_scale(df, sample_meta, sample_batch, sample_reference)
     if method == "log2fc_control":
-        if not reference_group:
+        if not any(sample_reference.values()):
             raise HTTPException(status_code=400, detail="reference_group is required for log2fc_control")
-        return _log2fc_control(df, sample_meta, sample_batch, reference_group)
+        return _log2fc_control(df, sample_meta, sample_batch, sample_reference)
     if method == "mean_centering":
         return _mean_center(df, sample_batch)
     if method == "median_centering":
@@ -738,19 +764,26 @@ async def combine_datasets(
     n_unwanted_factors: int = 1,
     include_qc_plots: bool = False,
     style: Optional[Dict[str, Any]] = None,
+    per_dataset_reference_group: Optional[Dict[str, str]] = None,
 ) -> models.Dataset | Dict[str, Any]:
     if method not in VALID_BATCH_METHODS:
         raise HTTPException(status_code=400, detail=f"Invalid method. Choose from {sorted(VALID_BATCH_METHODS)}")
     if len(dataset_ids) < 2:
         raise HTTPException(status_code=400, detail="At least two datasets are required for batch combination")
 
-    # load datasets
+    # destination project must belong to user
+    project_result = await db.execute(
+        select(models.Project).where(models.Project.id == project_id, models.Project.owner_id == user_id)
+    )
+    if not project_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # load datasets from any of the user's projects
     result = await db.execute(
         select(models.Dataset)
         .join(models.Project)
         .where(
             models.Dataset.id.in_(dataset_ids),
-            models.Dataset.project_id == project_id,
             models.Project.owner_id == user_id,
         )
     )
@@ -758,7 +791,7 @@ async def combine_datasets(
     if len(datasets) != len(dataset_ids):
         raise HTTPException(status_code=404, detail="One or more datasets not found")
 
-    combined, sample_meta, sample_batch, feature_meta = _build_combined_frame(
+    combined, sample_meta, sample_batch, feature_meta, sample_to_dataset = _build_combined_frame(
         list(datasets), batch_assignment
     )
     corrected = _apply_batch_correction(
@@ -766,7 +799,9 @@ async def combine_datasets(
         method,
         sample_meta,
         sample_batch,
+        sample_to_dataset,
         reference_group=reference_group,
+        per_dataset_reference_group=per_dataset_reference_group,
         control_features=control_features,
         n_unwanted_factors=n_unwanted_factors,
     )
@@ -783,6 +818,7 @@ async def combine_datasets(
         "step": "batch_combine",
         "method": method,
         "reference_group": reference_group,
+        "per_dataset_reference_group": per_dataset_reference_group,
         "control_features": control_features,
         "n_unwanted_factors": n_unwanted_factors,
         "batch_assignment": batch_assignment,

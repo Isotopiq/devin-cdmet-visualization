@@ -229,3 +229,58 @@ async def test_combine_with_qc_report(batch_setup):
     assert "figures" in report["before"]
     assert "batch_r2_pct" in report["metrics"]
     assert report["metrics"]["batch_r2_pct"]["before"] is not None
+
+
+@pytest.mark.asyncio
+async def test_combine_cross_project_and_per_dataset_reference(setup_db):
+    async with db_module.AsyncSessionLocal() as db:
+        db.expire_on_commit = False
+        email = f"cross_{uuid.uuid4().hex[:8]}@example.com"
+        user = models.User(email=email, hashed_password="x", is_active=True)
+        project_a = models.Project(name="project A", owner=user)
+        project_b = models.Project(name="project B", owner=user)
+        db.add(user)
+        db.add(project_a)
+        db.add(project_b)
+        await db.flush()
+
+        ds_a = models.Dataset(
+            project_id=project_a.id,
+            name="run_a.csv",
+            feature_type="metabolite",
+            data_matrix={"s1": [100.0, 200.0], "s2": [110.0, 190.0]},
+            sample_metadata={"s1": "CTRL", "s2": "CTRL"},
+            feature_metadata=[{"feature_id": "A"}, {"feature_id": "B"}],
+        )
+        ds_b = models.Dataset(
+            project_id=project_b.id,
+            name="run_b.csv",
+            feature_type="metabolite",
+            data_matrix={"s1": [400.0, 80.0], "s2": [440.0, 90.0]},
+            sample_metadata={"s1": "WT", "s2": "WT"},
+            feature_metadata=[{"feature_id": "A"}, {"feature_id": "C"}],
+        )
+        db.add(ds_a)
+        db.add(ds_b)
+        await db.commit()
+        await db.refresh(ds_a)
+        await db.refresh(ds_b)
+
+        new_ds = await combine_datasets(
+            db,
+            project_id=project_a.id,
+            user_id=user.id,
+            dataset_ids=[ds_a.id, ds_b.id],
+            method="reference_group",
+            batch_assignment={str(ds_a.id): "run_a", str(ds_b.id): "run_b"},
+            reference_group=None,
+            per_dataset_reference_group={str(ds_a.id): "CTRL", str(ds_b.id): "WT"},
+            output_name="combined_cross",
+        )
+        assert new_ds.project_id == project_a.id
+        assert len(new_ds.sample_metadata) == 4
+        assert "A" in [m["feature_id"] for m in new_ds.feature_metadata]
+        # WT samples from project B should be scaled to ~1 using their own WT ref mean
+        wt_samples = [s for s, g in new_ds.sample_metadata.items() if g == "WT"]
+        vals = [new_ds.data_matrix[s][idx] for s in wt_samples for idx in range(len(new_ds.feature_metadata)) if new_ds.data_matrix[s][idx] is not None]
+        assert np.mean(vals) == pytest.approx(1.0, abs=0.01)

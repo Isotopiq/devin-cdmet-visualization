@@ -117,6 +117,7 @@ class DatasetOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     project_id: int
+    project_name: Optional[str] = None
     source_file_id: Optional[int]
     name: str
     feature_type: str
@@ -338,6 +339,7 @@ class BatchCombineRequest(BaseModel):
     method: str
     batch_assignment: Optional[Dict[str, str]] = None
     reference_group: Optional[str] = None
+    per_dataset_reference_group: Optional[Dict[str, str]] = None
     output_name: Optional[str] = None
     control_features: Optional[List[str]] = None
     n_unwanted_factors: Optional[int] = 1
