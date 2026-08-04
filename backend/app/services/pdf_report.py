@@ -301,12 +301,20 @@ class _ReportPDF(FPDF):
 
         _color(self, "#94a3b8")
         self.set_body_font(8)
-        self.set_xy(x, y)
-        # Leave room for the logo when present
-        text_w = w * 0.8 if logo_w == 0 else self.w - self.margin - logo_w - 6 - x
-        self.cell(text_w, 5, f"Generated {date_str} | {footer_text}", align="L")
-        self.set_xy(x + w * 0.75, y)
-        self.cell(w * 0.17, 5, f"Page {page}", align="R")
+
+        if logo_w > 0:
+            logo_left_x = self.w - self.margin - logo_w
+            # Keep date text on the left; page number ends just left of the logo
+            self.set_xy(x, y)
+            date_text_w = logo_left_x - x - 30
+            self.cell(max(date_text_w, 60), 5, f"Generated {date_str} | {footer_text}", align="L")
+            self.set_xy(logo_left_x - 28, y)
+            self.cell(25, 5, f"Page {page}", align="R")
+        else:
+            self.set_xy(x, y)
+            self.cell(w * 0.8, 5, f"Generated {date_str} | {footer_text}", align="L")
+            self.set_xy(x + w * 0.75, y)
+            self.cell(w * 0.17, 5, f"Page {page}", align="R")
 
     def _content_card(self, title: str, y: float, h: float) -> float:
         x = self.margin
