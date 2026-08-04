@@ -157,6 +157,11 @@ export default function BatchCombiner() {
 
   useEffect(() => {
     if (!projectId) return
+    if (selectedProjectIds.size === 0) {
+      setDatasets([])
+      setTotal(0)
+      return
+    }
     setDatasetsLoading(true)
     listAllDatasets({
       project_ids: Array.from(selectedProjectIds),
@@ -227,6 +232,43 @@ export default function BatchCombiner() {
     })
     setPage(1)
   }
+
+  useEffect(() => {
+    // Deselect datasets from projects that are no longer checked.
+    setSelected((prev) => {
+      const next = new Set<number>()
+      for (const id of prev) {
+        const ds = datasetMap[id]
+        if (ds && selectedProjectIds.has(ds.project_id)) next.add(id)
+      }
+      return next
+    })
+    setPerDatasetRef((prev) => {
+      const next: Record<number, string> = { ...prev }
+      for (const k of Object.keys(next)) {
+        const id = Number(k)
+        const ds = datasetMap[id]
+        if (!ds || !selectedProjectIds.has(ds.project_id)) delete next[id]
+      }
+      return next
+    })
+    setBatchLabels((prev) => {
+      const next: Record<number, string> = { ...prev }
+      for (const k of Object.keys(next)) {
+        const id = Number(k)
+        const ds = datasetMap[id]
+        if (!ds || !selectedProjectIds.has(ds.project_id)) delete next[id]
+      }
+      return next
+    })
+    setDatasetMap((prev) => {
+      const next: Record<number, Dataset> = { ...prev }
+      for (const k of Object.keys(next)) {
+        if (!selectedProjectIds.has(next[Number(k)].project_id)) delete next[Number(k)]
+      }
+      return next
+    })
+  }, [selectedProjectIds])
 
   const toggleDataset = (id: number) => {
     setSelected((prev) => {
