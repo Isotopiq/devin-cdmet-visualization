@@ -572,6 +572,10 @@ def _outlier_plot(df, sample_meta, style, params):
     fig.add_annotation(x=chi2_99, y=1.0, yref="paper", text="99% threshold", showarrow=False, xanchor="left", yanchor="bottom", font=dict(color="red", size=10))
 
     title_text = params.get("title", "Outlier Plot")
+    longest_name = max([len(str(n)) for n in names] or [0])
+    tick_font = max(6, min(10, style.get("tick_size", 11) - 1)) if len(names) > 30 else max(7, style.get("tick_size", 11) - 1)
+    left_margin = max(120, int(longest_name * tick_font * 0.85))
+    plot_height = max(500, len(names) * 13)
     fig.update_layout(
         title=dict(text=f"<b>{title_text}</b>", font=dict(size=style.get("title_size"), color="#1e293b"), x=0.0, xanchor="left"),
         xaxis=dict(
@@ -582,7 +586,8 @@ def _outlier_plot(df, sample_meta, style, params):
         yaxis=dict(
             title=dict(text="Sample", font=dict(size=style.get("axis_label_size"), color="#000"), standoff=30),
             categoryorder="array", categoryarray=names,
-            showgrid=False, automargin=True, tickfont=dict(size=max(7, style.get("tick_size") - 1)),
+            tickmode="linear", dtick=1,
+            showgrid=False, automargin=True, tickfont=dict(size=tick_font),
         ),
         legend=dict(
             title=dict(text="group", font=dict(size=style.get("tick_size"))),
@@ -592,9 +597,10 @@ def _outlier_plot(df, sample_meta, style, params):
         ),
         plot_bgcolor="white",
         paper_bgcolor="white",
-        margin=dict(l=120, r=150, t=80, b=70),
+        margin=dict(l=left_margin, r=150, t=80, b=70),
         font=dict(family=style.get("font_family"), color="#334155"),
-        bargap=0.2,
+        bargap=0.15,
+        height=plot_height,
     )
     return fig
 
@@ -686,13 +692,13 @@ def _category_volcano_figure(items, title, style, params=None):
     group_a = params.get("group_a", "")
     group_b = params.get("group_b", "")
     group_colors = _group_color_map(style, [group_a, group_b])
-    for label, grp in [("A", group_a), ("B", group_b)]:
+    for grp in [group_a, group_b]:
         if grp and grp in group_colors:
             fig.add_trace(go.Scatter(
                 x=[0], y=[0],
                 mode="markers",
                 marker=dict(color=group_colors[grp], size=10),
-                name=f"Group {label}: {grp}",
+                name=grp,
                 visible="legendonly",
                 hoverinfo="skip",
                 showlegend=True,
@@ -971,7 +977,7 @@ def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
     title = f"PLS-DA: {group_b} vs {group_a} (R²Y={result['r2y']:.2f}, Q²Y={result['q2y']:.2f}, Acc={result['accuracy']:.2f})"
     x_labels = vip_labels + [f["feature"] for f in result.get("feature_importances", [])[:15]]
     _apply_base_layout(fig, style, title=None, x_labels=x_labels)
-    fig.update_xaxes(tickangle=-45, tickfont=dict(size=9), row=1, col=2)
+    fig.update_xaxes(tickmode="linear", dtick=1, tickangle=-45, tickfont=dict(size=9), row=1, col=2)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
         legend={"orientation": "h", "y": -0.2},
@@ -1057,7 +1063,7 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
     title = f"OPLS-DA: {group_b} vs {group_a} (R²Y={result['r2y']:.2f}, Q²Y={result['q2y']:.2f}, Acc={result['accuracy']:.2f})"
     x_labels = top_labels + [t["feature"] for t in top]
     _apply_base_layout(fig, style, title=None, x_labels=x_labels)
-    fig.update_xaxes(tickangle=-45, tickfont=dict(size=9), row=2, col=1)
+    fig.update_xaxes(tickmode="linear", dtick=1, tickangle=-45, tickfont=dict(size=9), row=2, col=1)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
         legend={"orientation": "h", "y": -0.2},
@@ -1140,8 +1146,8 @@ def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
     title = f"Biomarker discovery: {group_b} vs {group_a} (RF AUC={mv['auc']:.2f})"
     x_labels = auc_labels + fi_labels
     _apply_base_layout(fig, style, title=None, x_labels=x_labels)
-    fig.update_xaxes(tickangle=-45, tickfont=dict(size=9), row=1, col=1)
-    fig.update_xaxes(tickangle=-45, tickfont=dict(size=9), row=2, col=1)
+    fig.update_xaxes(tickmode="linear", dtick=1, tickangle=-45, tickfont=dict(size=9), row=1, col=1)
+    fig.update_xaxes(tickmode="linear", dtick=1, tickangle=-45, tickfont=dict(size=9), row=2, col=1)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
         legend={"orientation": "h", "y": -0.2},
@@ -1953,6 +1959,12 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 fig.add_trace(go.Scatter(x=samps, y=vals, mode="markers", name=g, marker_color=color_map[g], marker_size=style.get("marker_size")))
             fig.update_layout(xaxis_title="Sample", yaxis_title="Intensity")
         _apply_base_layout(fig, style, title=f"{plot_type.title()} Plot: {title}", x_labels=display_samples)
+        n_samples = len(display_samples)
+        if n_samples <= 30:
+            tick_font = max(7, style.get("tick_size", 11) - 1) if n_samples <= 20 else max(6, style.get("tick_size", 11) - 2)
+            fig.update_xaxes(tickmode="linear", dtick=1, tickangle=-45, tickfont=dict(size=tick_font), automargin=True)
+        else:
+            fig.update_xaxes(tickmode="auto", automargin=True)
 
     elif plot_type == "heatmap":
         heatmap_type = params.get("heatmap_type", "abundance")
@@ -2363,6 +2375,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             fig.add_trace(go.Bar(name=g, x=x, y=means, marker_color=color_map[g]))
         fig.update_layout(barmode="group", xaxis_title="Lipid class", yaxis_title="Total intensity")
         _apply_base_layout(fig, style, title="Total abundance by lipid class × group", x_labels=x)
+        fig.update_xaxes(tickmode="linear", dtick=1, automargin=True)
         fig.update_yaxes(range=[0, y_max * 1.15])
 
     elif plot_type == "per_lipid_bars":
