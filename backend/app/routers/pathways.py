@@ -9,6 +9,7 @@ from app.auth import get_current_active_user
 from app import models, schemas
 from app.services.pathways import create_pathway_job, run_pathway_job, get_job
 from app.services.pdf_report import build_pathway_pdf, get_pdf_footer_logo_path, get_pdf_prepared_by
+from app.services import storage
 
 router = APIRouter()
 
@@ -92,6 +93,18 @@ async def pathway_pdf(
         footer_logo_path=footer_logo_path,
     )
     filename = f"{dataset.name.replace(' ', '_')}_pathway_report.pdf"
+    if body.save_to_s3:
+        s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db, name=filename)
+        if s3_key:
+            await storage.create_report_record(
+                db,
+                project_id=project_id,
+                dataset_id=dataset_id,
+                user_id=current_user.id,
+                name=filename,
+                report_type="pathway",
+                s3_key=s3_key,
+            )
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",

@@ -106,6 +106,23 @@ class AdminLog(Base):
     user = relationship("User", back_populates="logs")
 
 
+class GeneratedReport(Base):
+    __tablename__ = "generated_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    dataset_id = Column(Integer, ForeignKey("datasets.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    name = Column(String, nullable=False)
+    report_type = Column(String, nullable=False)
+    s3_key = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=dt.datetime.utcnow)
+
+    project = relationship("Project")
+    dataset = relationship("Dataset")
+    user = relationship("User")
+
+
 class SiteSetting(Base):
     __tablename__ = "site_settings"
 

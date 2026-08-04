@@ -1,10 +1,13 @@
+import io
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
 from app.auth import get_current_active_user
 from app import models, schemas
+from app.services import storage
 
 router = APIRouter()
 
@@ -62,4 +65,55 @@ async def delete_project(project_id: int, db: AsyncSession = Depends(get_db),
         raise HTTPException(status_code=404, detail="Project not found")
     await db.delete(project)
     await db.commit()
+    return {"ok": True}
+
+
+@router.get("/{project_id}/reports", response_model=List[schemas.GeneratedReportOut])
+async def list_project_reports(
+    project_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(select(models.Project).where(models.Project.id == project_id, models.Project.owner_id == current_user.id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    reports = await storage.list_reports(db, project_id=project_id)
+    return reports
+
+
+@router.get("/{project_id}/reports/{report_id}")
+async def download_project_report(
+    project_id: int,
+    report_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(select(models.Project).where(models.Project.id == project_id, models.Project.owner_id == current_user.id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    report = await storage.get_report(db, report_id)
+    if not report or report.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Report not found")
+    data = await storage.download_report_bytes(report, db)
+    headers = {"Content-Disposition": f"attachment; filename={report.name}"}
+    return StreamingResponse(io.BytesIO(data), media_type="application/pdf", headers=headers)
+
+
+@router.delete("/{project_id}/reports/{report_id}")
+async def delete_project_report(
+    project_id: int,
+    report_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    result = await db.execute(select(models.Project).where(models.Project.id == project_id, models.Project.owner_id == current_user.id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    report = await storage.get_report(db, report_id)
+    if not report or report.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Report not found")
+    await storage.delete_report(report, db)
     return {"ok": True}

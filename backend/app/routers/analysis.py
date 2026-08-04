@@ -231,11 +231,20 @@ async def get_qc_pdf(
         plot_layout=body.plot_layout,
         footer_logo_path=footer_logo_path,
     )
-    s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db)
     filename = f"{dataset.name.replace(' ', '_')}_qc_report.pdf"
+    if body.save_to_s3:
+        s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db, name=filename)
+        if s3_key:
+            await storage.create_report_record(
+                db,
+                project_id=project_id,
+                dataset_id=dataset_id,
+                user_id=current_user.id,
+                name=filename,
+                report_type="qc",
+                s3_key=s3_key,
+            )
     headers = {"Content-Disposition": f"attachment; filename={filename}"}
-    if s3_key:
-        headers["X-S3-Key"] = s3_key
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",

@@ -38,6 +38,8 @@ export default function Pathway() {
   })
   const [fontFamily, setFontFamily] = useState('')
   const [includeTable, setIncludeTable] = useState(true)
+  const [s3Configured, setS3Configured] = useState(false)
+  const [saveToS3, setSaveToS3] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
 
@@ -61,6 +63,7 @@ export default function Pathway() {
         if (defaultPrepared) {
           setPdfMeta((prev) => ({ ...prev, prepared_by: defaultPrepared }))
         }
+        setS3Configured(!!res.data?.s3_configured)
       })
       .catch(() => {})
   }, [])
@@ -90,6 +93,7 @@ export default function Pathway() {
       report_contents: pdfMeta.report_contents || undefined,
       font_family: fontFamily || undefined,
       include_table: includeTable,
+      save_to_s3: saveToS3,
     }
   }
 
@@ -323,9 +327,15 @@ export default function Pathway() {
                   </select>
                 </div>
                 <div className="flex items-center h-10">
-                  <input id="includeTable" type="checkbox" checked={includeTable} onChange={(e) => setIncludeTable(e.target.checked)} className="rounded mr-2" />
+                  <input id="includeTable" type="checkbox" checked={includeTable} onChange={(e) => setIncludeTable(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 mr-2" />
                   <label htmlFor="includeTable" className="text-sm text-slate-700 dark:text-slate-300">Include pathway table</label>
                 </div>
+                {s3Configured && (
+                  <div className="flex items-center h-10">
+                    <input id="pathway-save-to-s3" type="checkbox" checked={saveToS3} onChange={(e) => setSaveToS3(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 mr-2" />
+                    <label htmlFor="pathway-save-to-s3" className="text-sm text-slate-700 dark:text-slate-300">Save a copy to S3</label>
+                  </div>
+                )}
               </div>
               <div className="flex gap-3">
                 <button onClick={handlePreviewPdf} disabled={loading || !result} className="btn-secondary"><LuEye /> Preview PDF</button>

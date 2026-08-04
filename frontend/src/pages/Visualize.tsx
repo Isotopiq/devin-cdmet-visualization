@@ -128,6 +128,8 @@ export default function Visualize() {
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrStatus, setOcrStatus] = useState('')
   const [pdfPreparedBy, setPdfPreparedBy] = useState('Metabolomics Platform')
+  const [s3Configured, setS3Configured] = useState(false)
+  const [saveReportToS3, setSaveReportToS3] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -148,6 +150,7 @@ export default function Visualize() {
         if (defaultPrepared) {
           setPdfPreparedBy(defaultPrepared)
         }
+        setS3Configured(!!res.data?.s3_configured)
       })
       .catch(() => {})
   }, [])
@@ -452,6 +455,7 @@ export default function Visualize() {
         show_labels: reportParams.show_labels,
         parameters: reportParams,
         style: backendStyle,
+        save_to_s3: saveReportToS3,
       })
       const blob = new Blob([res.data], { type: 'application/pdf' })
       const url = window.URL.createObjectURL(blob)
@@ -650,6 +654,12 @@ export default function Visualize() {
                   <label className="label-like">Title</label>
                   <input value={reportTitle} onChange={(e) => setReportTitle(e.target.value)} className="input text-sm" placeholder="Report title" />
                 </div>
+                {s3Configured && (
+                  <div className="flex items-center h-10 gap-2">
+                    <input id="viz-save-to-s3" type="checkbox" checked={saveReportToS3} onChange={(e) => setSaveReportToS3(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                    <label htmlFor="viz-save-to-s3" className="text-sm text-slate-700 dark:text-slate-300">Save a copy to S3</label>
+                  </div>
+                )}
                 {tab === 'per_lipid_bars' && (
                   <>
                     <div><label className="label-like">Lipids/page</label><select value={lipidsPerPage} onChange={(e) => setLipidsPerPage(Number(e.target.value))} className="input">{LIPIDS_PER_PAGE.map(n => <option key={n} value={n}>{n}</option>)}</select></div>

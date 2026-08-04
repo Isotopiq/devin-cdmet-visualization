@@ -237,6 +237,7 @@ class QCPdfRequest(BaseModel):
     cover_style: Optional[str] = "teal"
     font_family: Optional[str] = None
     plot_layout: Optional[Dict[str, str]] = {}
+    save_to_s3: bool = False
 
 
 class PDFReportRequest(BaseModel):
@@ -276,6 +277,7 @@ class PDFReportRequest(BaseModel):
     show_labels: bool = False
     parameters: Dict[str, Any] = {}
     style: Dict[str, Any] = {}
+    save_to_s3: bool = False
 
 
 class IsotopeRequest(BaseModel):
@@ -328,6 +330,19 @@ class PathwayPdfRequest(BaseModel):
     cover_style: Optional[str] = "classic"
     font_family: Optional[str] = None
     include_table: bool = True
+    save_to_s3: bool = False
+
+
+class GeneratedReportOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    project_id: int
+    dataset_id: Optional[int]
+    user_id: Optional[int]
+    name: str
+    report_type: str
+    s3_key: str
+    created_at: dt.datetime
 
 
 class SiteSettingsUpdate(BaseModel):

@@ -179,11 +179,20 @@ async def report_pdf(
     if not req.prepared_by:
         req.prepared_by = default_prepared_by or "Metabolomics Platform"
     pdf_bytes = build_pdf(dataset, project_name, req, footer_logo_path=footer_logo_path)
-    s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db)
     filename = f"{dataset.name.replace(' ', '_')}_report.pdf"
+    if req.save_to_s3:
+        s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db, name=filename)
+        if s3_key:
+            await storage.create_report_record(
+                db,
+                project_id=project_id,
+                dataset_id=dataset_id,
+                user_id=current_user.id,
+                name=filename,
+                report_type="report",
+                s3_key=s3_key,
+            )
     headers = {"Content-Disposition": f"attachment; filename={filename}"}
-    if s3_key:
-        headers["X-S3-Key"] = s3_key
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",

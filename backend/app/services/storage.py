@@ -202,11 +202,76 @@ async def delete_file(stored_name: str, db: AsyncSession):
             os.remove(path)
 
 
-async def save_report(pdf_bytes: bytes, project_id: int, dataset_id: int, db: AsyncSession) -> Optional[str]:
+async def save_report(pdf_bytes: bytes, project_id: int, dataset_id: int, db: AsyncSession, name: Optional[str] = None) -> Optional[str]:
     """Upload a generated PDF report to S3 if enabled. Returns the S3 reference or None."""
     config = await get_storage_config(db)
     if not config["enabled"] or not config["configured"]:
         return None
-    key = f"reports/{project_id}/{dataset_id}/{uuid.uuid4().hex}.pdf"
+    safe_name = (name or "report").replace(" ", "_").replace("/", "_")[:80]
+    key = f"reports/{project_id}/{dataset_id}/{safe_name}_{uuid.uuid4().hex}.pdf"
     await _s3_put_bytes(config, key, pdf_bytes)
     return f"s3://{key}"
+
+
+async def create_report_record(
+    db: AsyncSession,
+    project_id: int,
+    dataset_id: Optional[int],
+    user_id: Optional[int],
+    name: str,
+    report_type: str,
+    s3_key: str,
+) -> models.GeneratedReport:
+    report = models.GeneratedReport(
+        project_id=project_id,
+        dataset_id=dataset_id,
+        user_id=user_id,
+        name=name,
+        report_type=report_type,
+        s3_key=s3_key,
+    )
+    db.add(report)
+    await db.commit()
+    await db.refresh(report)
+    return report
+
+
+async def list_reports(
+    db: AsyncSession,
+    project_id: Optional[int] = None,
+    dataset_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+):
+    from sqlalchemy import select
+    stmt = select(models.GeneratedReport)
+    if project_id is not None:
+        stmt = stmt.where(models.GeneratedReport.project_id == project_id)
+    if dataset_id is not None:
+        stmt = stmt.where(models.GeneratedReport.dataset_id == dataset_id)
+    if user_id is not None:
+        stmt = stmt.where(models.GeneratedReport.user_id == user_id)
+    stmt = stmt.order_by(models.GeneratedReport.created_at.desc())
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+async def get_report(db: AsyncSession, report_id: int, user_id: Optional[int] = None) -> Optional[models.GeneratedReport]:
+    from sqlalchemy import select
+    stmt = select(models.GeneratedReport).where(models.GeneratedReport.id == report_id)
+    if user_id is not None:
+        stmt = stmt.join(models.Project).where(models.Project.owner_id == user_id)
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def download_report_bytes(report: models.GeneratedReport, db: AsyncSession) -> bytes:
+    path = await get_file_path(report.s3_key, db)
+    loop = asyncio.get_event_loop()
+    with open(path, "rb") as f:
+        return await loop.run_in_executor(None, f.read)
+
+
+async def delete_report(report: models.GeneratedReport, db: AsyncSession):
+    await delete_file(report.s3_key, db)
+    await db.delete(report)
+    await db.commit()

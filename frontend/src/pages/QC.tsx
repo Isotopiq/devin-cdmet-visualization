@@ -64,6 +64,8 @@ export default function QC() {
   })
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [s3Configured, setS3Configured] = useState(false)
+  const [saveToS3, setSaveToS3] = useState(false)
 
   const allGroups = selectedDataset?.sample_metadata
     ? Array.from(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>)))
@@ -94,6 +96,7 @@ export default function QC() {
         if (defaultPrepared) {
           setPdfMeta((prev) => ({ ...prev, prepared_by: defaultPrepared }))
         }
+        setS3Configured(!!res.data?.s3_configured)
       })
       .catch(() => {})
   }, [])
@@ -107,6 +110,7 @@ export default function QC() {
       report_contents: pdfMeta.report_contents || undefined,
       font_family: fontFamily || undefined,
       plot_layout: plotLayout,
+      save_to_s3: saveToS3,
     }
     return payload
   }
@@ -293,6 +297,18 @@ export default function QC() {
                     ))}
                   </select>
                 </div>
+                {s3Configured && (
+                  <div className="flex items-center gap-2 md:col-span-2">
+                    <input
+                      id="qc-save-to-s3"
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      checked={saveToS3}
+                      onChange={(e) => setSaveToS3(e.target.checked)}
+                    />
+                    <label htmlFor="qc-save-to-s3" className="label-like !mb-0">Save a copy to S3</label>
+                  </div>
+                )}
               </div>
 
               <div>
