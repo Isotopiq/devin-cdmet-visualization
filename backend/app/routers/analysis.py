@@ -223,6 +223,8 @@ async def get_qc_pdf(
         subtitle=body.subtitle,
         description=body.description,
         cover_style=body.cover_style,
+        font_family=body.font_family,
+        plot_layout=body.plot_layout,
     )
     s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db)
     filename = f"{dataset.name.replace(' ', '_')}_qc_report.pdf"

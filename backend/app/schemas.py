@@ -233,6 +233,8 @@ class QCPdfRequest(BaseModel):
     subtitle: Optional[str] = None
     description: Optional[str] = None
     cover_style: Optional[str] = "teal"
+    font_family: Optional[str] = None
+    plot_layout: Optional[Dict[str, str]] = {}
 
 
 class PDFReportRequest(BaseModel):

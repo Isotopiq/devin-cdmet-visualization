@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import { getQC, exportQCExcel, exportQCPdf } from '../api'
-import { LuActivity, LuRefreshCw, LuDownload, LuFileText } from 'react-icons/lu'
+import { LuActivity, LuRefreshCw, LuDownload, LuFileText, LuEye, LuX } from 'react-icons/lu'
 
 interface QCData {
   metrics: {
@@ -25,6 +25,25 @@ interface QCData {
   figures: Record<string, any>
 }
 
+const PLOT_KEYS = [
+  'tic',
+  'missing_pct',
+  'detected_features',
+  'log2_intensity',
+  'cv_by_group',
+  'pca',
+  'correlation_heatmap',
+]
+
+const FONT_OPTIONS = [
+  { label: 'Default (system)', value: '' },
+  { label: 'Helvetica', value: 'Helvetica' },
+  { label: 'Times', value: 'Times' },
+  { label: 'Courier', value: 'Courier' },
+  { label: 'DejaVu', value: 'DejaVu' },
+  { label: 'Liberation', value: 'Liberation' },
+]
+
 export default function QC() {
   const { projectId, datasetId, selectedDataset } = useWorkspace()
   const [data, setData] = useState<QCData | null>(null)
@@ -37,6 +56,14 @@ export default function QC() {
     prepared_by: 'Metabolomics Platform',
     report_contents: 'QC Report',
   })
+  const [fontFamily, setFontFamily] = useState('')
+  const [plotLayout, setPlotLayout] = useState<Record<string, 'single' | 'double'>>(() => {
+    const init: Record<string, 'single' | 'double'> = {}
+    PLOT_KEYS.forEach((k) => (init[k] = 'single'))
+    return init
+  })
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const allGroups = selectedDataset?.sample_metadata
     ? Array.from(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>)))
@@ -60,6 +87,19 @@ export default function QC() {
     }
   }, [selectedDataset])
 
+  const buildPdfPayload = () => {
+    const payload: any = {
+      selected_groups: Array.from(selectedGroups),
+      primary_comparison: pdfMeta.primary_comparison || undefined,
+      prepared_for: pdfMeta.prepared_for || undefined,
+      prepared_by: pdfMeta.prepared_by || undefined,
+      report_contents: pdfMeta.report_contents || undefined,
+      font_family: fontFamily || undefined,
+      plot_layout: plotLayout,
+    }
+    return payload
+  }
+
   const handleExportExcel = async () => {
     if (!projectId || !datasetId || !selectedDataset) return
     try {
@@ -77,30 +117,55 @@ export default function QC() {
     }
   }
 
-  const handleExportPdf = async () => {
-    if (!projectId || !datasetId || !selectedDataset) return
+  const generatePdf = async () => {
+    if (!projectId || !datasetId || !selectedDataset) return null
+    const res = await exportQCPdf(Number(projectId), Number(datasetId), buildPdfPayload())
+    return window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+  }
+
+  const handlePreviewPdf = async () => {
+    if (!projectId || !datasetId || !selectedDataset || selectedGroups.size === 0) return
     setLoading(true)
     setError('')
     try {
-      const res = await exportQCPdf(Number(projectId), Number(datasetId), {
-        selected_groups: Array.from(selectedGroups),
-        primary_comparison: pdfMeta.primary_comparison || undefined,
-        prepared_for: pdfMeta.prepared_for || undefined,
-        prepared_by: pdfMeta.prepared_by || undefined,
-        report_contents: pdfMeta.report_contents || undefined,
-      })
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `${selectedDataset.name.replace(/\s+/g, '_')}_qc_report.pdf`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
+      const url = await generatePdf()
+      if (url) {
+        setPreviewUrl(url)
+        setPreviewOpen(true)
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to generate QC PDF preview')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleExportPdf = async () => {
+    if (!projectId || !datasetId || !selectedDataset || selectedGroups.size === 0) return
+    setLoading(true)
+    setError('')
+    try {
+      const url = await generatePdf()
+      if (url) {
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', `${selectedDataset.name.replace(/\s+/g, '_')}_qc_report.pdf`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to export QC PDF')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const closePreview = () => {
+    setPreviewOpen(false)
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
     }
   }
 
@@ -136,6 +201,7 @@ export default function QC() {
           <div className="card p-5 flex items-end gap-4 flex-wrap">
             <button onClick={load} disabled={loading || selectedGroups.size === 0} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Run QC</button>
             <button onClick={handleExportExcel} disabled={!selectedDataset || selectedGroups.size === 0} className="btn-secondary"><LuDownload /> Export Excel Summary</button>
+            <button onClick={handlePreviewPdf} disabled={!selectedDataset || loading || selectedGroups.size === 0} className="btn-secondary"><LuEye /> Preview QC PDF</button>
             <button onClick={handleExportPdf} disabled={!selectedDataset || loading || selectedGroups.size === 0} className="btn-secondary"><LuFileText /> Export QC PDF Report</button>
             {error && <span className="text-sm text-red-600 dark:text-red-400">{error}</span>}
           </div>
@@ -202,6 +268,54 @@ export default function QC() {
                     placeholder="QC Report"
                   />
                 </div>
+                <div>
+                  <label className="label-like">PDF font</label>
+                  <select
+                    className="select"
+                    value={fontFamily}
+                    onChange={(e) => setFontFamily(e.target.value)}
+                  >
+                    {FONT_OPTIONS.map((f) => (
+                      <option key={f.value} value={f.value}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="label-like">Plot page layout</label>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  Choose which QC plots should share a page (2 per page) to reduce whitespace, and which should appear on their own page.
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700 text-left">
+                        <th className="py-2 pr-4">Plot</th>
+                        <th className="py-2">Layout</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {PLOT_KEYS.map((key) => (
+                        <tr key={key} className="border-b border-slate-100 dark:border-slate-800">
+                          <td className="py-3 pr-4 text-slate-700 dark:text-slate-200">{titleFor(key)}</td>
+                          <td className="py-3">
+                            <select
+                              className="select"
+                              value={plotLayout[key] || 'single'}
+                              onChange={(e) => setPlotLayout({ ...plotLayout, [key]: e.target.value as 'single' | 'double' })}
+                            >
+                              <option value="single">One plot per page</option>
+                              <option value="double">Two plots per page</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -239,6 +353,26 @@ export default function QC() {
             </>
           )}
         </>
+      )}
+
+      {previewOpen && previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">QC PDF Preview</h2>
+              <button onClick={closePreview} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+                <LuX />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <iframe src={previewUrl} title="QC PDF Preview" className="w-full h-full" />
+            </div>
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+              <button onClick={closePreview} className="btn-secondary">Close</button>
+              <button onClick={handleExportPdf} disabled={loading} className="btn-primary">Export PDF</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

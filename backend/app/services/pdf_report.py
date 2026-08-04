@@ -186,6 +186,12 @@ class _ReportPDF(FPDF):
         self.card_radius = 5
 
     def _set_fonts(self):
+        requested = (self.style.get("font_family") or "").strip()
+        builtin = {"Helvetica", "Times", "Courier"}
+        if requested in builtin:
+            self.font_family = requested
+            return
+
         candidates = [
             (
                 "DejaVu",
@@ -198,6 +204,15 @@ class _ReportPDF(FPDF):
                 "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
             ),
         ]
+        # If a specific TTF family was requested, prefer it if present
+        if requested:
+            for family, regular, bold in candidates:
+                if requested.lower() == family.lower() and Path(regular).exists() and Path(bold).exists():
+                    self.add_font(family, "", regular)
+                    self.add_font(family, "B", bold)
+                    self.font_family = family
+                    return
+
         self.font_family = "Helvetica"
         for family, regular, bold in candidates:
             if Path(regular).exists() and Path(bold).exists():
@@ -591,6 +606,29 @@ class _ReportPDF(FPDF):
         self._fit_image(buffer, self.margin + 6, img_y, max_w, max_h)
         self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
+    def _plot_pair_page(self, items: List[Tuple[str, io.BytesIO]], orientation: str = "P"):
+        """Render up to two plots on one page, stacked vertically."""
+        self.add_page(orientation)
+        self._page_header(self.style.get("title", "Report"), self.style.get("organization", ""))
+        card_y = 26
+        card_h = self.h - card_y - self.footer_h - 8
+        img_y = self._content_card("QC Plots", card_y, card_h)
+        max_w = self.w - 2 * self.margin - 12
+        n = len(items)
+        gap = 6
+        title_h = 6
+        slot_h = (card_h - 16 - (n - 1) * gap - n * title_h) / n if n > 0 else card_h - 16
+        y = img_y
+        for plot_title, buffer in items:
+            _color(self, "#1a1040")
+            self.set_body_font(10, "B")
+            self.set_xy(self.margin + 6, y)
+            self.cell(max_w, title_h, plot_title, align="L")
+            y += title_h + 2
+            self._fit_image(buffer, self.margin + 6, y, max_w, slot_h - title_h - 2)
+            y += slot_h + gap
+        self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
+
     def _multi_plot_page(self, title: str, buffers: List[io.BytesIO]):
         per_page = 4
         for i in range(0, len(buffers), per_page):
@@ -971,6 +1009,8 @@ def build_qc_pdf(
     subtitle: str | None = None,
     description: str | None = None,
     cover_style: str | None = None,
+    font_family: str | None = None,
+    plot_layout: Dict[str, str] | None = None,
 ) -> bytes:
     from app.services.qc import qc_analysis
 
@@ -988,12 +1028,14 @@ def build_qc_pdf(
         "footer_text": "Confidential",
         "date": dt.datetime.utcnow().strftime('%Y-%m-%d'),
         "cover_style": cover_style or "teal",
+        "font_family": font_family,
         "tags": "QC, Metrics, Plots",
         "primary_comparison": primary_comparison or "—",
         "prepared_for": prepared_for or "—",
         "prepared_by": prepared_by or "Metabolomics Platform",
         "sections": ["summary"],
     }
+    plot_layout = plot_layout or {}
     pdf = _ReportPDF(style=style)
     pdf._draw_cover()
     pdf._qc_summary_page(metrics)
@@ -1007,6 +1049,24 @@ def build_qc_pdf(
         ("pca", "pca_score"),
         ("correlation_heatmap", "heatmap_unclustered"),
     ]
+
+    double_queue: List[Tuple[str, io.BytesIO]] = []
+
+    def _render_double_queue():
+        while len(double_queue) >= 2:
+            pair = double_queue[:2]
+            double_queue[:2] = []
+            try:
+                pdf._plot_pair_page(pair)
+            except Exception:
+                continue
+        for leftover in double_queue:
+            try:
+                pdf._plot_page(leftover[0], leftover[1])
+            except Exception:
+                continue
+        double_queue.clear()
+
     for key, section in figure_order:
         fig = figures.get(key)
         if not isinstance(fig, dict):
@@ -1015,8 +1075,13 @@ def build_qc_pdf(
         try:
             layout = SECTION_LAYOUTS.get(section, SECTION_LAYOUTS["default"])
             img = _fig_to_png(fig, width=layout["width"], height=layout["height"], scale=2)
-            pdf._plot_page(title, img, orientation=layout.get("orientation", "P"))
+            if plot_layout.get(key) == "double":
+                double_queue.append((title, img))
+            else:
+                _render_double_queue()
+                pdf._plot_page(title, img, orientation=layout.get("orientation", "P"))
         except Exception:
             continue
+    _render_double_queue()
 
     return bytes(pdf.output())
