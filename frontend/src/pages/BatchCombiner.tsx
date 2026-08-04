@@ -2,7 +2,39 @@ import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { listDatasets, combineDatasets } from '../api'
 import { Dataset } from '../types'
-import { LuCombine, LuAlertCircle, LuCheckCircle2, LuFlaskConical } from 'react-icons/lu'
+import { LuCombine, LuAlertCircle, LuCheckCircle2, LuFlaskConical, LuActivity, LuBarChart2 } from 'react-icons/lu'
+import PlotWithDownload from '../components/PlotWithDownload'
+
+interface QCData {
+  metrics: {
+    num_features: number
+    num_samples: number
+    num_groups: number
+    group_counts: Record<string, number>
+    total_missing_pct: number
+    missing_per_sample: Record<string, number>
+    tic: Record<string, number>
+    log2_tic: Record<string, number>
+    detected_features: Record<string, number>
+    group_cv_pct: Record<string, number | null>
+    qc_median_cv_pct?: number | null
+    sample_to_blank_median_ratio?: number | null
+    pca_outlier_count: number
+    pca_outlier_samples: string[]
+  }
+  figures: Record<string, any>
+}
+
+interface BatchQCReport {
+  before: QCData
+  after: QCData
+  batch_pca: { before?: any; after?: any }
+  metrics: {
+    batch_r2_pct: { before: number | null; after: number | null }
+    group_r2_pct: { before: number | null; after: number | null }
+    median_batch_cv_pct: { before: number | null; after: number | null }
+  }
+}
 
 const METHODS: Record<string, { label: string; description: string; needsRef: boolean; needsControls: boolean; needsK: boolean }> = {
   reference_group: {
@@ -73,13 +105,17 @@ export default function BatchCombiner() {
   const [outputName, setOutputName] = useState<string>('')
   const [controlFeatures, setControlFeatures] = useState<string[]>([])
   const [nUnwantedFactors, setNUnwantedFactors] = useState<number>(1)
+  const [includeQCPlots, setIncludeQCPlots] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [qcReport, setQcReport] = useState<BatchQCReport | null>(null)
+  const [qcTab, setQcTab] = useState<'before' | 'after' | 'batch_pca' | 'metrics'>('before')
 
   useEffect(() => {
     setMessage('')
     setError('')
+    setQcReport(null)
     setSelected(new Set())
     setBatchLabels({})
     setControlFeatures([])
@@ -172,6 +208,7 @@ export default function BatchCombiner() {
       method,
       batch_assignment: batchAssignment,
       output_name: outputName.trim() || undefined,
+      include_qc_plots: includeQCPlots,
     }
     if (METHODS[method].needsRef) {
       payload.reference_group = referenceGroup
@@ -182,7 +219,14 @@ export default function BatchCombiner() {
     }
     try {
       const res = await combineDatasets(Number(projectId), payload)
-      setMessage(`Combined dataset "${res.data.name}" created (ID ${res.data.id}). You can now select it in the Visualize tab.`)
+      const ds = res.data.dataset || res.data
+      setMessage(`Combined dataset "${ds.name}" created (ID ${ds.id}). You can now select it in the Visualize tab.`)
+      if (includeQCPlots && res.data.qc_report) {
+        setQcReport(res.data.qc_report)
+        setQcTab('before')
+      } else {
+        setQcReport(null)
+      }
       refreshDatasets()
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to combine datasets')
@@ -360,6 +404,16 @@ export default function BatchCombiner() {
                 placeholder={`combined_${method}`}
               />
             </div>
+
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeQCPlots}
+                onChange={(e) => setIncludeQCPlots(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              Generate before/after QC plots and metrics (optional)
+            </label>
           </div>
 
           {error && (
@@ -390,8 +444,118 @@ export default function BatchCombiner() {
               </>
             )}
           </button>
+
+          {qcReport && (
+            <div className="card p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2"><LuBarChart2 /> Batch Correction QC Report</h2>
+                <div className="flex gap-2">
+                  {(['before', 'after', 'batch_pca', 'metrics'] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setQcTab(t)}
+                      className={`px-3 py-1.5 text-sm rounded-lg border ${qcTab === t ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                    >
+                      {t === 'batch_pca' ? 'Batch PCA' : t[0].toUpperCase() + t.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {qcTab === 'metrics' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <MetricCard label="Batch R² (%)" before={qcReport.metrics.batch_r2_pct.before} after={qcReport.metrics.batch_r2_pct.after} />
+                  <MetricCard label="Group R² (%)" before={qcReport.metrics.group_r2_pct.before} after={qcReport.metrics.group_r2_pct.after} />
+                  <MetricCard label="Median batch CV (%)" before={qcReport.metrics.median_batch_cv_pct.before} after={qcReport.metrics.median_batch_cv_pct.after} />
+                </div>
+              )}
+
+              {(qcTab === 'before' || qcTab === 'after') && (
+                <div className="space-y-6">
+                  {(() => {
+                    const data = qcReport[qcTab]
+                    return (
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <SmallMetric label="Features" value={data.metrics.num_features} />
+                          <SmallMetric label="Samples" value={data.metrics.num_samples} />
+                          <SmallMetric label="Groups" value={data.metrics.num_groups} />
+                          <SmallMetric label="Missing" value={`${data.metrics.total_missing_pct}%`} />
+                        </div>
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                          {Object.entries(data.figures).map(([key, fig]) => (
+                            <div key={key} className="card p-4 bg-white dark:bg-slate-800">
+                              <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2"><LuActivity /> {titleFor(key)}</h3>
+                              <PlotWithDownload data={fig.data} layout={fig.layout} style={{ width: '100%', height: '450px' }} filename={`batch_qc_${qcTab}_${key}`} />
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {qcTab === 'batch_pca' && (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  {qcReport.batch_pca.before && (
+                    <div className="card p-4 bg-white dark:bg-slate-800">
+                      <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Before correction (colored by batch)</h3>
+                      <PlotWithDownload data={qcReport.batch_pca.before.data} layout={qcReport.batch_pca.before.layout} style={{ width: '100%', height: '450px' }} filename="batch_pca_before" />
+                    </div>
+                  )}
+                  {qcReport.batch_pca.after && (
+                    <div className="card p-4 bg-white dark:bg-slate-800">
+                      <h3 className="font-semibold text-slate-900 dark:text-white mb-3">After correction (colored by batch)</h3>
+                      <PlotWithDownload data={qcReport.batch_pca.after.data} layout={qcReport.batch_pca.after.layout} style={{ width: '100%', height: '450px' }} filename="batch_pca_after" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
+    </div>
+  )
+}
+
+function titleFor(key: string) {
+  const titles: Record<string, string> = {
+    tic: 'Total Ion Current (TIC)',
+    missing_pct: 'Missing Values per Sample',
+    detected_features: 'Detected Features per Sample',
+    log2_intensity: 'Sample Intensity Distribution',
+    cv_by_group: 'Per-Feature CV by Group',
+    pca: 'PCA Score Plot',
+    correlation_heatmap: 'Sample Correlation Heatmap',
+  }
+  return titles[key] || key
+}
+
+function MetricCard({ label, before, after }: { label: string; before: number | null; after: number | null }) {
+  return (
+    <div className="card p-4">
+      <div className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">{label}</div>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">Before</div>
+          <div className="text-xl font-bold text-slate-900 dark:text-white">{before !== null ? before : '—'}</div>
+        </div>
+        <div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">After</div>
+          <div className="text-xl font-bold text-slate-900 dark:text-white">{after !== null ? after : '—'}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SmallMetric({ label, value }: { label: string; value: any }) {
+  return (
+    <div className="card p-3">
+      <div className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">{label}</div>
+      <div className="text-xl font-bold text-slate-900 dark:text-white mt-1">{value}</div>
     </div>
   )
 }

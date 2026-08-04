@@ -204,3 +204,28 @@ async def test_combine_ruv_iii_c(batch_setup):
     for s, vals in new_ds.data_matrix.items():
         for v in vals:
             assert v is None or (isinstance(v, float) and np.isfinite(v))
+
+
+@pytest.mark.asyncio
+async def test_combine_with_qc_report(batch_setup):
+    db, user_id, project_id, ds1_id, ds2_id = batch_setup
+    result = await combine_datasets(
+        db,
+        project_id=project_id,
+        user_id=user_id,
+        dataset_ids=[ds1_id, ds2_id],
+        method="reference_group",
+        batch_assignment={str(ds1_id): "run1", str(ds2_id): "run2"},
+        reference_group="CTRL",
+        output_name="combined_qc",
+        include_qc_plots=True,
+    )
+    assert isinstance(result, dict)
+    assert "dataset" in result
+    assert "qc_report" in result
+    report = result["qc_report"]
+    assert "before" in report and "after" in report
+    assert "batch_pca" in report and "metrics" in report
+    assert "figures" in report["before"]
+    assert "batch_r2_pct" in report["metrics"]
+    assert report["metrics"]["batch_r2_pct"]["before"] is not None

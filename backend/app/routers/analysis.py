@@ -78,14 +78,14 @@ async def list_datasets(project_id: int, db: AsyncSession = Depends(get_db),
     return result.scalars().all()
 
 
-@router.post("/{project_id}/datasets/combine", response_model=schemas.DatasetOut)
+@router.post("/{project_id}/datasets/combine", response_model=schemas.BatchCombineOut)
 async def batch_combine(
     project_id: int,
     body: schemas.BatchCombineRequest,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ):
-    new_dataset = await combine_datasets(
+    result = await combine_datasets(
         db,
         project_id,
         current_user.id,
@@ -96,8 +96,12 @@ async def batch_combine(
         output_name=body.output_name,
         control_features=body.control_features,
         n_unwanted_factors=body.n_unwanted_factors or 1,
+        include_qc_plots=body.include_qc_plots,
+        style=body.style,
     )
-    return new_dataset
+    if isinstance(result, dict):
+        return result
+    return {"dataset": result, "qc_report": None}
 
 
 @router.get("/{project_id}/dataset/{dataset_id}/qc")

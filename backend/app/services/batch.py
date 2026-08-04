@@ -10,8 +10,10 @@ from sqlalchemy import select
 from scipy import stats
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
-from app import models
+from app import models, schemas
 from app.services.preprocessing import _to_json_safe
+from app.services.qc import qc_analysis
+from app.services.plots import generate_plot, _merge_style
 
 
 VALID_BATCH_METHODS = {
@@ -572,6 +574,157 @@ def _from_combined_df(
     )
 
 
+def _dataset_from_df(
+    df: pd.DataFrame,
+    sample_meta: Dict[str, str],
+    feature_meta: List[Dict[str, Any]],
+    name: str,
+    feature_type: str = "metabolite",
+) -> models.Dataset:
+    """Build an in-memory Dataset model from a DataFrame for QC/plot helpers."""
+    return models.Dataset(
+        id=0,
+        project_id=0,
+        source_file_id=None,
+        name=name,
+        feature_type=feature_type,
+        data_matrix=_to_json_safe(df.to_dict("list")),
+        sample_metadata={str(k): str(v) for k, v in sample_meta.items()},
+        feature_metadata=[{k: _to_json_safe(v) for k, v in m.items()} for m in feature_meta],
+        processing_history=[],
+    )
+
+
+def _r2_per_feature(values: np.ndarray, labels: List[str]) -> float:
+    """One-way ANOVA-style R² for a single feature's values grouped by labels."""
+    values = np.asarray(values, dtype=float)
+    labels = np.asarray(labels)
+    mask = ~np.isnan(values)
+    values = values[mask]
+    labels = labels[mask]
+    if len(values) < 2 or len(set(labels)) < 2:
+        return np.nan
+    overall_mean = np.nanmean(values)
+    ss_total = np.nansum((values - overall_mean) ** 2)
+    if ss_total <= 0:
+        return np.nan
+    ss_between = 0.0
+    for g in set(labels):
+        gvals = values[labels == g]
+        ss_between += len(gvals) * (np.nanmean(gvals) - overall_mean) ** 2
+    return ss_between / ss_total
+
+
+def _batch_effect_metrics(
+    before: pd.DataFrame,
+    after: pd.DataFrame,
+    sample_meta: Dict[str, str],
+    sample_batch: Dict[str, str],
+) -> Dict[str, Any]:
+    """Compute before/after batch-effect and group-separation metrics."""
+    samples = list(before.columns)
+    group_labels = [sample_meta.get(s, "unknown") for s in samples]
+    batch_labels = [sample_batch.get(s, "unknown") for s in samples]
+
+    before_batch_r2 = []
+    after_batch_r2 = []
+    before_group_r2 = []
+    after_group_r2 = []
+    for fid in before.index:
+        before_batch_r2.append(_r2_per_feature(before.loc[fid, samples].values, batch_labels))
+        after_batch_r2.append(_r2_per_feature(after.loc[fid, samples].values, batch_labels))
+        before_group_r2.append(_r2_per_feature(before.loc[fid, samples].values, group_labels))
+        after_group_r2.append(_r2_per_feature(after.loc[fid, samples].values, group_labels))
+
+    def _mean_pct(arr):
+        vals = [v for v in arr if not math.isnan(v) and not math.isinf(v)]
+        return round(float(np.mean(vals) * 100), 2) if vals else None
+
+    # Median CV of per-feature batch means (across batches)
+    def _median_batch_cv(df):
+        cvs = []
+        batches = sorted(set(sample_batch.values()))
+        for fid in df.index:
+            means = []
+            for b in batches:
+                cols = [c for c in df.columns if sample_batch.get(c) == b]
+                vals = df.loc[fid, cols].dropna()
+                if not vals.empty:
+                    means.append(float(vals.mean()))
+            if len(means) >= 2 and np.nanmean(means) > 0:
+                cv = np.nanstd(means) / np.nanmean(means)
+                if not math.isnan(cv) and not math.isinf(cv):
+                    cvs.append(cv * 100)
+        return round(float(np.median(cvs)), 2) if cvs else None
+
+    return {
+        "batch_r2_pct": {
+            "before": _mean_pct(before_batch_r2),
+            "after": _mean_pct(after_batch_r2),
+        },
+        "group_r2_pct": {
+            "before": _mean_pct(before_group_r2),
+            "after": _mean_pct(after_group_r2),
+        },
+        "median_batch_cv_pct": {
+            "before": _median_batch_cv(before),
+            "after": _median_batch_cv(after),
+        },
+    }
+
+
+def _build_batch_qc_report(
+    before: pd.DataFrame,
+    after: pd.DataFrame,
+    sample_meta: Dict[str, str],
+    sample_batch: Dict[str, str],
+    feature_meta: List[Dict[str, Any]],
+    feature_type: str,
+    style: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Generate optional before/after QC plots and metrics for batch correction."""
+    merged_style = _merge_style(style)
+
+    before_ds = _dataset_from_df(before, sample_meta, feature_meta, "before_correction", feature_type)
+    after_ds = _dataset_from_df(after, sample_meta, feature_meta, "after_correction", feature_type)
+
+    before_report = qc_analysis(before_ds, style=merged_style)
+    after_report = qc_analysis(after_ds, style=merged_style)
+
+    # PCA colored by batch instead of biological group
+    batch_meta = {s: sample_batch.get(s, "unknown") for s in before.columns}
+    before_batch_ds = _dataset_from_df(before, batch_meta, feature_meta, "before_batch_pca", feature_type)
+    after_batch_ds = _dataset_from_df(after, batch_meta, feature_meta, "after_batch_pca", feature_type)
+
+    pca_req = schemas.PlotRequest(plot_type="pca", parameters={"plot": "score"}, style=merged_style)
+    batch_pca = {}
+    try:
+        batch_pca["before"] = generate_plot(before_batch_ds, pca_req)
+    except Exception:
+        batch_pca["before"] = None
+    try:
+        batch_pca["after"] = generate_plot(after_batch_ds, pca_req)
+    except Exception:
+        batch_pca["after"] = None
+
+    # Add a title indicating the points are colored by batch
+    for key in ["before", "after"]:
+        fig = batch_pca.get(key)
+        if fig and isinstance(fig, dict) and "layout" in fig:
+            title = fig["layout"].get("title", {})
+            if isinstance(title, str):
+                title = {"text": title}
+            title["text"] = (title.get("text") or "PCA Score Plot") + " (colored by batch)"
+            fig["layout"]["title"] = title
+
+    return {
+        "before": before_report,
+        "after": after_report,
+        "batch_pca": batch_pca,
+        "metrics": _batch_effect_metrics(before, after, sample_meta, sample_batch),
+    }
+
+
 async def combine_datasets(
     db: AsyncSession,
     project_id: int,
@@ -583,7 +736,9 @@ async def combine_datasets(
     output_name: Optional[str],
     control_features: Optional[List[str]] = None,
     n_unwanted_factors: int = 1,
-) -> models.Dataset:
+    include_qc_plots: bool = False,
+    style: Optional[Dict[str, Any]] = None,
+) -> models.Dataset | Dict[str, Any]:
     if method not in VALID_BATCH_METHODS:
         raise HTTPException(status_code=400, detail=f"Invalid method. Choose from {sorted(VALID_BATCH_METHODS)}")
     if len(dataset_ids) < 2:
@@ -647,4 +802,16 @@ async def combine_datasets(
     db.add(new_dataset)
     await db.commit()
     await db.refresh(new_dataset)
+
+    if include_qc_plots:
+        qc_report = _build_batch_qc_report(
+            combined,
+            corrected,
+            sample_meta,
+            sample_batch,
+            feature_meta,
+            feature_type,
+            style=style,
+        )
+        return {"dataset": new_dataset, "qc_report": qc_report}
     return new_dataset

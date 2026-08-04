@@ -341,3 +341,10 @@ class BatchCombineRequest(BaseModel):
     output_name: Optional[str] = None
     control_features: Optional[List[str]] = None
     n_unwanted_factors: Optional[int] = 1
+    include_qc_plots: bool = False
+    style: Optional[Dict[str, Any]] = None
+
+
+class BatchCombineOut(BaseModel):
+    dataset: DatasetOut
+    qc_report: Optional[Dict[str, Any]] = None
