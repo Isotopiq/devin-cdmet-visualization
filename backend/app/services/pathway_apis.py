@@ -540,6 +540,17 @@ async def go_enrichment(
     return {"pathways": rows[:top_n], "n_mapped_compounds": len(cpd_ids), "n_genes": len(genes)}
 
 
+def _pathway_colors(n: int) -> List[str]:
+    """Generate n visually distinct colors by cycling through hues."""
+    if n <= 0:
+        return []
+    colors = []
+    for i in range(n):
+        hue = int(360 * i / n)
+        colors.append(f"hsl({hue}, 70%, 45%)")
+    return colors
+
+
 def enrichment_bar_figure(rows: List[Dict[str, Any]], title: str, style: Dict[str, Any]) -> Dict[str, Any]:
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
@@ -553,7 +564,7 @@ def enrichment_bar_figure(rows: List[Dict[str, Any]], title: str, style: Dict[st
     labels = [r.get("name", r.get("pathway_id", r.get("term_id", "")))[:60] for r in rows]
     pvals = [r.get("padj") or r.get("fdr") or r.get("pvalue") or 1.0 for r in rows]
     scores = [max(0.0, -math.log10(max(p, 1e-300))) for p in pvals]
-    colors = ["#c44e52" if p < 0.05 else "#2e6575" for p in pvals]
+    colors = _pathway_colors(len(rows))
 
     fig = go.Figure(go.Bar(
         x=scores,

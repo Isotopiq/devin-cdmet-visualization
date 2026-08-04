@@ -2,8 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
-import { buildPathway, getPathwayJob } from '../api'
-import { LuGitMerge, LuRefreshCw } from 'react-icons/lu'
+import { buildPathway, getPathwayJob, exportPathwayPdf } from '../api'
+import { LuGitMerge, LuRefreshCw, LuFileText, LuEye, LuX } from 'react-icons/lu'
+
+const FONT_OPTIONS = [
+  { label: 'Default (system)', value: '' },
+  { label: 'Helvetica', value: 'Helvetica' },
+  { label: 'Times', value: 'Times' },
+  { label: 'Courier', value: 'Courier' },
+  { label: 'DejaVu', value: 'DejaVu' },
+  { label: 'Liberation', value: 'Liberation' },
+]
 
 export default function Pathway() {
   const { projectId, datasetId, selectedDataset } = useWorkspace()
@@ -20,6 +29,17 @@ export default function Pathway() {
   const [percent, setPercent] = useState<number>(0)
   const [error, setError] = useState<string>('')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const [pdfMeta, setPdfMeta] = useState({
+    primary_comparison: '',
+    prepared_for: '',
+    prepared_by: 'Metabolomics Platform',
+    report_contents: 'Pathway Mapping Report',
+  })
+  const [fontFamily, setFontFamily] = useState('')
+  const [includeTable, setIncludeTable] = useState(true)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const groups = useMemo(() => {
     const meta = selectedDataset?.sample_metadata || {}
@@ -44,6 +64,75 @@ export default function Pathway() {
     if (pollRef.current) {
       clearInterval(pollRef.current)
       pollRef.current = null
+    }
+  }
+
+  const buildPdfPayload = () => {
+    if (!result || result.error) return null
+    return {
+      result,
+      title: selectedDataset?.name,
+      subtitle: `Source: ${result.source || pathwaySource}`,
+      primary_comparison: pdfMeta.primary_comparison || undefined,
+      prepared_for: pdfMeta.prepared_for || undefined,
+      prepared_by: pdfMeta.prepared_by || undefined,
+      report_contents: pdfMeta.report_contents || undefined,
+      font_family: fontFamily || undefined,
+      include_table: includeTable,
+    }
+  }
+
+  const generatePdf = async () => {
+    if (!projectId || !datasetId) return null
+    const payload = buildPdfPayload()
+    if (!payload) return null
+    const res = await exportPathwayPdf(Number(projectId), Number(datasetId), payload)
+    return window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+  }
+
+  const handlePreviewPdf = async () => {
+    if (!projectId || !datasetId || !result) return
+    setLoading(true)
+    setError('')
+    try {
+      const url = await generatePdf()
+      if (url) {
+        setPreviewUrl(url)
+        setPreviewOpen(true)
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to generate pathway PDF preview')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleExportPdf = async () => {
+    if (!projectId || !datasetId || !result || !selectedDataset) return
+    setLoading(true)
+    setError('')
+    try {
+      const url = await generatePdf()
+      if (url) {
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', `${selectedDataset.name.replace(/\s+/g, '_')}_pathway_report.pdf`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to export pathway PDF')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const closePreview = () => {
+    setPreviewOpen(false)
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
     }
   }
 
@@ -196,6 +285,44 @@ export default function Pathway() {
             </p>
           </div>
 
+          {selectedDataset && result && !result.error && (
+            <div className="card p-5 space-y-4">
+              <h3 className="text-md font-semibold text-slate-900 dark:text-white">Pathway PDF Report Options</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="label-like">Primary comparison</label>
+                  <input type="text" className="input" value={pdfMeta.primary_comparison} onChange={(e) => setPdfMeta({ ...pdfMeta, primary_comparison: e.target.value })} placeholder="e.g. KO vs CTRL" />
+                </div>
+                <div>
+                  <label className="label-like">Prepared for</label>
+                  <input type="text" className="input" value={pdfMeta.prepared_for} onChange={(e) => setPdfMeta({ ...pdfMeta, prepared_for: e.target.value })} placeholder="Principal Investigator" />
+                </div>
+                <div>
+                  <label className="label-like">Prepared by</label>
+                  <input type="text" className="input" value={pdfMeta.prepared_by} onChange={(e) => setPdfMeta({ ...pdfMeta, prepared_by: e.target.value })} placeholder="Metabolomics Platform" />
+                </div>
+                <div>
+                  <label className="label-like">Report contents</label>
+                  <input type="text" className="input" value={pdfMeta.report_contents} onChange={(e) => setPdfMeta({ ...pdfMeta, report_contents: e.target.value })} placeholder="Pathway Mapping Report" />
+                </div>
+                <div>
+                  <label className="label-like">PDF font</label>
+                  <select className="select" value={fontFamily} onChange={(e) => setFontFamily(e.target.value)}>
+                    {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center h-10">
+                  <input id="includeTable" type="checkbox" checked={includeTable} onChange={(e) => setIncludeTable(e.target.checked)} className="rounded mr-2" />
+                  <label htmlFor="includeTable" className="text-sm text-slate-700 dark:text-slate-300">Include pathway table</label>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={handlePreviewPdf} disabled={loading || !result} className="btn-secondary"><LuEye /> Preview PDF</button>
+                <button onClick={handleExportPdf} disabled={loading || !result} className="btn-secondary"><LuFileText /> Export PDF Report</button>
+              </div>
+            </div>
+          )}
+
           {(error || result?.error) && (
             <div className="card p-5 text-red-600">{error || result?.error}</div>
           )}
@@ -240,6 +367,26 @@ export default function Pathway() {
             </div>
           )}
         </>
+      )}
+
+      {previewOpen && previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Pathway PDF Preview</h2>
+              <button onClick={closePreview} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+                <LuX />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <iframe src={previewUrl} title="Pathway PDF Preview" className="w-full h-full" />
+            </div>
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+              <button onClick={closePreview} className="btn-secondary">Close</button>
+              <button onClick={handleExportPdf} disabled={loading} className="btn-primary">Export PDF</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -222,10 +222,12 @@ async def upload_logo(
     db: AsyncSession = Depends(get_db),
     admin: models.User = Depends(get_current_admin_user),
 ):
-    if logo_type not in ("login", "dashboard"):
-        raise HTTPException(status_code=400, detail="logo_type must be 'login' or 'dashboard'")
+    if logo_type not in ("login", "dashboard", "pdf_footer"):
+        raise HTTPException(status_code=400, detail="logo_type must be 'login', 'dashboard', or 'pdf_footer'")
     content_type = _logo_content_type(file.filename or "", file.content_type)
     allowed = {"image/png", "image/jpeg", "image/jpg", "image/svg+xml"}
+    if logo_type == "pdf_footer":
+        allowed = {"image/png", "image/jpeg", "image/jpg"}
     if content_type not in allowed:
         raise HTTPException(status_code=400, detail="Only PNG, JPEG, or SVG logos are allowed")
     ext = _logo_ext(file.filename or "", content_type)
@@ -247,8 +249,8 @@ async def upload_logo(
 
 @router.get("/settings/logo/{logo_type}")
 async def get_logo(logo_type: str, db: AsyncSession = Depends(get_db)):
-    if logo_type not in ("login", "dashboard"):
-        raise HTTPException(status_code=400, detail="logo_type must be 'login' or 'dashboard'")
+    if logo_type not in ("login", "dashboard", "pdf_footer"):
+        raise HTTPException(status_code=400, detail="logo_type must be 'login', 'dashboard', or 'pdf_footer'")
     setting = await _get_setting(db, f"{logo_type}_logo")
     if not setting or not setting.value:
         raise HTTPException(status_code=404, detail="Logo not set")
@@ -287,6 +289,7 @@ async def reset_analyses(
 async def get_settings(db: AsyncSession = Depends(get_db)):
     login = await _get_setting(db, "login_logo")
     dashboard = await _get_setting(db, "dashboard_logo")
+    pdf_footer = await _get_setting(db, "pdf_footer_logo")
     favicon = await _get_setting(db, "favicon")
     smtp_host = await _get_setting(db, "smtp_host")
     smtp_port = await _get_setting(db, "smtp_port")
@@ -298,6 +301,7 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
     return {
         "login_logo_url": "/api/admin/settings/logo/login" if login and login.value else None,
         "dashboard_logo_url": "/api/admin/settings/logo/dashboard" if dashboard and dashboard.value else None,
+        "pdf_footer_logo_url": "/api/admin/settings/logo/pdf_footer" if pdf_footer and pdf_footer.value else None,
         "favicon_url": "/api/admin/settings/favicon" if favicon and favicon.value else None,
         "smtp_host": smtp_host.value if smtp_host else None,
         "smtp_port": int(smtp_port.value) if smtp_port and smtp_port.value else None,

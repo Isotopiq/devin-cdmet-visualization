@@ -12,7 +12,7 @@ from app import models, schemas
 from app.services.preprocessing import preprocess_dataset, to_dataframe
 from app.services.qc import qc_analysis, qc_export_excel
 from app.services.batch import combine_datasets
-from app.services.pdf_report import build_qc_pdf
+from app.services.pdf_report import build_qc_pdf, get_pdf_footer_logo_path
 from app.services import storage
 
 router = APIRouter()
@@ -211,6 +211,7 @@ async def get_qc_pdf(
         raise HTTPException(status_code=404, detail="Dataset not found")
     dataset, project = row
 
+    footer_logo_path = await get_pdf_footer_logo_path(db)
     pdf_bytes = build_qc_pdf(
         dataset,
         project.name if project else "",
@@ -225,6 +226,7 @@ async def get_qc_pdf(
         cover_style=body.cover_style,
         font_family=body.font_family,
         plot_layout=body.plot_layout,
+        footer_logo_path=footer_logo_path,
     )
     s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db)
     filename = f"{dataset.name.replace(' ', '_')}_qc_report.pdf"

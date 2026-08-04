@@ -131,7 +131,7 @@ export default function Admin() {
     }
   }
 
-  const upload = async (type: 'login' | 'dashboard', file: File | null) => {
+  const upload = async (type: 'login' | 'dashboard' | 'pdf_footer', file: File | null) => {
     if (!file) return
     setError('')
     setSuccess('')
@@ -390,6 +390,14 @@ export default function Admin() {
               <img src={`${settings.dashboard_logo_url}?t=${previewTimestamp}`} alt="dashboard logo" className="h-10 w-auto object-contain mb-2 border border-slate-200 dark:border-slate-700 rounded p-1" />
             )}
             <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => upload('dashboard', e.target.files?.[0] || null)} />
+          </div>
+          <div>
+            <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white flex items-center gap-2"><LuImage /> PDF Footer Logo</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Displayed in the bottom-right corner of every generated PDF report. PNG or JPEG recommended.</p>
+            {settings.pdf_footer_logo_url && (
+              <img src={`${settings.pdf_footer_logo_url}?t=${previewTimestamp}`} alt="PDF footer logo" className="h-10 w-auto object-contain mb-2 border border-slate-200 dark:border-slate-700 rounded p-1" />
+            )}
+            <input type="file" accept="image/png,image/jpeg" onChange={(e) => upload('pdf_footer', e.target.files?.[0] || null)} />
           </div>
           <div>
             <h3 className="text-lg font-medium mb-2 text-slate-900 dark:text-white flex items-center gap-2"><LuSettings /> Favicon</h3>

@@ -93,10 +93,12 @@ export const searchGEMModels = (q?: string, limit: number = 20) => API.get('/iso
 export const loadModelNetwork = (source: string, modelId: string) => API.get(`/isotope/models/${source}/${modelId}/network`)
 export const buildPathway = (projectId: number, datasetId: number, params: any) => API.post(`/pathways/${projectId}/dataset/${datasetId}/pathway`, params)
 export const getPathwayJob = (jobId: string) => API.get(`/pathways/job/${jobId}`)
+export const exportPathwayPdf = (projectId: number, datasetId: number, data: any) =>
+  API.post(`/pathways/${projectId}/dataset/${datasetId}/pathway/pdf`, data, { responseType: 'blob' })
 
 export const getSettings = () => API.get('/admin/settings')
 export const updateSettings = (data: any) => API.put('/admin/settings', data)
-export const uploadLogo = (logoType: 'login' | 'dashboard', file: File) => {
+export const uploadLogo = (logoType: 'login' | 'dashboard' | 'pdf_footer', file: File) => {
   const form = new FormData()
   form.append('file', file)
   return API.post(`/admin/logo/${logoType}`, form)

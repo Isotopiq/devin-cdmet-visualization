@@ -1,4 +1,5 @@
 import io
+import os
 import datetime as dt
 import json
 import math
@@ -15,9 +16,29 @@ from fpdf.enums import RenderStyle, Corner
 import plotly.graph_objects as go
 
 from app import models, schemas
+from app.config import settings as app_settings
 from app.services.preprocessing import to_dataframe
 from app.services.stats import run_statistical_test
 from app.services.plots import generate_plot
+
+
+def _pdf_logo_dir() -> str:
+    import os
+    path = os.path.join(app_settings.UPLOAD_DIR, "logos")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+async def get_pdf_footer_logo_path(db) -> Optional[str]:
+    from sqlalchemy import select
+    result = await db.execute(select(models.SiteSetting).where(models.SiteSetting.key == "pdf_footer_logo"))
+    row = result.scalar_one_or_none()
+    if row and row.value:
+        import os
+        full = os.path.join(_pdf_logo_dir(), row.value)
+        if os.path.exists(full):
+            return full
+    return None
 
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"(?s).*Kaleido versions less than 1\.0\.0.*")
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"(?s).*Use of plotly\.io\.kaleido\.scope.*")
@@ -266,10 +287,24 @@ class _ReportPDF(FPDF):
         x = self.margin
         w = self.w - 2 * self.margin
         y = self.h - self.footer_h
+        logo_path = self.style.get("footer_logo_path")
+        logo_w = 0.0
+        if logo_path and os.path.exists(logo_path):
+            try:
+                logo_h = self.footer_h - 2
+                with Image.open(logo_path) as img:
+                    iw, ih = img.size
+                    logo_w = logo_h * (iw / ih)
+                self.image(logo_path, x=self.w - self.margin - logo_w, y=y + 1, h=logo_h)
+            except Exception:
+                logo_w = 0.0
+
         _color(self, "#94a3b8")
         self.set_body_font(8)
         self.set_xy(x, y)
-        self.cell(w * 0.8, 5, f"Generated {date_str} | {footer_text}", align="L")
+        # Leave room for the logo when present
+        text_w = w * 0.8 if logo_w == 0 else self.w - self.margin - logo_w - 6 - x
+        self.cell(text_w, 5, f"Generated {date_str} | {footer_text}", align="L")
         self.set_xy(x + w * 0.75, y)
         self.cell(w * 0.17, 5, f"Page {page}", align="R")
 
@@ -409,6 +444,8 @@ class _ReportPDF(FPDF):
             cx = card_x + (i % 2) * (col_w + gap)
             cy = grid_y + (i // 2) * (row_h + gap)
             self._meta_card(cx, cy, col_w, row_h, label, value, accent_col)
+
+        self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
     def _meta_card(self, x: float, y: float, w: float, h: float, label: str, value: str, accent: str):
         _fill(self, "#ffffff")
@@ -657,6 +694,34 @@ class _ReportPDF(FPDF):
                 self._fit_image(buf, x + 3, y + 3, w - 6, h - 6)
             self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
+    def _pathways_table_page(self, pathways: List[Dict[str, Any]]):
+        self.add_page("P")
+        self._page_header(self.style.get("title", "Report"), self.style.get("organization", ""))
+        card_y = 26
+        card_h = self.h - card_y - self.footer_h - 8
+        self._content_card("Pathway Enrichment Results", card_y, card_h)
+
+        x = self.margin + 6
+        y = card_y + 18
+        w = self.w - 2 * self.margin - 12
+        headers = ["Pathway / Term", "p-value", "adj. p-value", "Found", "Total"]
+        rows = []
+        for p in pathways:
+            name = p.get("name") or p.get("pathway_id") or p.get("term_id") or ""
+            pval = p.get("pvalue")
+            padj = p.get("padj") or p.get("fdr")
+            found = p.get("found") or p.get("compound_count") or p.get("intersection_size")
+            total = p.get("total") or p.get("pathway_compound_count") or p.get("term_size")
+            rows.append([
+                str(name)[:50],
+                f"{float(pval):.3e}" if pval is not None else "-",
+                f"{float(padj):.3e}" if padj is not None else (f"{float(pval):.3e}" if pval is not None else "-"),
+                str(found) if found is not None else "-",
+                str(total) if total is not None else "-",
+            ])
+        self._draw_table(x, y, w, headers, rows, zebra=True)
+        self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Helpers kept from original module
@@ -894,7 +959,7 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
     return p
 
 
-def _build_pdf_style(dataset: models.Dataset, project_name: str, req: schemas.PDFReportRequest, group_a: str, group_b: str, sections: List[str]) -> Dict[str, Any]:
+def _build_pdf_style(dataset: models.Dataset, project_name: str, req: schemas.PDFReportRequest, group_a: str, group_b: str, sections: List[str], footer_logo_path: Optional[str] = None) -> Dict[str, Any]:
     style = dict(req.style or {})
     style.setdefault("title", req.title or f"{dataset.name} Report")
     style.setdefault("subtitle", req.subtitle or (f"{group_b} vs {group_a}" if group_b and group_a else ""))
@@ -909,13 +974,14 @@ def _build_pdf_style(dataset: models.Dataset, project_name: str, req: schemas.PD
     style.setdefault("footer_text", style.get("footer_text") or "Confidential")
     style.setdefault("date", style.get("date") or dt.datetime.utcnow().strftime('%Y-%m-%d'))
     style.setdefault("cover_style", style.get("cover_style") or "classic")
+    style["footer_logo_path"] = footer_logo_path
     style["sections"] = sections
     style["group_a"] = group_a
     style["group_b"] = group_b
     return style
 
 
-def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReportRequest) -> bytes:
+def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReportRequest, footer_logo_path: Optional[str] = None) -> bytes:
     group_a, group_b = _comparison(dataset, req.group_a, req.group_b)
     sections = [s for s in req.sections if s in SECTION_TITLES]
     params = req.parameters or {}
@@ -936,7 +1002,7 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
         stats_res = run_statistical_test(dataset, stats_req)
         stats_data = stats_res.get("results", [])
 
-    style = _build_pdf_style(dataset, project_name, req, group_a, group_b, sections)
+    style = _build_pdf_style(dataset, project_name, req, group_a, group_b, sections, footer_logo_path=footer_logo_path)
     pdf = _ReportPDF(style=style)
 
     pdf._draw_cover()
@@ -997,6 +1063,72 @@ def _qc_figure_title(fig: dict, default: str) -> str:
     return default
 
 
+def build_pathway_pdf(
+    result: Dict[str, Any],
+    dataset_name: str = "",
+    project_name: str = "",
+    title: Optional[str] = None,
+    subtitle: Optional[str] = None,
+    primary_comparison: Optional[str] = None,
+    prepared_for: Optional[str] = None,
+    prepared_by: Optional[str] = "Metabolomics Platform",
+    report_contents: Optional[str] = "Pathway Mapping Report",
+    report_type: Optional[str] = "Pathway Mapping Report",
+    description: Optional[str] = None,
+    cover_style: Optional[str] = "classic",
+    font_family: Optional[str] = None,
+    include_table: bool = True,
+    footer_logo_path: Optional[str] = None,
+) -> bytes:
+    # Normalize custom single-figure results
+    figures: List[Tuple[str, Dict[str, Any]]] = []
+    if isinstance(result, dict):
+        if result.get("bar") and isinstance(result["bar"], dict):
+            figures.append(("Pathway Enrichment Bar Chart", result["bar"]))
+        if result.get("table") and isinstance(result["table"], dict):
+            figures.append(("Pathway Results Table", result["table"]))
+        if not figures and result.get("data") and isinstance(result.get("data"), list) and result.get("layout") and isinstance(result.get("layout"), dict):
+            figures.append(("Pathway Map", result))
+    pathways = result.get("pathways") if isinstance(result, dict) else []
+    source = result.get("source") if isinstance(result, dict) else None
+
+    style = {
+        "title": title or dataset_name or "Pathway Mapping Report",
+        "subtitle": subtitle or (f"Source: {source}" if source else ""),
+        "report_type": report_type or "Pathway Mapping Report",
+        "description": description or f"Pathway enrichment mapping report for {dataset_name}",
+        "report_contents": report_contents or "Pathway Mapping Report",
+        "organization": "UCLA Metabolomics Center",
+        "footer_text": "Confidential",
+        "date": dt.datetime.utcnow().strftime('%Y-%m-%d'),
+        "cover_style": cover_style or "classic",
+        "font_family": font_family,
+        "tags": "Pathway, Enrichment, Mapping",
+        "primary_comparison": primary_comparison or "—",
+        "prepared_for": prepared_for or "—",
+        "prepared_by": prepared_by or "Metabolomics Platform",
+        "sections": ["summary"],
+        "footer_logo_path": footer_logo_path,
+    }
+    pdf = _ReportPDF(style=style)
+    pdf._draw_cover()
+
+    for fig_title, fig in figures:
+        try:
+            img = _fig_to_png(fig, width=1100, height=700, scale=2)
+            pdf._plot_page(fig_title, img, orientation="P")
+        except Exception:
+            continue
+
+    if include_table and pathways:
+        try:
+            pdf._pathways_table_page(pathways[:40])
+        except Exception:
+            pass
+
+    return bytes(pdf.output())
+
+
 def build_qc_pdf(
     dataset: models.Dataset,
     project_name: str = "",
@@ -1011,6 +1143,7 @@ def build_qc_pdf(
     cover_style: str | None = None,
     font_family: str | None = None,
     plot_layout: Dict[str, str] | None = None,
+    footer_logo_path: Optional[str] = None,
 ) -> bytes:
     from app.services.qc import qc_analysis
 
@@ -1034,6 +1167,7 @@ def build_qc_pdf(
         "prepared_for": prepared_for or "—",
         "prepared_by": prepared_by or "Metabolomics Platform",
         "sections": ["summary"],
+        "footer_logo_path": footer_logo_path,
     }
     plot_layout = plot_layout or {}
     pdf = _ReportPDF(style=style)

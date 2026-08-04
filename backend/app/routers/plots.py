@@ -10,7 +10,7 @@ from app import models, schemas
 from app.services.plots import generate_plot
 from app.services.plots import _merge_style
 from app.services.stats import run_statistical_test
-from app.services.pdf_report import build_pdf
+from app.services.pdf_report import build_pdf, get_pdf_footer_logo_path
 from app.services import storage
 
 router = APIRouter()
@@ -174,7 +174,8 @@ async def report_pdf(
     project = project_result.scalar_one_or_none()
     project_name = project.name if project else ""
 
-    pdf_bytes = build_pdf(dataset, project_name, req)
+    footer_logo_path = await get_pdf_footer_logo_path(db)
+    pdf_bytes = build_pdf(dataset, project_name, req, footer_logo_path=footer_logo_path)
     s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db)
     filename = f"{dataset.name.replace(' ', '_')}_report.pdf"
     headers = {"Content-Disposition": f"attachment; filename={filename}"}

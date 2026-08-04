@@ -57,6 +57,7 @@ class AdminLogOut(BaseModel):
 class SiteSettingsOut(BaseModel):
     login_logo_url: Optional[str]
     dashboard_logo_url: Optional[str]
+    pdf_footer_logo_url: Optional[str]
     favicon_url: Optional[str]
     smtp_host: Optional[str]
     smtp_port: Optional[int]
@@ -311,6 +312,21 @@ class PathwayRequest(BaseModel):
     multiple_testing: Optional[str] = "fdr_bh"
     features: Optional[List[str]] = None
     top_n: Optional[int] = 20
+
+
+class PathwayPdfRequest(BaseModel):
+    result: Dict[str, Any]
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    primary_comparison: Optional[str] = None
+    prepared_for: Optional[str] = None
+    prepared_by: Optional[str] = "Metabolomics Platform"
+    report_contents: Optional[str] = "Pathway Mapping Report"
+    report_type: Optional[str] = "Pathway Mapping Report"
+    description: Optional[str] = None
+    cover_style: Optional[str] = "classic"
+    font_family: Optional[str] = None
+    include_table: bool = True
 
 
 class SiteSettingsUpdate(BaseModel):

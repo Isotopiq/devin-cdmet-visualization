@@ -297,3 +297,38 @@ async def test_build_qc_pdf(batch_setup):
         pdf_bytes = build_qc_pdf(ds, project_name="batch project", selected_groups=None)
         assert isinstance(pdf_bytes, bytes)
         assert len(pdf_bytes) > 0
+
+
+def test_build_pathway_pdf():
+    from app.services.pdf_report import build_pathway_pdf
+    sample_result = {
+        "source": "kegg",
+        "bar": {
+            "data": [
+                {
+                    "type": "bar",
+                    "x": [3.0, 2.5],
+                    "y": ["Glycolysis", "TCA cycle"],
+                    "orientation": "h",
+                }
+            ],
+            "layout": {"title": {"text": "Pathway enrichment"}},
+        },
+        "table": {
+            "data": [
+                {
+                    "type": "table",
+                    "header": {"values": ["Pathway", "p-value"]},
+                    "cells": {"values": [["Glycolysis", "TCA cycle"], ["1e-3", "2e-3"]]},
+                }
+            ],
+            "layout": {},
+        },
+        "pathways": [
+            {"name": "Glycolysis", "pvalue": 0.001, "padj": 0.002, "found": 5, "total": 10},
+            {"name": "TCA cycle", "pvalue": 0.005, "padj": 0.01, "found": 3, "total": 8},
+        ],
+    }
+    pdf_bytes = build_pathway_pdf(sample_result, dataset_name="test")
+    assert isinstance(pdf_bytes, bytes)
+    assert len(pdf_bytes) > 0
