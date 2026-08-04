@@ -782,6 +782,7 @@ SECTION_LAYOUTS: Dict[str, Dict[str, Any]] = {
     "opls_da": {"width": 1400, "height": 900, "orientation": "L"},
     "volcano": {"width": 1200, "height": 800, "orientation": "P"},
     "per_lipid_bars": {"width": 600, "height": 400, "orientation": "P"},
+    "chain_space": {"width": 1200, "height": 900, "orientation": "P"},
 }
 
 
@@ -974,6 +975,8 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
             "top_n": req.top_n,
             **p,
         }
+    if section == "chain_space" and selected_groups:
+        return {"selected_groups": selected_groups, "group_a": group_a, "group_b": group_b}
     if section in ("functional", "food_profile", "chain_space", "biomarker", "permanova", "outlier", "lipid_class"):
         return p
     if section == "rt_mz":
@@ -1065,6 +1068,14 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
             buffers = [_fig_to_png(f, width=600, height=400, scale=2) for f in fig[: req.top_n]]
             if buffers:
                 pdf._multi_plot_page(title, buffers)
+        elif section == "chain_space":
+            if not isinstance(fig, list):
+                fig = [fig]
+            for f in fig:
+                if not isinstance(f, dict):
+                    continue
+                img = _fig_to_png(f, width=layout["width"], height=layout["height"], scale=2)
+                pdf._plot_page(title, img, orientation=layout.get("orientation", "P"))
         else:
             if isinstance(fig, list):
                 fig = fig[0] if fig else None

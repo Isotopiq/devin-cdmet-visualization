@@ -171,7 +171,8 @@ export default function Visualize() {
   const excludedGroups = useMemo(() => groups.filter((g) => !includedGroups.has(g)), [groups, includedGroups])
 
   const generate = async () => {
-    if (!projectId || !datasetId || !groupA || !groupB) return
+    if (!projectId || !datasetId || !groupA) return
+    if (tab !== 'chain_space' && !groupB) return
     const requestTab = tabRef.current
     setLoading(true)
     setFigure(null)
@@ -236,8 +237,12 @@ export default function Visualize() {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'lipid_class', parameters: withExcluded({}), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'chain_space') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'chain_space', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle }), style: backendStyle })
-        if (tabRef.current === requestTab) setFigure(res.data)
+        const selectedGroups = Array.from(includedGroups).filter(g => groups.includes(g))
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'chain_space', parameters: withExcluded({ group_a: groupA, group_b: groupB, selected_groups: selectedGroups, title: reportTitle }), style: backendStyle })
+        if (tabRef.current === requestTab) {
+          if (Array.isArray(res.data)) setFigures(res.data)
+          else setFigure(res.data)
+        }
       } else if (tab === 'outlier') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'outlier', parameters: withExcluded({ title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
@@ -258,7 +263,8 @@ export default function Visualize() {
   // Generate when the active tab, dataset, groups, or included groups change (ignore the initial ready flag flip)
   const didInitRef = useRef(false)
   useEffect(() => {
-    if (selectedDataset && groupA && groupB) {
+    const hasGroupB = groupB || tab === 'chain_space'
+    if (selectedDataset && groupA && hasGroupB) {
       if (didInitRef.current || ready) {
         didInitRef.current = true
         generate()
@@ -268,7 +274,7 @@ export default function Visualize() {
   }, [tab, selectedDataset, groupA, groupB, includedGroups])
 
   useEffect(() => {
-    if (ready && selectedDataset && groupA && groupB) {
+    if (ready && selectedDataset && groupA && (groupB || tab === 'chain_space')) {
       didInitRef.current = true
       generate()
     }
@@ -617,6 +623,19 @@ export default function Visualize() {
         </div>
       )
     }
+    if (tab === 'chain_space') {
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
+            <div><label className="label-like">Reference group (A)</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
+            <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Two or more groups must be included. If more than two groups are selected, a separate Chain Space chart is generated for each non-reference group vs the reference.
+          </p>
+        </div>
+      )
+    }
     return <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
   }
 
@@ -731,10 +750,15 @@ export default function Visualize() {
               )}
 
               {figures.length > 0 && (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div className={`grid grid-cols-1 ${tab !== 'chain_space' ? 'xl:grid-cols-2' : ''} gap-4`}>
                   {figures.map((f, i) => (
                     <div key={i} className="card p-4">
-                      <PlotWithDownload data={f.data} layout={f.layout} style={{ width: '100%', height: '360px' }} filename={`per_lipid_${i}`} />
+                      <PlotWithDownload
+                        data={f.data}
+                        layout={f.layout}
+                        style={{ width: '100%', height: f.layout?.height ? `${f.layout.height}px` : (tab === 'chain_space' ? '650px' : '360px') }}
+                        filename={`${tab}_${reportTitle.replace(/\s+/g, '_')}_${i}`}
+                      />
                     </div>
                   ))}
                 </div>

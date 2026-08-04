@@ -118,6 +118,41 @@ def test_generate_box_plot():
     assert "data" in fig
 
 
+def test_chain_space_multi_group_generates_pairwise_figures():
+    samples = [f"S{i}" for i in range(9)]
+    df = pd.DataFrame(np.random.lognormal(3, 1, (6, 9)), columns=samples)
+    groups = {samples[i]: "A" if i < 3 else ("B" if i < 6 else "C") for i in range(9)}
+    feature_meta = [
+        {"feature_id": "PC(16:0_18:1)"},
+        {"feature_id": "PE(18:0_20:4)"},
+        {"feature_id": "TG(16:0_18:1_18:2)"},
+        {"feature_id": "LPC(14:0)"},
+        {"feature_id": "SM(d18:1/24:0)"},
+        {"feature_id": "Cer(d18:1/24:1)"},
+    ]
+    ds = models.Dataset(
+        id=1,
+        project_id=1,
+        source_file_id=1,
+        name="chain_test",
+        feature_type="lipid",
+        data_matrix={c: df[c].tolist() for c in df.columns},
+        sample_metadata=groups,
+        feature_metadata=feature_meta,
+        processing_history=[{"step": "import"}],
+    )
+    req = schemas.PlotRequest(plot_type="chain_space", parameters={"group_a": "A", "selected_groups": ["A", "B", "C"]})
+    result = generate_plot(ds, req)
+    assert isinstance(result, list)
+    assert len(result) == 2
+    for fig in result:
+        assert "data" in fig
+        assert "layout" in fig
+        title = fig["layout"].get("title", {})
+        text = title.get("text") if isinstance(title, dict) else title
+        assert text and "A" in text
+
+
 @pytest.mark.asyncio
 async def test_isotope_no_isotopologue_columns_returns_clear_error():
     df = pd.DataFrame({"S1": [1, 2], "S2": [3, 4]})

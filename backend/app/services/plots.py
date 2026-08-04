@@ -860,6 +860,43 @@ def _chain_space_figure(df, sample_meta, feature_metadata, style, params, histor
     return fig
 
 
+def _chain_space_figures(df, sample_meta, feature_metadata, style, params, history=None):
+    """Generate one chain-space figure per comparison. For more than two groups,
+    use group_a as the reference and compare each other selected group to it."""
+    group_a = params.get("group_a", "")
+    group_b = params.get("group_b", "")
+    selected_groups = params.get("selected_groups") or [group_a, group_b]
+    selected_groups = [g for g in selected_groups if g]
+    # Deduplicate while preserving order
+    seen = set()
+    unique_groups = []
+    for g in selected_groups:
+        if g and g not in seen:
+            seen.add(g)
+            unique_groups.append(g)
+    reference = group_a or (unique_groups[0] if unique_groups else "")
+    if not reference:
+        fig = go.Figure()
+        _apply_base_layout(fig, style, title="Chain space (no reference group)")
+        return json.loads(fig.to_json())
+    targets = [g for g in unique_groups if g != reference]
+    if not targets:
+        # Only one group selected; build a single figure comparing it to itself will be empty,
+        # so build an overview of that single group.
+        targets = [reference]
+    if len(unique_groups) <= 2 and group_b and group_b != reference:
+        # Backward-compatible single comparison if two explicit groups are provided.
+        targets = [group_b]
+    figures = []
+    for target in targets:
+        pair_params = {**params, "group_a": reference, "group_b": target}
+        fig = _chain_space_figure(df, sample_meta, feature_metadata, style, pair_params, history=history)
+        figures.append(json.loads(fig.to_json()))
+    if len(figures) == 1:
+        return figures[0]
+    return figures
+
+
 def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
     group_a = params.get("group_a", "")
     group_b = params.get("group_b", "")
@@ -2422,7 +2459,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         fig = _food_profile(df, sample_meta, feature_metadata, style, params)
 
     elif plot_type == "chain_space":
-        fig = _chain_space_figure(df, sample_meta, feature_metadata, style, params, history=dataset.processing_history)
+        fig = _chain_space_figures(df, sample_meta, feature_metadata, style, params, history=dataset.processing_history)
+        return fig
 
     elif plot_type == "pls_da":
         fig = _pls_da_figure(df, sample_meta, feature_metadata, style, params)
