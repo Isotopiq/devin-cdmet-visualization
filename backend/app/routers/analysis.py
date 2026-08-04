@@ -193,7 +193,7 @@ async def get_qc_excel(
 async def get_qc_pdf(
     project_id: int,
     dataset_id: int,
-    selected_groups: List[str] | None = Body(None),
+    body: schemas.QCPdfRequest = Body(default_factory=schemas.QCPdfRequest),
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ):
@@ -211,7 +211,7 @@ async def get_qc_pdf(
         raise HTTPException(status_code=404, detail="Dataset not found")
     dataset, project = row
 
-    pdf_bytes = build_qc_pdf(dataset, project.name if project else "", selected_groups=selected_groups)
+    pdf_bytes = build_qc_pdf(dataset, project.name if project else "", selected_groups=body.selected_groups)
     s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db)
     filename = f"{dataset.name.replace(' ', '_')}_qc_report.pdf"
     headers = {"Content-Disposition": f"attachment; filename={filename}"}

@@ -223,6 +223,10 @@ class ReportRequest(BaseModel):
     parameters: Dict[str, Any] = {}
 
 
+class QCPdfRequest(BaseModel):
+    selected_groups: Optional[List[str]] = None
+
+
 class PDFReportRequest(BaseModel):
     title: Optional[str] = None
     subtitle: Optional[str] = None

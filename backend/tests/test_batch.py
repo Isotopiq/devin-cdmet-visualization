@@ -2,9 +2,11 @@ import uuid
 import pytest
 import pytest_asyncio
 import numpy as np
+from sqlalchemy import select
 import app.database as db_module
 from app import models
 from app.services.batch import combine_datasets
+from app.services.pdf_report import build_qc_pdf
 
 
 @pytest_asyncio.fixture
@@ -284,3 +286,14 @@ async def test_combine_cross_project_and_per_dataset_reference(setup_db):
         wt_samples = [s for s, g in new_ds.sample_metadata.items() if g == "WT"]
         vals = [new_ds.data_matrix[s][idx] for s in wt_samples for idx in range(len(new_ds.feature_metadata)) if new_ds.data_matrix[s][idx] is not None]
         assert np.mean(vals) == pytest.approx(1.0, abs=0.01)
+
+
+@pytest.mark.asyncio
+async def test_build_qc_pdf(batch_setup):
+    db, user_id, project_id, ds1_id, ds2_id = batch_setup
+    async with db_module.AsyncSessionLocal() as db:
+        result = await db.execute(select(models.Dataset).where(models.Dataset.id == ds1_id))
+        ds = result.scalar_one()
+        pdf_bytes = build_qc_pdf(ds, project_name="batch project", selected_groups=None)
+        assert isinstance(pdf_bytes, bytes)
+        assert len(pdf_bytes) > 0
