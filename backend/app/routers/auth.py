@@ -2,7 +2,7 @@ import datetime as dt
 import mimetypes
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
 from jose import jwt as _jwt, JWTError
@@ -51,12 +51,17 @@ async def register(user_in: schemas.UserCreate, db: AsyncSession = Depends(get_d
 
 
 @router.post("/token")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    remember: bool = Form(False),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(select(models.User).where(models.User.email == form_data.username))
     user = result.scalar_one_or_none()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
-    token = create_access_token({"sub": str(user.id)})
+    expires = dt.timedelta(days=30) if remember else dt.timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    token = create_access_token({"sub": str(user.id)}, expires_delta=expires)
     return {"access_token": token, "token_type": "bearer"}
 
 

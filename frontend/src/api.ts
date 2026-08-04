@@ -30,10 +30,11 @@ export default API
 
 export const health = () => API.get('/health')
 export const register = (data: { email: string; password: string }) => API.post('/auth/register', data)
-export const login = (data: { username: string; password: string }) => {
+export const login = (data: { username: string; password: string; remember?: boolean }) => {
   const params = new URLSearchParams()
   params.append('username', data.username)
   params.append('password', data.password)
+  if (data.remember) params.append('remember', 'true')
   return API.post('/auth/token', params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
 }
 export const me = () => API.get('/auth/me')

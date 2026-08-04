@@ -9,6 +9,7 @@ export default function Login({ onLogin }: { onLogin: (t: string) => void }) {
   const [message, setMessage] = useState('')
   const [showForgot, setShowForgot] = useState(false)
   const [logoUrl, setLogoUrl] = useState('/logo.png')
+  const [rememberMe, setRememberMe] = useState(false)
 
   useEffect(() => {
     getSettings().then((res) => {
@@ -20,7 +21,7 @@ export default function Login({ onLogin }: { onLogin: (t: string) => void }) {
     e.preventDefault()
     setError('')
     try {
-      const res = await login({ username: email, password })
+      const res = await login({ username: email, password, remember: rememberMe })
       onLogin(res.data.access_token)
     } catch (err: any) {
       const detail = err.response?.data?.detail
@@ -78,6 +79,10 @@ export default function Login({ onLogin }: { onLogin: (t: string) => void }) {
                 <LuLock className="absolute left-3 top-2.5 text-slate-400" />
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="input pl-10" placeholder="••••••••" required />
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="remember" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              <label htmlFor="remember" className="text-sm text-slate-600 dark:text-slate-300">Remember me</label>
             </div>
             <button type="submit" className="btn-primary w-full py-2.5">Sign In</button>
             <div className="text-center">
