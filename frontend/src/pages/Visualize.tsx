@@ -627,11 +627,11 @@ export default function Visualize() {
       return (
         <div className="space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
-            <div><label className="label-like">Reference group (A)</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
+            <div><label className="label-like">Reference group: {groupA || '—'}</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
             <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Two or more groups must be included. If more than two groups are selected, a separate Chain Space chart is generated for each non-reference group vs the reference.
+            Two or more groups must be included. When more than two groups are selected, one Chain Space chart is generated for each non-reference group vs <strong>{groupA || 'the reference'}</strong>.
           </p>
         </div>
       )
