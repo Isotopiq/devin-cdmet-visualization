@@ -225,6 +225,14 @@ class ReportRequest(BaseModel):
 
 class QCPdfRequest(BaseModel):
     selected_groups: Optional[List[str]] = None
+    primary_comparison: Optional[str] = None
+    prepared_for: Optional[str] = None
+    prepared_by: Optional[str] = "Metabolomics Platform"
+    report_contents: Optional[str] = None
+    report_type: Optional[str] = "QC Report"
+    subtitle: Optional[str] = None
+    description: Optional[str] = None
+    cover_style: Optional[str] = "teal"
 
 
 class PDFReportRequest(BaseModel):

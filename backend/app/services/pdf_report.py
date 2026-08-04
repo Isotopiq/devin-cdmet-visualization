@@ -959,7 +959,19 @@ def _qc_figure_title(fig: dict, default: str) -> str:
     return default
 
 
-def build_qc_pdf(dataset: models.Dataset, project_name: str = "", selected_groups: list | None = None) -> bytes:
+def build_qc_pdf(
+    dataset: models.Dataset,
+    project_name: str = "",
+    selected_groups: list | None = None,
+    primary_comparison: str | None = None,
+    prepared_for: str | None = None,
+    prepared_by: str | None = None,
+    report_contents: str | None = None,
+    report_type: str | None = None,
+    subtitle: str | None = None,
+    description: str | None = None,
+    cover_style: str | None = None,
+) -> bytes:
     from app.services.qc import qc_analysis
 
     result = qc_analysis(dataset, selected_groups=selected_groups)
@@ -968,18 +980,18 @@ def build_qc_pdf(dataset: models.Dataset, project_name: str = "", selected_group
 
     style = {
         "title": dataset.name,
-        "subtitle": "Quality control overview",
-        "report_type": "QC Report",
-        "description": "Quality control metrics and diagnostic plots",
-        "report_contents": "QC Report",
+        "subtitle": subtitle or "Quality control overview",
+        "report_type": report_type or "QC Report",
+        "description": description or "Quality control metrics and diagnostic plots",
+        "report_contents": report_contents or "QC Report",
         "organization": "UCLA Metabolomics Center",
         "footer_text": "Confidential",
         "date": dt.datetime.utcnow().strftime('%Y-%m-%d'),
-        "cover_style": "teal",
+        "cover_style": cover_style or "teal",
         "tags": "QC, Metrics, Plots",
-        "primary_comparison": "—",
-        "prepared_for": "—",
-        "prepared_by": "Metabolomics Platform",
+        "primary_comparison": primary_comparison or "—",
+        "prepared_for": prepared_for or "—",
+        "prepared_by": prepared_by or "Metabolomics Platform",
         "sections": ["summary"],
     }
     pdf = _ReportPDF(style=style)

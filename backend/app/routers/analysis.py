@@ -211,7 +211,19 @@ async def get_qc_pdf(
         raise HTTPException(status_code=404, detail="Dataset not found")
     dataset, project = row
 
-    pdf_bytes = build_qc_pdf(dataset, project.name if project else "", selected_groups=body.selected_groups)
+    pdf_bytes = build_qc_pdf(
+        dataset,
+        project.name if project else "",
+        selected_groups=body.selected_groups,
+        primary_comparison=body.primary_comparison,
+        prepared_for=body.prepared_for,
+        prepared_by=body.prepared_by,
+        report_contents=body.report_contents,
+        report_type=body.report_type,
+        subtitle=body.subtitle,
+        description=body.description,
+        cover_style=body.cover_style,
+    )
     s3_key = await storage.save_report(pdf_bytes, project_id, dataset_id, db)
     filename = f"{dataset.name.replace(' ', '_')}_qc_report.pdf"
     headers = {"Content-Disposition": f"attachment; filename={filename}"}

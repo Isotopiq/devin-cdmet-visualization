@@ -31,6 +31,12 @@ export default function QC() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set())
+  const [pdfMeta, setPdfMeta] = useState({
+    primary_comparison: '',
+    prepared_for: '',
+    prepared_by: 'Metabolomics Platform',
+    report_contents: 'QC Report',
+  })
 
   const allGroups = selectedDataset?.sample_metadata
     ? Array.from(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>)))
@@ -76,7 +82,13 @@ export default function QC() {
     setLoading(true)
     setError('')
     try {
-      const res = await exportQCPdf(Number(projectId), Number(datasetId), Array.from(selectedGroups))
+      const res = await exportQCPdf(Number(projectId), Number(datasetId), {
+        selected_groups: Array.from(selectedGroups),
+        primary_comparison: pdfMeta.primary_comparison || undefined,
+        prepared_for: pdfMeta.prepared_for || undefined,
+        prepared_by: pdfMeta.prepared_by || undefined,
+        report_contents: pdfMeta.report_contents || undefined,
+      })
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
       const link = document.createElement('a')
       link.href = url
@@ -142,6 +154,54 @@ export default function QC() {
                     {g}
                   </label>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {selectedDataset && (
+            <div className="card p-5 space-y-4">
+              <h3 className="text-md font-semibold text-slate-900 dark:text-white">QC PDF Report Options</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label-like">Primary comparison</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={pdfMeta.primary_comparison}
+                    onChange={(e) => setPdfMeta({ ...pdfMeta, primary_comparison: e.target.value })}
+                    placeholder="e.g. FLVCR1-KO vs FLVCR1-CTRL"
+                  />
+                </div>
+                <div>
+                  <label className="label-like">Prepared for</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={pdfMeta.prepared_for}
+                    onChange={(e) => setPdfMeta({ ...pdfMeta, prepared_for: e.target.value })}
+                    placeholder="e.g. Principal Investigator"
+                  />
+                </div>
+                <div>
+                  <label className="label-like">Prepared by</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={pdfMeta.prepared_by}
+                    onChange={(e) => setPdfMeta({ ...pdfMeta, prepared_by: e.target.value })}
+                    placeholder="Metabolomics Platform"
+                  />
+                </div>
+                <div>
+                  <label className="label-like">Report contents</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={pdfMeta.report_contents}
+                    onChange={(e) => setPdfMeta({ ...pdfMeta, report_contents: e.target.value })}
+                    placeholder="QC Report"
+                  />
+                </div>
               </div>
             </div>
           )}
