@@ -4,31 +4,62 @@ import { listDatasets, combineDatasets } from '../api'
 import { Dataset } from '../types'
 import { LuCombine, LuAlertCircle, LuCheckCircle2, LuFlaskConical } from 'react-icons/lu'
 
-const METHODS: Record<string, { label: string; description: string; needsRef: boolean }> = {
+const METHODS: Record<string, { label: string; description: string; needsRef: boolean; needsControls: boolean; needsK: boolean }> = {
   reference_group: {
     label: 'Reference/control group scaling to 1',
-    description: 'For each feature, divide all samples by the mean of the chosen control/reference group within their batch. The control group then has a mean of 1.',
+    description: 'For each feature, divide all samples by the mean of the chosen control/reference group within its batch. The control group then has a mean of 1.',
     needsRef: true,
+    needsControls: false,
+    needsK: false,
   },
   log2fc_control: {
     label: 'Log2 fold-change vs control group',
     description: 'Convert each sample to log2(sample / control-group mean) within its batch. Results are fold-changes, making cross-batch comparisons valid.',
     needsRef: true,
+    needsControls: false,
+    needsK: false,
   },
   mean_centering: {
     label: 'Mean centering per batch',
     description: 'Scale each batch so its per-feature mean matches the global mean across all batches.',
     needsRef: false,
+    needsControls: false,
+    needsK: false,
   },
   median_centering: {
     label: 'Median centering per batch',
     description: 'Scale each batch so its per-feature median matches the global median across all batches. Robust to outliers.',
     needsRef: false,
+    needsControls: false,
+    needsK: false,
   },
   quantile_normalization: {
     label: 'Quantile normalization across samples',
     description: 'Force all samples to share the same intensity distribution after combining. Useful for strong global batch shifts.',
     needsRef: false,
+    needsControls: false,
+    needsK: false,
+  },
+  combat: {
+    label: 'ComBat empirical Bayes',
+    description: 'Parametric empirical Bayes framework that adjusts batch effects while preserving biological group differences.',
+    needsRef: false,
+    needsControls: false,
+    needsK: false,
+  },
+  loess_signal_drift: {
+    label: 'LOESS signal-drift correction',
+    description: 'Fit a LOWESS smoother to each feature along the acquisition/run order within each batch and remove the drift trend. Column order within each batch is used as the run order unless a custom order is supplied.',
+    needsRef: false,
+    needsControls: false,
+    needsK: false,
+  },
+  ruv_iii_c: {
+    label: 'RUV-III-C',
+    description: 'Remove Unwanted Variation III-C. Uses negative control features and sample groups to estimate and remove unwanted batch factors per feature.',
+    needsRef: false,
+    needsControls: true,
+    needsK: true,
   },
 }
 
@@ -40,6 +71,8 @@ export default function BatchCombiner() {
   const [method, setMethod] = useState<string>('reference_group')
   const [referenceGroup, setReferenceGroup] = useState<string>('')
   const [outputName, setOutputName] = useState<string>('')
+  const [controlFeatures, setControlFeatures] = useState<string[]>([])
+  const [nUnwantedFactors, setNUnwantedFactors] = useState<number>(1)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -49,6 +82,7 @@ export default function BatchCombiner() {
     setError('')
     setSelected(new Set())
     setBatchLabels({})
+    setControlFeatures([])
     if (!projectId) {
       setDatasets([])
       return
@@ -61,6 +95,8 @@ export default function BatchCombiner() {
   useEffect(() => {
     setMessage('')
     setError('')
+    // Reset method-specific state when method changes.
+    setControlFeatures([])
   }, [selected, method])
 
   const allGroups = useMemo(() => {
@@ -71,6 +107,18 @@ export default function BatchCombiner() {
       }
     }
     return Array.from(groups).sort()
+  }, [datasets, selected])
+
+  const allFeatureIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const ds of datasets) {
+      if (selected.has(ds.id) && ds.feature_metadata) {
+        for (const m of ds.feature_metadata) {
+          if (m.feature_id) ids.add(String(m.feature_id))
+        }
+      }
+    }
+    return Array.from(ids).sort()
   }, [datasets, selected])
 
   useEffect(() => {
@@ -92,6 +140,11 @@ export default function BatchCombiner() {
     setBatchLabels((prev) => ({ ...prev, [id]: label }))
   }
 
+  const handleControlFeatureChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const opts = Array.from(e.target.selectedOptions).map((o) => o.value)
+    setControlFeatures(opts)
+  }
+
   const handleCombine = async () => {
     if (!projectId) return
     if (selected.size < 2) {
@@ -100,6 +153,10 @@ export default function BatchCombiner() {
     }
     if (METHODS[method].needsRef && !referenceGroup) {
       setError('Select a reference/control group for this method.')
+      return
+    }
+    if (METHODS[method].needsControls && controlFeatures.length === 0) {
+      setError('Select at least one negative control feature for RUV-III-C.')
       return
     }
     setLoading(true)
@@ -118,6 +175,10 @@ export default function BatchCombiner() {
     }
     if (METHODS[method].needsRef) {
       payload.reference_group = referenceGroup
+    }
+    if (METHODS[method].needsControls) {
+      payload.control_features = controlFeatures
+      payload.n_unwanted_factors = nUnwantedFactors
     }
     try {
       const res = await combineDatasets(Number(projectId), payload)
@@ -250,6 +311,43 @@ export default function BatchCombiner() {
                   Each batch must contain at least one sample from this group.
                 </p>
               </div>
+            )}
+
+            {METHODS[method].needsControls && (
+              <>
+                <div>
+                  <label className="label-like">Negative control features</label>
+                  <select
+                    multiple
+                    size={Math.min(8, Math.max(3, allFeatureIds.length))}
+                    value={controlFeatures}
+                    onChange={handleControlFeatureChange}
+                    disabled={allFeatureIds.length === 0}
+                    className="select"
+                  >
+                    {allFeatureIds.length === 0 && <option value="">No features available</option>}
+                    {allFeatureIds.map((fid) => (
+                      <option key={fid} value={fid}>
+                        {fid}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Hold Ctrl/Cmd to select multiple features expected to be constant across samples (e.g., internal standards).
+                  </p>
+                </div>
+                <div>
+                  <label className="label-like">Number of unwanted factors (k)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={nUnwantedFactors}
+                    onChange={(e) => setNUnwantedFactors(parseInt(e.target.value, 10) || 1)}
+                    className="input"
+                  />
+                </div>
+              </>
             )}
 
             <div>

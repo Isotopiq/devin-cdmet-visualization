@@ -334,3 +334,5 @@ class BatchCombineRequest(BaseModel):
     batch_assignment: Optional[Dict[str, str]] = None
     reference_group: Optional[str] = None
     output_name: Optional[str] = None
+    control_features: Optional[List[str]] = None
+    n_unwanted_factors: Optional[int] = 1

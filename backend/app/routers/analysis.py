@@ -94,6 +94,8 @@ async def batch_combine(
         batch_assignment=body.batch_assignment,
         reference_group=body.reference_group,
         output_name=body.output_name,
+        control_features=body.control_features,
+        n_unwanted_factors=body.n_unwanted_factors or 1,
     )
     return new_dataset
 

@@ -138,3 +138,69 @@ async def test_combine_requires_two_datasets(batch_setup):
             reference_group=None,
             output_name=None,
         )
+
+
+@pytest.mark.asyncio
+async def test_combine_combat(batch_setup):
+    db, user_id, project_id, ds1_id, ds2_id = batch_setup
+    new_ds = await combine_datasets(
+        db,
+        project_id=project_id,
+        user_id=user_id,
+        dataset_ids=[ds1_id, ds2_id],
+        method="combat",
+        batch_assignment={str(ds1_id): "run1", str(ds2_id): "run2"},
+        reference_group=None,
+        output_name="combined_combat",
+    )
+    assert new_ds.name == "combined_combat"
+    assert len(new_ds.sample_metadata) == 6
+    assert len(new_ds.feature_metadata) == 3
+    # all values finite (no NaN/None/inf)
+    for s, vals in new_ds.data_matrix.items():
+        for v in vals:
+            assert v is None or (isinstance(v, float) and np.isfinite(v))
+
+
+@pytest.mark.asyncio
+async def test_combine_loess(batch_setup):
+    db, user_id, project_id, ds1_id, ds2_id = batch_setup
+    new_ds = await combine_datasets(
+        db,
+        project_id=project_id,
+        user_id=user_id,
+        dataset_ids=[ds1_id, ds2_id],
+        method="loess_signal_drift",
+        batch_assignment={str(ds1_id): "run1", str(ds2_id): "run2"},
+        reference_group=None,
+        output_name="combined_loess",
+    )
+    assert new_ds.name == "combined_loess"
+    assert len(new_ds.sample_metadata) == 6
+    assert len(new_ds.feature_metadata) == 3
+    for s, vals in new_ds.data_matrix.items():
+        for v in vals:
+            assert v is None or (isinstance(v, float) and np.isfinite(v))
+
+
+@pytest.mark.asyncio
+async def test_combine_ruv_iii_c(batch_setup):
+    db, user_id, project_id, ds1_id, ds2_id = batch_setup
+    new_ds = await combine_datasets(
+        db,
+        project_id=project_id,
+        user_id=user_id,
+        dataset_ids=[ds1_id, ds2_id],
+        method="ruv_iii_c",
+        batch_assignment={str(ds1_id): "run1", str(ds2_id): "run2"},
+        reference_group=None,
+        output_name="combined_ruv",
+        control_features=["A"],
+        n_unwanted_factors=1,
+    )
+    assert new_ds.name == "combined_ruv"
+    assert len(new_ds.sample_metadata) == 6
+    assert len(new_ds.feature_metadata) == 3
+    for s, vals in new_ds.data_matrix.items():
+        for v in vals:
+            assert v is None or (isinstance(v, float) and np.isfinite(v))

@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from scipy import stats
+from statsmodels.nonparametric.smoothers_lowess import lowess
 
 from app import models
 from app.services.preprocessing import _to_json_safe
@@ -19,6 +20,9 @@ VALID_BATCH_METHODS = {
     "mean_centering",
     "median_centering",
     "quantile_normalization",
+    "combat",
+    "loess_signal_drift",
+    "ruv_iii_c",
 }
 
 
@@ -221,12 +225,305 @@ def _quantile_normalize(df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
+def _combat_empirical_bayes(
+    df: pd.DataFrame,
+    sample_meta: Dict[str, str],
+    sample_batch: Dict[str, str],
+) -> pd.DataFrame:
+    """ComBat empirical Bayes batch correction.
+
+    Adapted from brentp/combat.py (MIT). Preserves biological group differences
+    by including group as a covariate in the design matrix.
+    """
+    import numpy.linalg as la
+
+    # Preserve missing/zero positions; fill positive floor for the algorithm.
+    floor = _positive_floor(df) / 2.0
+    mask = df.isna() | (df == 0)
+    data = df.copy()
+    data[mask] = floor
+    data = data.astype(float)
+
+    n_features, n_samples = data.shape
+    if n_samples == 0 or n_features == 0:
+        return df
+
+    # Build design matrix with batch + group covariates.
+    samples = list(data.columns)
+    batch = pd.Series({c: sample_batch.get(c, "unknown") for c in samples})
+    group = pd.Series({c: sample_meta.get(c, "unknown") for c in samples})
+    model = pd.DataFrame({"batch": batch, "group": group})
+
+    sample_to_pos = {s: i for i, s in enumerate(samples)}
+    batch_items = list(model.groupby("batch").groups.items())
+    batch_levels = [k for k, v in batch_items]
+    batch_info = [[sample_to_pos[s] for s in v] for k, v in batch_items]
+    n_batch = len(batch_info)
+    n_batches = np.array([len(v) for v in batch_info])
+    n_array = float(sum(n_batches))
+
+    if n_batch < 2:
+        return df
+
+    # One-hot encode batch and group (drop intercept-style constant columns).
+    design = pd.get_dummies(model, columns=["batch", "group"], dtype=float)
+    drop_cols = [c for c in design.columns if (design[c] == 1).all()]
+    design = design.drop(columns=drop_cols, errors="ignore")
+    if design.shape[1] == 0:
+        design = pd.DataFrame({"intercept": np.ones(n_samples)}, index=samples)
+
+    D = design.to_numpy(dtype=float)
+    Y = data.to_numpy(dtype=float)
+
+    # Standardize data.
+    B_hat = la.pinv(D) @ Y.T  # shape: (design_cols, features)
+    grand_mean = (n_batches / n_array) @ B_hat[:n_batch, :]
+    stand_mean = np.outer(grand_mean, np.ones(n_samples))
+    tmp = D.copy()
+    tmp[:, :n_batch] = 0
+    stand_mean += (tmp @ B_hat).T
+    var_pooled = ((Y - (D @ B_hat).T) ** 2).sum(axis=1, keepdims=True) / n_array
+    var_pooled = np.where(var_pooled == 0, 1e-12, var_pooled)
+    s_data = (Y - stand_mean) / np.sqrt(var_pooled)
+
+    # Fit L/S model and find priors for each batch.
+    batch_design = D[:, :n_batch]
+    gamma_hat = la.pinv(batch_design) @ s_data.T
+    delta_hat = [s_data[:, idxs].var(axis=1) for idxs in batch_info]
+    gamma_bar = gamma_hat.mean(axis=1)
+    t2 = gamma_hat.var(axis=1)
+
+    def _prior_params(m: float, s2: float):
+        if s2 <= 1e-30:
+            return 1e12, 1e12
+        a = (2 * s2 + m**2) / s2
+        b = (m * s2 + m**3) / s2
+        # ComBat's inverse-gamma prior on the variance is only valid for positive b;
+        # clamp to a tiny positive value to avoid pathological shrinkage.
+        return max(a, 1e-12), max(b, 1e-12)
+
+    priors = [_prior_params(m, s2) for m, s2 in zip(gamma_bar, t2)]
+    a_prior = [p[0] for p in priors]
+    b_prior = [p[1] for p in priors]
+
+    def _it_sol(sdat, g_hat, d_hat, g_bar, t2_i, a, b, conv=0.0001):
+        g_hat = np.asarray(g_hat, dtype=float)
+        d_hat = np.asarray(d_hat, dtype=float)
+        n = (1 - np.isnan(sdat)).sum(axis=1)
+        g_old = g_hat.copy()
+        d_old = d_hat.copy()
+        g_bar = float(g_bar)
+        t2_i = float(t2_i)
+        a = float(a)
+        b = float(b)
+        change = 1.0
+        while change > conv:
+            g_new = (t2_i * n * g_hat + d_old * g_bar) / (t2_i * n + d_old)
+            sum2 = ((sdat - np.outer(g_new, np.ones(sdat.shape[1]))) ** 2).sum(axis=1)
+            d_new = (0.5 * sum2 + b) / (n / 2.0 + a - 1.0)
+            d_new = np.where(d_new <= 0, 1e-12, d_new)
+            change = max(
+                (np.abs(g_new - g_old) / np.where(g_old == 0, 1e-12, g_old)).max(),
+                (np.abs(d_new - d_old) / np.where(d_old == 0, 1e-12, d_old)).max(),
+            )
+            g_old = g_new
+            d_old = d_new
+        return g_new, d_new
+
+    gamma_star, delta_star = [], []
+    for i, batch_idxs in enumerate(batch_info):
+        g, d = _it_sol(
+            s_data[:, batch_idxs],
+            gamma_hat[i, :],
+            delta_hat[i],
+            gamma_bar[i],
+            t2[i],
+            a_prior[i],
+            b_prior[i],
+        )
+        gamma_star.append(g)
+        delta_star.append(d)
+
+    gamma_star = np.array(gamma_star)
+    delta_star = np.array(delta_star)
+
+    # Adjust the data.
+    for j, batch_idxs in enumerate(batch_info):
+        dsq = np.sqrt(delta_star[j, :]).reshape(-1, 1)
+        denom = np.repeat(dsq, len(batch_idxs), axis=1)
+        pred = (batch_design[batch_idxs, :] @ gamma_star).T
+        s_data[:, batch_idxs] = (s_data[:, batch_idxs] - pred) / denom
+
+    bayesdata = s_data * np.sqrt(var_pooled) + stand_mean
+    result = pd.DataFrame(bayesdata, index=data.index, columns=data.columns)
+    result[mask] = np.nan
+    return result
+
+
+def _loess_signal_drift(
+    df: pd.DataFrame,
+    sample_batch: Dict[str, str],
+    run_order: Optional[Dict[str, int]] = None,
+) -> pd.DataFrame:
+    """Correct within-batch signal drift using LOWESS on log2 total ion current (TIC).
+
+    For each batch, the total intensity per sample is regressed against the
+    acquisition/run order with LOWESS, and every feature in that sample is
+    scaled by the fitted TIC trend. If ``run_order`` is not provided, the
+    column order within each batch is used as the run order.
+    """
+    floor = _positive_floor(df) / 2.0
+    result = df.copy()
+    batches = sorted(set(sample_batch.values()))
+
+    for batch in batches:
+        cols = [c for c in df.columns if sample_batch.get(c) == batch]
+        if not cols:
+            continue
+        order_map = run_order or {}
+        cols_sorted = sorted(cols, key=lambda c: (order_map.get(c, cols.index(c)), c))
+        x = np.array([order_map.get(c, cols.index(c)) for c in cols_sorted], dtype=float)
+        if np.unique(x).size < 2:
+            continue
+        n_valid = len(x)
+        frac = min(1.0, max(0.3, 5.0 / n_valid))
+
+        # Compute total ion current per sample, ignoring missing values.
+        arr = df[cols_sorted].to_numpy(dtype=float)
+        totals = np.nansum(arr, axis=0)
+        totals = np.where(totals <= 0, floor, totals)
+        log_totals = np.log2(totals)
+
+        order = np.argsort(x)
+        x_sorted = x[order]
+        log_totals_sorted = log_totals[order]
+        try:
+            trend_log_sorted = lowess(
+                log_totals_sorted,
+                x_sorted,
+                frac=frac,
+                it=0,
+                is_sorted=True,
+                return_sorted=False,
+            )
+        except Exception:
+            continue
+        if trend_log_sorted.shape[0] != n_valid:
+            continue
+        trend_log = np.empty(n_valid)
+        trend_log[order] = trend_log_sorted
+        mean_trend = np.nanmean(trend_log)
+        # Scale each sample so its TIC matches the mean TIC trend.
+        scale_log = mean_trend - trend_log
+        scale_factors = 2.0 ** scale_log
+        for fid in df.index:
+            y = df.loc[fid, cols_sorted].to_numpy(dtype=float)
+            result.loc[fid, cols_sorted] = y * scale_factors
+    return result
+
+
+def _ruv_iii_c(
+    df: pd.DataFrame,
+    sample_meta: Dict[str, str],
+    sample_batch: Dict[str, str],
+    control_features: Optional[List[str]] = None,
+    n_unwanted_factors: int = 1,
+) -> pd.DataFrame:
+    """Simplified RUV-III-C batch correction using negative control features.
+
+    For each feature, the unwanted variation is estimated from a set of negative
+    controls that are non-missing on the same samples and then removed while
+    preserving the biological group effect encoded in ``sample_meta``.
+    """
+    import numpy.linalg as la
+
+    floor = _positive_floor(df) / 2.0
+    Y = df.copy().astype(float)
+    Y = Y.replace(0, np.nan).fillna(floor)
+    # Work with samples as rows, features as columns.
+    Yt = Y.T
+    samples = list(Yt.index)
+    features = list(Yt.columns)
+    n_features = len(features)
+    if n_features == 0 or len(samples) == 0:
+        return df
+
+    # Biological design matrix M from groups.
+    groups = pd.Series({s: sample_meta.get(s, "unknown") for s in samples})
+    M = pd.get_dummies(groups, dtype=float)
+    if M.shape[1] == 0:
+        M = pd.DataFrame({"intercept": np.ones(len(samples))}, index=samples)
+
+    # Auto-select control features if not provided: choose features with low CV.
+    if not control_features:
+        mean = Yt.mean()
+        std = Yt.std()
+        cv = std / mean.replace(0, np.nan)
+        control_features = cv.dropna().nsmallest(max(1, n_unwanted_factors)).index.tolist()
+    control_features = [c for c in control_features if c in features]
+    if not control_features:
+        control_features = features[: max(1, n_unwanted_factors)]
+
+    result_T = Yt.copy()
+    k = max(1, n_unwanted_factors)
+
+    for target in features:
+        obs_mask = df.loc[target, samples].notna().to_numpy()
+        if obs_mask.sum() < 2:
+            continue
+        obs_idx = np.array(samples)[obs_mask]
+        Y_sub = Yt.loc[obs_idx]
+        M_sub = M.loc[obs_idx].to_numpy(dtype=float)
+
+        # Choose negative controls that are non-missing for all obs_idx and exclude target.
+        available = [c for c in control_features if c != target and Y_sub[c].notna().all()]
+        if not available:
+            available = [c for c in control_features if c != target and Y_sub[c].notna().any()]
+        if not available:
+            # No controls: just regress out group effect.
+            y = Y_sub[target].to_numpy(dtype=float)
+            if M_sub.shape[1] > 1:
+                alpha = la.pinv(M_sub) @ y
+                result_T.loc[obs_idx, target] = y - M_sub @ alpha
+            continue
+
+        Y_ctl = Y_sub[available].to_numpy(dtype=float)
+        # Estimate and remove biological effects from controls.
+        alpha_hat = la.pinv(M_sub) @ Y_ctl
+        R = Y_ctl - M_sub @ alpha_hat
+        # Estimate unwanted factors from residuals.
+        try:
+            U, s, Vt = la.svd(R, full_matrices=False)
+        except Exception:
+            continue
+        rank = min(k, U.shape[1] - 1, U.shape[0] - 1)
+        if rank < 1:
+            continue
+        W = U[:, :rank]
+        X = np.hstack([M_sub, W])
+        y = Y_sub[target].to_numpy(dtype=float)
+        try:
+            coeffs = la.pinv(X) @ y
+        except Exception:
+            continue
+        beta = coeffs[M_sub.shape[1] :]
+        corrected = y - W @ beta
+        result_T.loc[obs_idx, target] = corrected
+
+    result = result_T.T
+    # Restore original missing positions.
+    result = result.where(df.notna())
+    return result
+
+
 def _apply_batch_correction(
     df: pd.DataFrame,
     method: str,
     sample_meta: Dict[str, str],
     sample_batch: Dict[str, str],
     reference_group: Optional[str] = None,
+    control_features: Optional[List[str]] = None,
+    n_unwanted_factors: int = 1,
 ) -> pd.DataFrame:
     if method == "reference_group":
         if not reference_group:
@@ -242,6 +539,12 @@ def _apply_batch_correction(
         return _median_center(df, sample_batch)
     if method == "quantile_normalization":
         return _quantile_normalize(df)
+    if method == "combat":
+        return _combat_empirical_bayes(df, sample_meta, sample_batch)
+    if method == "loess_signal_drift":
+        return _loess_signal_drift(df, sample_batch)
+    if method == "ruv_iii_c":
+        return _ruv_iii_c(df, sample_meta, sample_batch, control_features=control_features, n_unwanted_factors=n_unwanted_factors)
     raise HTTPException(status_code=400, detail=f"Unknown batch correction method: {method}")
 
 
@@ -278,6 +581,8 @@ async def combine_datasets(
     batch_assignment: Optional[Dict[str, str]],
     reference_group: Optional[str],
     output_name: Optional[str],
+    control_features: Optional[List[str]] = None,
+    n_unwanted_factors: int = 1,
 ) -> models.Dataset:
     if method not in VALID_BATCH_METHODS:
         raise HTTPException(status_code=400, detail=f"Invalid method. Choose from {sorted(VALID_BATCH_METHODS)}")
@@ -301,7 +606,15 @@ async def combine_datasets(
     combined, sample_meta, sample_batch, feature_meta = _build_combined_frame(
         list(datasets), batch_assignment
     )
-    corrected = _apply_batch_correction(combined, method, sample_meta, sample_batch, reference_group)
+    corrected = _apply_batch_correction(
+        combined,
+        method,
+        sample_meta,
+        sample_batch,
+        reference_group=reference_group,
+        control_features=control_features,
+        n_unwanted_factors=n_unwanted_factors,
+    )
 
     # choose a sensible name
     default_name = f"combined_{method}"
@@ -315,6 +628,8 @@ async def combine_datasets(
         "step": "batch_combine",
         "method": method,
         "reference_group": reference_group,
+        "control_features": control_features,
+        "n_unwanted_factors": n_unwanted_factors,
         "batch_assignment": batch_assignment,
         "source_dataset_ids": dataset_ids,
         "source_dataset_names": [d.name for d in datasets],
