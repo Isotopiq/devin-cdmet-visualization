@@ -48,6 +48,7 @@ export const getAvatar = (userId: number, rev?: string) =>
 
 export const listProjects = () => API.get('/projects/')
 export const createProject = (data: { name: string; description?: string }) => API.post('/projects/', data)
+export const updateProject = (id: number, data: { name?: string; description?: string }) => API.patch(`/projects/${id}`, data)
 export const deleteProject = (id: number) => API.delete(`/projects/${id}`)
 
 export const listFiles = (projectId: number) => API.get(`/files/${projectId}`)

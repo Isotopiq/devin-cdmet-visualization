@@ -86,6 +86,11 @@ class ProjectCreate(ProjectBase):
     pass
 
 
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
 class ProjectOut(ProjectBase):
     model_config = ConfigDict(from_attributes=True)
     id: int

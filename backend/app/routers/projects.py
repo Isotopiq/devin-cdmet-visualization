@@ -35,6 +35,24 @@ async def get_project(project_id: int, db: AsyncSession = Depends(get_db),
     return project
 
 
+@router.patch("/{project_id}", response_model=schemas.ProjectOut)
+async def update_project(project_id: int, project_in: schemas.ProjectUpdate, db: AsyncSession = Depends(get_db),
+                         current_user: models.User = Depends(get_current_active_user)):
+    result = await db.execute(select(models.Project).where(models.Project.id == project_id, models.Project.owner_id == current_user.id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project_in.name is not None:
+        if not project_in.name.strip():
+            raise HTTPException(status_code=400, detail="Project name cannot be empty")
+        project.name = project_in.name.strip()
+    if project_in.description is not None:
+        project.description = project_in.description
+    await db.commit()
+    await db.refresh(project)
+    return project
+
+
 @router.delete("/{project_id}")
 async def delete_project(project_id: int, db: AsyncSession = Depends(get_db),
                          current_user: models.User = Depends(get_current_active_user)):
