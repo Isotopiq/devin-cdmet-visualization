@@ -1,7 +1,7 @@
 """add generated reports
 
 Revision ID: 0004
-Revises: 3c5f09256469
+Revises: 0002
 Create Date: 2026-08-04
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "0004"
-down_revision: Union[str, None] = "3c5f09256469"
+down_revision: Union[str, None] = "0002"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
