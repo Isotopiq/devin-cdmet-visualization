@@ -11,6 +11,7 @@ from app.auth import get_current_active_user
 from app import models, schemas
 from app.services.preprocessing import preprocess_dataset, to_dataframe
 from app.services.qc import qc_analysis, qc_export_excel
+from app.services.batch import combine_datasets
 from app.services.pdf_report import build_qc_pdf
 from app.services import storage
 
@@ -75,6 +76,26 @@ async def list_datasets(project_id: int, db: AsyncSession = Depends(get_db),
     result = await db.execute(select(models.Dataset).join(models.Project).where(
         models.Dataset.project_id == project_id, models.Project.owner_id == current_user.id))
     return result.scalars().all()
+
+
+@router.post("/{project_id}/datasets/combine", response_model=schemas.DatasetOut)
+async def batch_combine(
+    project_id: int,
+    body: schemas.BatchCombineRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    new_dataset = await combine_datasets(
+        db,
+        project_id,
+        current_user.id,
+        dataset_ids=body.dataset_ids,
+        method=body.method,
+        batch_assignment=body.batch_assignment,
+        reference_group=body.reference_group,
+        output_name=body.output_name,
+    )
+    return new_dataset
 
 
 @router.get("/{project_id}/dataset/{dataset_id}/qc")

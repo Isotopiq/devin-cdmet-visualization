@@ -14,6 +14,7 @@ import HeatMap from './pages/HeatMap'
 import PCA from './pages/PCA'
 import Volcano from './pages/Volcano'
 import Visualize from './pages/Visualize'
+import BatchCombiner from './pages/BatchCombiner'
 import Isotope from './pages/Isotope'
 import Pathway from './pages/Pathway'
 import QC from './pages/QC'
@@ -59,6 +60,7 @@ function App() {
           <Route path="pca" element={<PCA />} />
           <Route path="volcano" element={<Volcano />} />
           <Route path="visualize" element={<Visualize />} />
+          <Route path="batch-combiner" element={<BatchCombiner />} />
           <Route path="isotope" element={<Isotope />} />
           <Route path="pathway" element={<Pathway />} />
           <Route path="qc" element={<QC />} />

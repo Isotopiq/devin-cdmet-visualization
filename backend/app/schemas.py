@@ -326,3 +326,11 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+
+class BatchCombineRequest(BaseModel):
+    dataset_ids: List[int]
+    method: str
+    batch_assignment: Optional[Dict[str, str]] = None
+    reference_group: Optional[str] = None
+    output_name: Optional[str] = None

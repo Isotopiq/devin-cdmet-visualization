@@ -26,6 +26,7 @@ const baseNavItems: NavItem[] = [
   { section: 'Analysis', to: '/preprocessing', label: 'Preprocessing', icon: <LuSlidersHorizontal /> },
   { to: '/stats', label: 'Statistics', icon: <LuCalculator /> },
   { to: '/visualize', label: 'Visualize', icon: <LuBarChart3 /> },
+  { to: '/batch-combiner', label: 'Batch Combiner', icon: <LuLayers /> },
   { to: '/qc', label: 'QC', icon: <LuActivity /> },
   { section: 'Specialized', to: '/isotope', label: 'Isotope Tracing', icon: <LuDna /> },
   { to: '/pathway', label: 'Pathway Mapping', icon: <LuGitMerge /> },
