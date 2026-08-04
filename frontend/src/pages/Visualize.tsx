@@ -115,6 +115,9 @@ export default function Visualize() {
   const [colCluster, setColCluster] = useState(true)
   const [groupOrder, setGroupOrder] = useState<string[]>([])
   const [selectedGroup, setSelectedGroup] = useState('')
+  const [outlierGroupByGroup, setOutlierGroupByGroup] = useState(false)
+  const [outlierGroupOrder, setOutlierGroupOrder] = useState<string[]>([])
+  const [selectedOutlierGroup, setSelectedOutlierGroup] = useState('')
 
   const [lipidsPerPage, setLipidsPerPage] = useState(8)
   const [allLipids, setAllLipids] = useState(false)
@@ -137,6 +140,7 @@ export default function Visualize() {
     setGroupB(groups[1] || '')
     setIncludedGroups(new Set(groups))
     setGroupOrder([...groups].sort())
+    setOutlierGroupOrder([...groups].sort())
     setReady(true)
     if (groups.length <= 2 && (perLipidTest === 'anova' || perLipidTest === 'kruskal')) {
       setPerLipidTest('t_test')
@@ -244,7 +248,7 @@ export default function Visualize() {
           else setFigure(res.data)
         }
       } else if (tab === 'outlier') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'outlier', parameters: withExcluded({ title: reportTitle }), style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'outlier', parameters: withExcluded({ title: reportTitle, group_samples_by_group: outlierGroupByGroup, group_order: outlierGroupOrder }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'functional') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'functional', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle, fc_threshold: fcThreshold, p_threshold: pThreshold }), style: backendStyle })
@@ -284,7 +288,7 @@ export default function Visualize() {
   useEffect(() => {
     if ((figure || figures.length) && !loading) generate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [style, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups])
+  }, [style, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder])
 
   const toggleInclude = (key: string) => {
     setIncludePlots((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -327,6 +331,8 @@ export default function Visualize() {
     per_lipid_top_n: lipidsPerPage,
     all_lipids: allLipids,
     excluded_groups: excludedGroups,
+    outlier_group_by_group: outlierGroupByGroup,
+    outlier_group_order: outlierGroupOrder,
   })
 
   const loadScript = (src: string) =>
@@ -632,6 +638,62 @@ export default function Visualize() {
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Two or more groups must be included. When more than two groups are selected, one Chain Space chart is generated for each non-reference group vs <strong>{groupA || 'the reference'}</strong>.
+          </p>
+        </div>
+      )
+    }
+    if (tab === 'outlier') {
+      return (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex items-center gap-2 pb-2">
+              <input type="checkbox" id="outlierGroupByGroup" checked={outlierGroupByGroup} onChange={(e) => setOutlierGroupByGroup(e.target.checked)} />
+              <label htmlFor="outlierGroupByGroup">Group samples by group</label>
+            </div>
+            <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+          </div>
+          {outlierGroupByGroup && (
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="label-like">Group order (top to bottom)</label>
+                <select
+                  size={Math.min(5, outlierGroupOrder.length)}
+                  value={selectedOutlierGroup}
+                  onChange={(e) => setSelectedOutlierGroup(e.target.value)}
+                  className="input min-w-[12rem]"
+                >
+                  {outlierGroupOrder.map((g, i) => <option key={g} value={g}>{i + 1}. {g}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const idx = outlierGroupOrder.indexOf(selectedOutlierGroup)
+                    if (idx > 0) {
+                      const next = [...outlierGroupOrder]
+                      ;[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]
+                      setOutlierGroupOrder(next)
+                    }
+                  }}
+                  className="btn-secondary px-2 py-1"
+                >Up</button>
+                <button
+                  onClick={() => {
+                    const idx = outlierGroupOrder.indexOf(selectedOutlierGroup)
+                    if (idx >= 0 && idx < outlierGroupOrder.length - 1) {
+                      const next = [...outlierGroupOrder]
+                      ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
+                      setOutlierGroupOrder(next)
+                    }
+                  }}
+                  className="btn-secondary px-2 py-1"
+                >Down</button>
+                <button onClick={() => { setOutlierGroupOrder([...groups].sort()); setSelectedOutlierGroup('') }} className="btn-secondary px-2 py-1">Reset</button>
+              </div>
+            </div>
+          )}
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            When grouping is enabled, samples are clustered by group and ordered by Mahalanobis distance within each group. Use the list above to set which group appears at the top.
           </p>
         </div>
       )

@@ -544,14 +544,34 @@ def _outlier_plot(df, sample_meta, style, params):
     groups = [sample_meta.get(c, "Unknown") for c in sample_names]
     color_map = _group_color_map(style, sorted(set(groups)))
 
-    data = sorted(zip(display_names, groups, md2), key=lambda x: x[2], reverse=True)
-    if data:
-        names, grps, values = zip(*data)
-        names = list(names)[::-1]
-        grps = list(grps)[::-1]
-        values = list(values)[::-1]
+    group_samples_by_group = bool(params.get("group_samples_by_group") or params.get("outlier_group_by_group"))
+    if group_samples_by_group:
+        group_order_param = params.get("group_order") or params.get("outlier_group_order") or []
+        present = set(groups)
+        ordered_groups = [g for g in group_order_param if g in present]
+        ordered_groups.extend([g for g in sorted(present) if g not in ordered_groups])
+        by_group = {}
+        for name, g, v in zip(display_names, groups, md2):
+            by_group.setdefault(g, []).append((name, g, v))
+        for g in by_group:
+            by_group[g].sort(key=lambda x: x[2])
+        sorted_data = []
+        for g in reversed(ordered_groups):
+            sorted_data.extend(by_group.get(g, []))
+        if sorted_data:
+            names, grps, values = zip(*sorted_data)
+            names, grps, values = list(names), list(grps), list(values)
+        else:
+            names, grps, values = [], [], []
     else:
-        names, grps, values = [], [], []
+        data = sorted(zip(display_names, groups, md2), key=lambda x: x[2], reverse=True)
+        if data:
+            names, grps, values = zip(*data)
+            names = list(names)[::-1]
+            grps = list(grps)[::-1]
+            values = list(values)[::-1]
+        else:
+            names, grps, values = [], [], []
 
     colors = [color_map[g] for g in grps]
     fig = go.Figure()
