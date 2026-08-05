@@ -118,6 +118,7 @@ export default function Visualize() {
   const [outlierGroupByGroup, setOutlierGroupByGroup] = useState(false)
   const [outlierGroupOrder, setOutlierGroupOrder] = useState<string[]>([])
   const [selectedOutlierGroup, setSelectedOutlierGroup] = useState('')
+  const [renameSamples, setRenameSamples] = useState(false)
 
   const [lipidsPerPage, setLipidsPerPage] = useState(8)
   const [allLipids, setAllLipids] = useState(false)
@@ -183,7 +184,7 @@ export default function Visualize() {
     setFigures([])
     try {
       const base = { projectId: Number(projectId), datasetId: Number(datasetId) }
-      const withExcluded = (p: any) => ({ ...p, excluded_groups: excludedGroups })
+      const withExcluded = (p: any) => ({ ...p, excluded_groups: excludedGroups, rename_samples: renameSamples })
       if (tab === 'pca') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'pca', parameters: withExcluded({ plot: 'score', title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
@@ -288,7 +289,7 @@ export default function Visualize() {
   useEffect(() => {
     if ((figure || figures.length) && !loading) generate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [style, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder])
+  }, [style, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder, renameSamples])
 
   const toggleInclude = (key: string) => {
     setIncludePlots((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -333,6 +334,7 @@ export default function Visualize() {
     excluded_groups: excludedGroups,
     outlier_group_by_group: outlierGroupByGroup,
     outlier_group_order: outlierGroupOrder,
+    rename_samples: renameSamples,
   })
 
   const loadScript = (src: string) =>
@@ -790,6 +792,10 @@ export default function Visualize() {
                           </label>
                         )
                       })}
+                    </div>
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <input id="rename-samples" type="checkbox" checked={renameSamples} onChange={(e) => setRenameSamples(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                      <label htmlFor="rename-samples" className="text-sm text-slate-700 dark:text-slate-200">Rename samples to group_R#</label>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Unchecked groups are excluded from plots and PDF reports. Selected comparison groups cannot be excluded.</p>
                   </div>

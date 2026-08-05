@@ -118,6 +118,33 @@ def test_generate_box_plot():
     assert "data" in fig
 
 
+def test_generate_plot_rename_samples():
+    df = pd.DataFrame({"EL-001": [1, 2, 3], "EL-002": [1, 2, 3], "EL-003": [4, 5, 6], "EL-004": [4, 5, 6]})
+    ds = _make_dataset(df, {"EL-001": "FLVCR1-KO", "EL-002": "FLVCR1-KO", "EL-003": "FLVCR1-CTRL", "EL-004": "FLVCR1-CTRL"})
+    req = schemas.PlotRequest(plot_type="bar", parameters={"feature": 0, "rename_samples": True})
+    fig = generate_plot(ds, req)
+    assert "data" in fig
+    all_x = [label for t in fig["data"] for label in t["x"]]
+    assert "FLVCR1-KO_R1" in all_x
+    assert "FLVCR1-CTRL_R2" in all_x
+
+
+@pytest.mark.asyncio
+async def test_preprocess_rename_samples(dataset_for_preprocess):
+    params = schemas.PreprocessingParams(
+        missing_value_filter=0.0,
+        imputation="min",
+        log_transform=False,
+        scale="none",
+        normalization="none",
+        rename_samples=True,
+    )
+    fake_db = _FakeAsyncSession()
+    new = await preprocess_dataset(fake_db, dataset_for_preprocess, params)
+    assert all("_R" in c for c in new.sample_metadata)
+    assert new.sample_metadata == {c: new.sample_metadata[c] for c in new.data_matrix}
+
+
 def test_chain_space_multi_group_generates_pairwise_figures():
     samples = [f"S{i}" for i in range(9)]
     df = pd.DataFrame(np.random.lognormal(3, 1, (6, 9)), columns=samples)

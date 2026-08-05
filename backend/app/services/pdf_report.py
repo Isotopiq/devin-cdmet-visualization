@@ -950,8 +950,8 @@ def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int
 
 
 def _section_params(section: str, group_a: str, group_b: str, stats_data: List[dict], req: schemas.PDFReportRequest, selected_groups: Optional[List[str]] = None) -> Optional[dict]:
-    p = {"group_a": group_a, "group_b": group_b}
     params = req.parameters or {}
+    p = {"group_a": group_a, "group_b": group_b, "rename_samples": bool(params.get("rename_samples", False))}
     if section == "heatmap_unclustered":
         return {
             "heatmap_type": "abundance",
@@ -1008,7 +1008,7 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
             **p,
         }
     if section == "chain_space" and selected_groups:
-        return {"selected_groups": selected_groups, "group_a": group_a, "group_b": group_b}
+        return {"selected_groups": selected_groups, **p}
     if section in ("functional", "food_profile", "chain_space", "biomarker", "permanova", "outlier", "lipid_class"):
         return p
     if section == "rt_mz":

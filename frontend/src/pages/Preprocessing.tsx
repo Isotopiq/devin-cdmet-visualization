@@ -40,6 +40,7 @@ export default function Preprocessing() {
     normalization_file_id: null as number | null,
     normalization_column: 'Value',
     normalization_file_name: '',
+    rename_samples: false,
   })
 
   useEffect(() => {
@@ -95,6 +96,7 @@ export default function Preprocessing() {
         isobaric_rt_tolerance: params.isobaric_rt_tolerance,
         isobaric_rollup_preference: params.isobaric_rollup_preference,
         output_name: params.output_name || undefined,
+        rename_samples: params.rename_samples,
       }
       const res = await preprocess(Number(projectId), Number(datasetId), body)
       setProcessedDataset(res.data)
@@ -206,6 +208,10 @@ export default function Preprocessing() {
               <div className="flex items-center gap-2 pb-2">
                 <input type="checkbox" id="log" checked={params.log_transform} onChange={(e) => setParams({ ...params, log_transform: e.target.checked })} className="rounded border-slate-300" />
                 <label htmlFor="log" className="text-sm text-slate-700 dark:text-slate-200">Log2 transform</label>
+              </div>
+              <div className="flex items-center gap-2 pb-2">
+                <input type="checkbox" id="rename-samples" checked={params.rename_samples} onChange={(e) => setParams({ ...params, rename_samples: e.target.checked })} className="rounded border-slate-300" />
+                <label htmlFor="rename-samples" className="text-sm text-slate-700 dark:text-slate-200">Rename samples to group_R#</label>
               </div>
               <div className="md:col-span-3 flex flex-col gap-2">
                 <div className="flex items-center gap-2">

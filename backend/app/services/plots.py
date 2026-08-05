@@ -23,7 +23,7 @@ from scipy import stats as scipy_stats
 from sklearn.decomposition import PCA as PCA_SKL
 from sklearn.preprocessing import StandardScaler
 from app import models, schemas
-from app.services.preprocessing import to_dataframe, _to_json_safe
+from app.services.preprocessing import to_dataframe, _to_json_safe, _rename_sample_names
 from app.services.lipid_indices import compute_functional_indices, compute_food_profile_indices
 from app.services.lipid_building_blocks import compute_building_blocks
 from app.services.multivariate import pls_da_analysis, opls_da_analysis, _prepare_X
@@ -1949,6 +1949,10 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
     plot_type = req.plot_type
     params = req.parameters or {}
     style = _merge_style(req.style)
+
+    # Optional sample renaming for plot labels
+    if params.get("rename_samples"):
+        df, sample_meta, _ = _rename_sample_names(df, sample_meta)
 
     excluded_groups = set(params.get("excluded_groups") or [])
     if excluded_groups:

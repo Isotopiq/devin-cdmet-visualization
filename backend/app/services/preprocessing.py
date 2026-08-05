@@ -1,6 +1,7 @@
 import copy
 import math
 import os
+import re
 from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
@@ -57,6 +58,7 @@ def from_dataframe(
     dataset: models.Dataset,
     history_step: dict,
     feature_metadata: Optional[List[Dict[str, Any]]] = None,
+    sample_metadata: Optional[Dict[str, Any]] = None,
 ) -> models.Dataset:
     # Convert any remaining NaN/Inf before storing as JSON
     data_matrix = {}
@@ -90,11 +92,41 @@ def from_dataframe(
         name=f"{dataset.name}_processed",
         feature_type=dataset.feature_type,
         data_matrix=data_matrix,
-        sample_metadata=copy.deepcopy(dataset.sample_metadata),
+        sample_metadata=copy.deepcopy(sample_metadata if sample_metadata is not None else dataset.sample_metadata),
         feature_metadata=new_meta,
         processing_history=copy.deepcopy(dataset.processing_history) + [history_step],
     )
     return new_dataset
+
+
+def _rename_sample_names(df: pd.DataFrame, sample_metadata: Dict[str, Any]) -> tuple:
+    """Rename sample columns to <group>_R<replicate> (e.g. FLVCR1-KO_R1) for easier plotting.
+
+    Samples are ordered within each group by their original column name and assigned
+    a sequential replicate number. Group names with spaces are normalized to underscores.
+    """
+    cols = list(df.columns)
+    groups = [sample_metadata.get(c, "Unknown") for c in cols]
+    group_to_cols: Dict[str, List[str]] = {}
+    for col, group in zip(cols, groups):
+        group_to_cols.setdefault(group, []).append(col)
+
+    mapping: Dict[str, str] = {}
+    for group, group_cols in group_to_cols.items():
+        safe_group = re.sub(r"[^\w\-]+", "_", str(group)).strip("_") or "Sample"
+        for i, col in enumerate(sorted(group_cols), start=1):
+            new_name = f"{safe_group}_R{i}"
+            # Avoid collisions if the new name already exists in another group by appending _<n>.
+            base = new_name
+            count = 1
+            while new_name in mapping.values():
+                new_name = f"{base}_{count}"
+                count += 1
+            mapping[col] = new_name
+
+    df = df.rename(columns=mapping)
+    new_metadata = {mapping.get(c, c): g for c, g in sample_metadata.items() if c in mapping}
+    return df, new_metadata, mapping
 
 
 async def _load_normalization_values(file_id: int, sample_columns: List[str], value_column: Optional[str], db: AsyncSession) -> Dict[str, float]:
@@ -282,7 +314,12 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
     elif params.scale == "minmax":
         df = pd.DataFrame(MinMaxScaler().fit_transform(df.T).T, index=df.index, columns=df.columns)
 
-    new_dataset = from_dataframe(df, dataset, history, feature_metadata=current_meta)
+    # 10. Optional sample renaming to group_R<replicate>
+    renamed_metadata = None
+    if params.rename_samples:
+        df, renamed_metadata, _ = _rename_sample_names(df, dataset.sample_metadata)
+
+    new_dataset = from_dataframe(df, dataset, history, feature_metadata=current_meta, sample_metadata=renamed_metadata)
     if params.output_name:
         new_dataset.name = params.output_name
     db.add(new_dataset)

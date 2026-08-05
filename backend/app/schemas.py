@@ -199,6 +199,7 @@ class PreprocessingParams(BaseModel):
     isobaric_rt_tolerance: float = 0.2
     isobaric_rollup_preference: str = "alphabetical"
     output_name: Optional[str] = None
+    rename_samples: bool = False
 
 
 class StatsRequest(BaseModel):
