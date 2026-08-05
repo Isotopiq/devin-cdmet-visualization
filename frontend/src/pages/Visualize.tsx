@@ -119,6 +119,7 @@ export default function Visualize() {
   const [outlierGroupOrder, setOutlierGroupOrder] = useState<string[]>([])
   const [selectedOutlierGroup, setSelectedOutlierGroup] = useState('')
   const [renameSamples, setRenameSamples] = useState(false)
+  const [biomarkerComparisons, setBiomarkerComparisons] = useState<{ id: number; group_a: string; group_b: string }[]>([])
 
   const [lipidsPerPage, setLipidsPerPage] = useState(8)
   const [allLipids, setAllLipids] = useState(false)
@@ -142,6 +143,9 @@ export default function Visualize() {
     setIncludedGroups(new Set(groups))
     setGroupOrder([...groups].sort())
     setOutlierGroupOrder([...groups].sort())
+    if (biomarkerComparisons.length === 0) {
+      setBiomarkerComparisons([{ id: 0, group_a: groups[0] || '', group_b: groups[1] || '' }])
+    }
     setReady(true)
     if (groups.length <= 2 && (perLipidTest === 'anova' || perLipidTest === 'kruskal')) {
       setPerLipidTest('t_test')
@@ -195,8 +199,12 @@ export default function Visualize() {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'opls_da', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'biomarker') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'biomarker', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle }), style: backendStyle })
-        if (tabRef.current === requestTab) setFigure(res.data)
+        const comparisons = biomarkerComparisons.filter(c => c.group_a && c.group_b).map(c => ({ group_a: c.group_a, group_b: c.group_b }))
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'biomarker', parameters: withExcluded({ group_a: groupA, group_b: groupB, title: reportTitle, comparisons }), style: backendStyle })
+        if (tabRef.current === requestTab) {
+          if (Array.isArray(res.data)) setFigures(res.data)
+          else setFigure(res.data)
+        }
       } else if (tab === 'permanova') {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'permanova', parameters: withExcluded({ group_a: groupA, group_b: groupB, metric: 'braycurtis', title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
@@ -289,7 +297,7 @@ export default function Visualize() {
   useEffect(() => {
     if ((figure || figures.length) && !loading) generate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [style, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder, renameSamples])
+  }, [style, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder, renameSamples, biomarkerComparisons])
 
   const toggleInclude = (key: string) => {
     setIncludePlots((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -306,6 +314,36 @@ export default function Visualize() {
 
   const setAllGroups = (include: boolean) => {
     setIncludedGroups(include ? new Set(groups) : new Set([groupA, groupB].filter(Boolean)))
+  }
+
+  const addBiomarkerComparison = () => {
+    setBiomarkerComparisons((prev) => [...prev, { id: Date.now(), group_a: groups[0] || '', group_b: groups[1] || '' }])
+  }
+
+  const removeBiomarkerComparison = (id: number) => {
+    setBiomarkerComparisons((prev) => prev.filter((c) => c.id !== id))
+  }
+
+  const updateBiomarkerComparison = (id: number, field: 'group_a' | 'group_b', value: string) => {
+    setBiomarkerComparisons((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)))
+  }
+
+  const setBiomarkerPairwise = () => {
+    const selected = Array.from(includedGroups).filter(g => groups.includes(g))
+    const next: { id: number; group_a: string; group_b: string }[] = []
+    for (let i = 0; i < selected.length; i++) {
+      for (let j = i + 1; j < selected.length; j++) {
+        next.push({ id: Date.now() + i * selected.length + j, group_a: selected[i], group_b: selected[j] })
+      }
+    }
+    setBiomarkerComparisons(next.length ? next : [{ id: Date.now(), group_a: groups[0] || '', group_b: groups[1] || '' }])
+  }
+
+  const setBiomarkerOneVsReference = () => {
+    const selected = Array.from(includedGroups).filter(g => groups.includes(g))
+    const ref = groupA || selected[0]
+    const next = selected.filter(g => g !== ref).map((g, i) => ({ id: Date.now() + i, group_a: ref, group_b: g }))
+    setBiomarkerComparisons(next.length ? next : [{ id: Date.now(), group_a: groups[0] || '', group_b: groups[1] || '' }])
   }
 
   const buildReportParams = () => ({
@@ -335,6 +373,7 @@ export default function Visualize() {
     outlier_group_by_group: outlierGroupByGroup,
     outlier_group_order: outlierGroupOrder,
     rename_samples: renameSamples,
+    biomarker_comparisons: biomarkerComparisons.filter(c => c.group_a && c.group_b).map(c => ({ group_a: c.group_a, group_b: c.group_b })),
   })
 
   const loadScript = (src: string) =>
@@ -700,6 +739,30 @@ export default function Visualize() {
         </div>
       )
     }
+    if (tab === 'biomarker') {
+      return (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={addBiomarkerComparison} className="btn-secondary text-sm">+ Add comparison</button>
+            <button onClick={setBiomarkerPairwise} className="btn-secondary text-sm">All pairwise</button>
+            <button onClick={setBiomarkerOneVsReference} className="btn-secondary text-sm">Each vs {groupA || 'reference'}</button>
+            <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {biomarkerComparisons.map((comp) => (
+              <div key={comp.id} className="flex items-end gap-2">
+                <div className="flex-1"><label className="label-like">Group A</label><select value={comp.group_a} onChange={(e) => updateBiomarkerComparison(comp.id, 'group_a', e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
+                <div className="flex-1"><label className="label-like">Group B</label><select value={comp.group_b} onChange={(e) => updateBiomarkerComparison(comp.id, 'group_b', e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
+                <button onClick={() => removeBiomarkerComparison(comp.id)} className="btn-secondary text-sm px-2 py-1" disabled={biomarkerComparisons.length === 1}>Remove</button>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Configure one or more group comparisons. Each comparison produces a separate biomarker discovery panel. Use the <em>All pairwise</em> or <em>Each vs reference</em> buttons to auto-fill from the currently included groups.
+          </p>
+        </div>
+      )
+    }
     return <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
   }
 
@@ -818,13 +881,13 @@ export default function Visualize() {
               )}
 
               {figures.length > 0 && (
-                <div className={`grid grid-cols-1 ${tab !== 'chain_space' ? 'xl:grid-cols-2' : ''} gap-4`}>
+                <div className={`grid grid-cols-1 ${tab !== 'chain_space' && tab !== 'biomarker' ? 'xl:grid-cols-2' : ''} gap-4`}>
                   {figures.map((f, i) => (
                     <div key={i} className="card p-4">
                       <PlotWithDownload
                         data={f.data}
                         layout={f.layout}
-                        style={{ width: '100%', height: f.layout?.height ? `${f.layout.height}px` : (tab === 'chain_space' ? '650px' : '360px') }}
+                        style={{ width: '100%', height: f.layout?.height ? `${f.layout.height}px` : (tab === 'chain_space' || tab === 'biomarker' ? '650px' : '360px') }}
                         filename={`${tab}_${reportTitle.replace(/\s+/g, '_')}_${i}`}
                       />
                     </div>

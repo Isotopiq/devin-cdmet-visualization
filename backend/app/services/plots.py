@@ -1114,9 +1114,7 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
     return fig
 
 
-def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
-    group_a = params.get("group_a", "")
-    group_b = params.get("group_b", "")
+def _biomarker_figure_single(df, sample_meta, feature_metadata, style, params, group_a, group_b):
     result = biomarker_analysis(df, sample_meta, group_a, group_b, feature_metadata=feature_metadata)
     if result.get("error"):
         fig = go.Figure()
@@ -1197,6 +1195,23 @@ def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
         margin={"l": 80, "r": 80, "t": 100, "b": 110},
     )
     return fig
+
+
+def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
+    comparisons = params.get("comparisons")
+    if comparisons and isinstance(comparisons, list) and len(comparisons) > 1:
+        figures = []
+        for comp in comparisons:
+            group_a = comp.get("group_a", params.get("group_a", ""))
+            group_b = comp.get("group_b", params.get("group_b", ""))
+            if not group_a or not group_b:
+                continue
+            fig = _biomarker_figure_single(df, sample_meta, feature_metadata, style, params, group_a, group_b)
+            figures.append(json.loads(fig.to_json()))
+        return figures if figures else go.Figure()
+    group_a = params.get("group_a", "")
+    group_b = params.get("group_b", "")
+    return _biomarker_figure_single(df, sample_meta, feature_metadata, style, params, group_a, group_b)
 
 
 def _permanova_figure(df, sample_meta, feature_metadata, style, params):
@@ -2570,6 +2585,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
     elif plot_type == "biomarker":
         fig = _biomarker_figure(df, sample_meta, feature_metadata, style, params)
+        if isinstance(fig, list):
+            return fig
 
     elif plot_type == "permanova":
         fig = _permanova_figure(df, sample_meta, feature_metadata, style, params)

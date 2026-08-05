@@ -1009,7 +1009,12 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
         }
     if section == "chain_space" and selected_groups:
         return {"selected_groups": selected_groups, **p}
-    if section in ("functional", "food_profile", "chain_space", "biomarker", "permanova", "outlier", "lipid_class"):
+    if section == "biomarker":
+        comps = params.get("biomarker_comparisons") or params.get("comparisons")
+        if comps and isinstance(comps, list) and len(comps) > 1:
+            return {**p, "comparisons": comps}
+        return p
+    if section in ("functional", "food_profile", "chain_space", "permanova", "outlier", "lipid_class"):
         return p
     if section == "rt_mz":
         return {}
@@ -1100,7 +1105,7 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
             buffers = [_fig_to_png(f, width=600, height=400, scale=2) for f in fig[: req.top_n]]
             if buffers:
                 pdf._multi_plot_page(title, buffers)
-        elif section == "chain_space":
+        elif section == "chain_space" or section == "biomarker":
             if not isinstance(fig, list):
                 fig = [fig]
             for f in fig:

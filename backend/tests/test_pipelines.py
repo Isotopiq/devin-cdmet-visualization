@@ -145,6 +145,26 @@ async def test_preprocess_rename_samples(dataset_for_preprocess):
     assert new.sample_metadata == {c: new.sample_metadata[c] for c in new.data_matrix}
 
 
+def test_biomarker_multi_group_generates_multiple_figures():
+    samples = [f"S{i}" for i in range(9)]
+    df = pd.DataFrame(np.random.lognormal(3, 1, (10, 9)), columns=samples)
+    groups = {samples[i]: "A" if i < 3 else ("B" if i < 6 else "C") for i in range(9)}
+    ds = models.Dataset(
+        id=1, project_id=1, source_file_id=1, name="biomarker_test",
+        feature_type="metabolite",
+        data_matrix={c: df[c].tolist() for c in df.columns},
+        sample_metadata=groups,
+        feature_metadata=[{"feature_id": f"F{i}"} for i in range(10)],
+        processing_history=[{"step": "import"}],
+    )
+    req = schemas.PlotRequest(plot_type="biomarker", parameters={"comparisons": [{"group_a": "A", "group_b": "B"}, {"group_a": "A", "group_b": "C"}]})
+    result = generate_plot(ds, req)
+    assert isinstance(result, list)
+    assert len(result) == 2
+    for fig in result:
+        assert "data" in fig
+
+
 def test_chain_space_multi_group_generates_pairwise_figures():
     samples = [f"S{i}" for i in range(9)]
     df = pd.DataFrame(np.random.lognormal(3, 1, (6, 9)), columns=samples)
