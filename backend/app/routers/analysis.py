@@ -228,6 +228,7 @@ async def get_qc_pdf(
         description=body.description,
         cover_style=body.cover_style,
         font_family=body.font_family,
+        plots_per_page=body.plots_per_page,
         plot_layout=body.plot_layout,
         footer_logo_path=footer_logo_path,
     )

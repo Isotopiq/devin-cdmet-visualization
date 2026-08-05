@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
 from pydantic import BaseModel, ConfigDict
 import datetime as dt
 
@@ -236,6 +236,7 @@ class QCPdfRequest(BaseModel):
     description: Optional[str] = None
     cover_style: Optional[str] = "teal"
     font_family: Optional[str] = None
+    plots_per_page: Optional[Literal[1, 2, 4, 6]] = 2
     plot_layout: Optional[Dict[str, str]] = {}
     save_to_s3: bool = False
 

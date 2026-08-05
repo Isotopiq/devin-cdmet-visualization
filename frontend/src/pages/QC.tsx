@@ -57,11 +57,7 @@ export default function QC() {
     report_contents: 'QC Report',
   })
   const [fontFamily, setFontFamily] = useState('')
-  const [plotLayout, setPlotLayout] = useState<Record<string, 'single' | 'double'>>(() => {
-    const init: Record<string, 'single' | 'double'> = {}
-    PLOT_KEYS.forEach((k) => (init[k] = 'single'))
-    return init
-  })
+  const [plotsPerPage, setPlotsPerPage] = useState<1 | 2 | 4 | 6>(2)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [s3Configured, setS3Configured] = useState(false)
@@ -109,7 +105,7 @@ export default function QC() {
       prepared_by: pdfMeta.prepared_by || undefined,
       report_contents: pdfMeta.report_contents || undefined,
       font_family: fontFamily || undefined,
-      plot_layout: plotLayout,
+      plots_per_page: plotsPerPage,
       save_to_s3: saveToS3,
     }
     return payload
@@ -312,37 +308,20 @@ export default function QC() {
               </div>
 
               <div>
-                <label className="label-like">Plot page layout</label>
+                <label className="label-like">Plots per page</label>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                  Choose which QC plots should share a page (2 per page) to reduce whitespace, and which should appear on their own page.
+                  Choose how many QC plots appear on each PDF page. 2 per page is the recommended default.
                 </p>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-700 text-left">
-                        <th className="py-2 pr-4">Plot</th>
-                        <th className="py-2">Layout</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {PLOT_KEYS.map((key) => (
-                        <tr key={key} className="border-b border-slate-100 dark:border-slate-800">
-                          <td className="py-3 pr-4 text-slate-700 dark:text-slate-200">{titleFor(key)}</td>
-                          <td className="py-3">
-                            <select
-                              className="select"
-                              value={plotLayout[key] || 'single'}
-                              onChange={(e) => setPlotLayout({ ...plotLayout, [key]: e.target.value as 'single' | 'double' })}
-                            >
-                              <option value="single">One plot per page</option>
-                              <option value="double">Two plots per page</option>
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <select
+                  className="select"
+                  value={plotsPerPage}
+                  onChange={(e) => setPlotsPerPage(Number(e.target.value) as 1 | 2 | 4 | 6)}
+                >
+                  <option value={1}>1 plot per page</option>
+                  <option value={2}>2 plots per page (default)</option>
+                  <option value={4}>4 plots per page</option>
+                  <option value={6}>6 plots per page</option>
+                </select>
               </div>
             </div>
           )}

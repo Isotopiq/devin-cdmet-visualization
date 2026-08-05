@@ -688,6 +688,38 @@ class _ReportPDF(FPDF):
             y += slot_h + gap
         self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
+    def _plot_grid_page(self, items: List[Tuple[str, io.BytesIO]], per_page: int = 4):
+        """Render up to 4 or 6 plots on one page in a grid."""
+        if per_page == 6:
+            cols, rows, orientation = 2, 3, "P"
+        else:
+            cols, rows, orientation = 2, 2, "L"
+        self.add_page(orientation)
+        self._page_header(self.style.get("title", "Report"), self.style.get("organization", ""))
+        card_y = 26
+        card_h = self.h - card_y - self.footer_h - 8
+        img_y = self._content_card("QC Plots", card_y, card_h)
+        max_w = self.w - 2 * self.margin - 12
+        max_h = card_h - (img_y - card_y) - 8
+        n = min(len(items), per_page)
+        gap_x = 6
+        gap_y = 8
+        title_h = 5
+        slot_w = (max_w - (cols - 1) * gap_x) / cols if cols > 0 else max_w
+        slot_h = (max_h - (rows - 1) * gap_y - n * title_h) / rows if rows > 0 else max_h
+        for i, item in enumerate(items[:per_page]):
+            plot_title, buffer = item[0], item[1]
+            col = i % cols
+            row = i // cols
+            x = self.margin + 6 + col * (slot_w + gap_x)
+            y = img_y + row * (slot_h + gap_y + title_h)
+            _color(self, "#1a1040")
+            self.set_body_font(8, "B")
+            self.set_xy(x, y)
+            self.cell(slot_w, title_h, plot_title, align="L")
+            self._fit_image(buffer, x, y + title_h, slot_w, slot_h)
+        self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
+
     def _multi_plot_page(self, title: str, buffers: List[io.BytesIO]):
         per_page = 4
         for i in range(0, len(buffers), per_page):
@@ -1175,6 +1207,7 @@ def build_qc_pdf(
     description: str | None = None,
     cover_style: str | None = None,
     font_family: str | None = None,
+    plots_per_page: int = 2,
     plot_layout: Dict[str, str] | None = None,
     footer_logo_path: Optional[str] = None,
 ) -> bytes:
@@ -1203,6 +1236,7 @@ def build_qc_pdf(
         "footer_logo_path": footer_logo_path,
     }
     plot_layout = plot_layout or {}
+    plots_per_page = max(1, min(plots_per_page or 2, 6))
     pdf = _ReportPDF(style=style)
     pdf._draw_cover()
     pdf._qc_summary_page(metrics)
@@ -1217,22 +1251,37 @@ def build_qc_pdf(
         ("correlation_heatmap", "heatmap_unclustered"),
     ]
 
-    double_queue: List[Tuple[str, io.BytesIO]] = []
+    queue: List[Tuple[str, io.BytesIO, str]] = []
 
-    def _render_double_queue():
-        while len(double_queue) >= 2:
-            pair = double_queue[:2]
-            double_queue[:2] = []
-            try:
-                pdf._plot_pair_page(pair)
-            except Exception:
-                continue
-        for leftover in double_queue:
-            try:
-                pdf._plot_page(leftover[0], leftover[1])
-            except Exception:
-                continue
-        double_queue.clear()
+    def _flush_queue():
+        if not queue:
+            return
+        try:
+            if plots_per_page == 1:
+                for plot_title, buffer, orient in queue:
+                    pdf._plot_page(plot_title, buffer, orientation=orient)
+            elif plots_per_page == 2:
+                while len(queue) >= 2:
+                    pdf._plot_pair_page(queue[:2], orientation=queue[0][2])
+                    queue[:2] = []
+                for leftover in queue:
+                    pdf._plot_page(leftover[0], leftover[1], orientation=leftover[2])
+            elif plots_per_page in (4, 6):
+                per_page = plots_per_page
+                while len(queue) >= per_page:
+                    pdf._plot_grid_page(queue[:per_page], per_page=per_page)
+                    queue[:per_page] = []
+                if queue:
+                    if len(queue) <= 2:
+                        if len(queue) == 2:
+                            pdf._plot_pair_page(queue, orientation=queue[0][2])
+                        elif len(queue) == 1:
+                            pdf._plot_page(queue[0][0], queue[0][1], orientation=queue[0][2])
+                    else:
+                        pdf._plot_grid_page(queue, per_page=per_page)
+        except Exception:
+            pass
+        queue.clear()
 
     for key, section in figure_order:
         fig = figures.get(key)
@@ -1242,13 +1291,16 @@ def build_qc_pdf(
         try:
             layout = SECTION_LAYOUTS.get(section, SECTION_LAYOUTS["default"])
             img = _fig_to_png(fig, width=layout["width"], height=layout["height"], scale=2)
-            if plot_layout.get(key) == "double":
-                double_queue.append((title, img))
+            orient = layout.get("orientation", "P")
+            if plot_layout.get(key) == "single":
+                _flush_queue()
+                pdf._plot_page(title, img, orientation=orient)
             else:
-                _render_double_queue()
-                pdf._plot_page(title, img, orientation=layout.get("orientation", "P"))
+                queue.append((title, img, orient))
+                if len(queue) >= plots_per_page:
+                    _flush_queue()
         except Exception:
             continue
-    _render_double_queue()
+    _flush_queue()
 
     return bytes(pdf.output())

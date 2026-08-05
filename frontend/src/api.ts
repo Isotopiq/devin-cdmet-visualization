@@ -138,7 +138,7 @@ export const exportQCExcel = (projectId: number, datasetId: number, selectedGrou
   selectedGroups.forEach((g) => params.append('selected_groups', g))
   return API.get(`/analysis/${projectId}/dataset/${datasetId}/qc/excel`, { params, responseType: 'blob' })
 }
-export const exportQCPdf = (projectId: number, datasetId: number, data: { selected_groups?: string[]; primary_comparison?: string; prepared_for?: string; prepared_by?: string; report_contents?: string; report_type?: string; subtitle?: string; description?: string; cover_style?: string; font_family?: string; plot_layout?: Record<string, string>; save_to_s3?: boolean }) =>
+export const exportQCPdf = (projectId: number, datasetId: number, data: { selected_groups?: string[]; primary_comparison?: string; prepared_for?: string; prepared_by?: string; report_contents?: string; report_type?: string; subtitle?: string; description?: string; cover_style?: string; font_family?: string; plots_per_page?: number; plot_layout?: Record<string, string>; save_to_s3?: boolean }) =>
   API.post(`/analysis/${projectId}/dataset/${datasetId}/qc/pdf`, data, { responseType: 'blob' })
 export const generatePDFReport = (projectId: number, datasetId: number, data: any) =>
   API.post(`/plots/${projectId}/dataset/${datasetId}/report/pdf`, data, { responseType: 'blob' })
