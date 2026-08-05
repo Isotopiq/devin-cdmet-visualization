@@ -942,7 +942,7 @@ def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Score plot (LV1 vs LV2)", "Top VIP features", "Model performance", "Permutation test (R²Y)"),
-        vertical_spacing=0.22,
+        vertical_spacing=0.28,
         horizontal_spacing=0.14,
     )
 
@@ -1003,6 +1003,9 @@ def _pls_da_figure(df, sample_meta, feature_metadata, style, params):
     x_labels = vip_labels + [f["feature"] for f in result.get("feature_importances", [])[:15]]
     _apply_base_layout(fig, style, title=None, x_labels=x_labels)
     fig.update_xaxes(tickmode="linear", dtick=1, tickangle=-45, tickfont=dict(size=9), row=1, col=2)
+    fig.update_xaxes(tickangle=0, row=1, col=1)
+    fig.update_xaxes(tickangle=0, row=2, col=1)
+    fig.update_xaxes(tickangle=0, row=2, col=2)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
         legend={"orientation": "h", "y": -0.2},
@@ -1046,7 +1049,7 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Score plot (predictive vs orthogonal)", "S-plot", "Top discriminant features", "Observation diagnostics"),
-        vertical_spacing=0.22,
+        vertical_spacing=0.28,
         horizontal_spacing=0.14,
     )
 
@@ -1100,6 +1103,9 @@ def _opls_da_figure(df, sample_meta, feature_metadata, style, params):
     x_labels = top_labels + [t["feature"] for t in top]
     _apply_base_layout(fig, style, title=None, x_labels=x_labels)
     fig.update_xaxes(tickmode="linear", dtick=1, tickangle=-45, tickfont=dict(size=9), row=2, col=1)
+    fig.update_xaxes(tickangle=0, row=1, col=1)
+    fig.update_xaxes(tickangle=0, row=1, col=2)
+    fig.update_xaxes(tickangle=0, row=2, col=2)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
         legend={"orientation": "h", "y": -0.2},
@@ -1124,7 +1130,7 @@ def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=("Top candidate AUC", "Random Forest ROC", "Top RF importances", "Top candidate table"),
-        vertical_spacing=0.22,
+        vertical_spacing=0.28,
         horizontal_spacing=0.14,
         specs=[[{"type": "xy"}, {"type": "xy"}], [{"type": "xy"}, {"type": "table"}]],
     )
@@ -1184,6 +1190,7 @@ def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
     _apply_base_layout(fig, style, title=None, x_labels=x_labels)
     fig.update_xaxes(tickmode="linear", dtick=1, tickangle=-45, tickfont=dict(size=9), row=1, col=1)
     fig.update_xaxes(tickmode="linear", dtick=1, tickangle=-45, tickfont=dict(size=9), row=2, col=1)
+    fig.update_xaxes(tickangle=0, row=1, col=2)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
         legend={"orientation": "h", "y": -0.2},
@@ -1257,10 +1264,12 @@ def _permanova_figure(df, sample_meta, feature_metadata, style, params):
 
     title = f"PERMANOVA: {group_b} vs {group_a} (pseudo-F={actual:.2f}, p={result['p_value']:.3f}, R²={result['r2']:.2f})"
     _apply_base_layout(fig, style, title=None, y_labels=display_samples)
+    left_margin = max(getattr(fig.layout.margin, "l", 80), 80)
+    bottom_margin = max(getattr(fig.layout.margin, "b", 110), 110)
     fig.update_layout(
         title={"text": title, "font": {"size": style.get("title_size"), "color": "#1e293b"}, "x": 0.5, "xanchor": "center"},
         legend={"orientation": "h", "y": -0.2},
-        margin={"l": 80, "r": 80, "t": 100, "b": 110},
+        margin={"l": left_margin, "r": 80, "t": 100, "b": bottom_margin},
     )
     return fig
 
@@ -1994,13 +2003,32 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 samps = [display_samples[i] for i in idx]
                 fig.add_trace(go.Scatter(x=samps, y=vals, mode="markers", name=g, marker_color=color_map[g], marker_size=style.get("marker_size")))
             fig.update_layout(xaxis_title="Sample", yaxis_title="Intensity")
-        _apply_base_layout(fig, style, title=f"{plot_type.title()} Plot: {title}", x_labels=display_samples)
-        n_samples = len(display_samples)
-        if n_samples <= 30:
-            tick_font = max(7, style.get("tick_size", 11) - 1) if n_samples <= 20 else max(6, style.get("tick_size", 11) - 2)
-            fig.update_xaxes(tickmode="linear", dtick=1, tickangle=-45, tickfont=dict(size=tick_font), automargin=True)
+
+        # Choose the x-axis label set used by the actual traces.
+        if plot_type in ("box", "violin"):
+            x_labels_for_layout = sorted(set(ordered_groups))
         else:
-            fig.update_xaxes(tickmode="auto", automargin=True)
+            x_labels_for_layout = display_samples
+        _apply_base_layout(fig, style, title=f"{plot_type.title()} Plot: {title}", x_labels=x_labels_for_layout)
+
+        n_x = len(x_labels_for_layout)
+        longest_x = max([len(str(l)) for l in x_labels_for_layout], default=0)
+        if longest_x > 18 or n_x > 15:
+            tick_font = max(6, style.get("tick_size", 11) - 2)
+        elif n_x > 25:
+            tick_font = max(6, style.get("tick_size", 11) - 3)
+        else:
+            tick_font = max(7, style.get("tick_size", 11) - 1)
+        if n_x > 40:
+            x_tickangle = -90
+        elif longest_x > 12 or n_x > 12:
+            x_tickangle = -45
+        else:
+            x_tickangle = 0
+        if n_x <= 40:
+            fig.update_xaxes(tickmode="linear", dtick=1, tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
+        else:
+            fig.update_xaxes(tickmode="auto", tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
 
     elif plot_type == "heatmap":
         heatmap_type = params.get("heatmap_type", "abundance")
@@ -2264,9 +2292,22 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             loadings = pca.components_[0]
             feat_ids = [m.get("feature_id", i) for i, m in enumerate(feature_metadata)]
             top_idx = np.argsort(np.abs(loadings))[-50:]
-            fig = px.bar(x=[feat_ids[i] for i in top_idx], y=[loadings[i] for i in top_idx],
+            x_labels = [feat_ids[i] for i in top_idx]
+            fig = px.bar(x=x_labels, y=[loadings[i] for i in top_idx],
                          labels={"x": "Feature", "y": "PC1 Loading"})
-            _apply_base_layout(fig, style, title="PCA Top Loadings (PC1)")
+            _apply_base_layout(fig, style, title="PCA Top Loadings (PC1)", x_labels=x_labels)
+            n_x = len(x_labels)
+            longest_x = max([len(str(l)) for l in x_labels], default=0)
+            if n_x > 25 or longest_x > 18:
+                tick_font = max(6, style.get("tick_size", 11) - 3)
+                x_tickangle = -90
+            elif n_x > 12 or longest_x > 10:
+                tick_font = max(7, style.get("tick_size", 11) - 2)
+                x_tickangle = -45
+            else:
+                tick_font = max(7, style.get("tick_size", 11) - 1)
+                x_tickangle = -45
+            fig.update_xaxes(tickmode="linear", dtick=1, tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
         elif ptype == "biplot":
             fig = go.Figure()
             for g in sorted(set(labels)):
@@ -2483,9 +2524,15 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 title += " *"
             test_label = s.get("test", params.get("test", "t-test"))
             subtitle = f"p={padj:.3g} ({test_label})"
-            fig.update_xaxes(tickmode="array", tickvals=xpos, ticktext=ordered, tickangle=0)
+            fig.update_xaxes(tickmode="array", tickvals=xpos, ticktext=ordered)
             fig.update_layout(xaxis_title="", yaxis_title="Mean intensity")
-            _apply_base_layout(fig, style, title=title)
+            _apply_base_layout(fig, style, title=title, x_labels=ordered)
+            n_groups = len(ordered)
+            if n_groups > 8:
+                fig.update_xaxes(tickangle=-90, tickfont=dict(size=max(7, style.get("tick_size", 11) - 2)), automargin=True)
+                fig.update_layout(margin={"l": 60, "r": 50, "t": 100, "b": max(120, min(200, n_groups * 12))})
+            else:
+                fig.update_xaxes(automargin=True)
             fig.add_annotation(
                 text=subtitle,
                 xref="paper", yref="paper",

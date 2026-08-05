@@ -161,7 +161,11 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
             fig.add_trace(go.Bar(x=xs, y=ys, name=g, marker_color=color_map.get(g, "#94a3b8")))
         fig.update_layout(barmode="group", xaxis_title="Sample", yaxis_title=y_title)
         _apply_base_layout(fig, style, title=title, x_labels=samples)
-        fig.update_xaxes(tickangle=45)
+        n_samp = len(samples)
+        longest_samp = max([len(str(s)) for s in samples], default=0)
+        tick_font = max(6, style.get("tick_size", 11) - 2) if n_samp > 30 else max(7, style.get("tick_size", 11) - 1)
+        x_tickangle = -90 if (longest_samp > 20 or n_samp > 40) else (-45 if (longest_samp > 10 or n_samp > 12) else 0)
+        fig.update_xaxes(tickmode="linear", dtick=1, tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
         return json.loads(fig.to_json())
 
     # Box plot of log2 intensities per sample
@@ -177,7 +181,11 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
                 fig.add_trace(go.Box(y=vals, name=s, marker_color=color_map.get(g, "#94a3b8"), showlegend=False))
         fig.update_layout(xaxis_title="Sample", yaxis_title="log2 intensity")
         _apply_base_layout(fig, style, title="Sample Intensity Distribution", x_labels=samples)
-        fig.update_xaxes(tickangle=45)
+        n_samp = len(samples)
+        longest_samp = max([len(str(s)) for s in samples], default=0)
+        tick_font = max(6, style.get("tick_size", 11) - 2) if n_samp > 30 else max(7, style.get("tick_size", 11) - 1)
+        x_tickangle = -90 if (longest_samp > 20 or n_samp > 40) else (-45 if (longest_samp > 10 or n_samp > 12) else 0)
+        fig.update_xaxes(tickmode="linear", dtick=1, tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
         return json.loads(fig.to_json())
 
     # CV box plot per group
@@ -197,7 +205,14 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
                 continue
             fig.add_trace(go.Box(y=cvs, name=g, marker_color=color_map.get(g, "#94a3b8")))
         fig.update_layout(xaxis_title="Group", yaxis_title="Coefficient of variation (%)")
-        _apply_base_layout(fig, style, title="Per-Feature CV by Group")
+        _apply_base_layout(fig, style, title="Per-Feature CV by Group", x_labels=group_order)
+        longest_group = max([len(str(g)) for g in group_order], default=0)
+        n_groups = len(group_order)
+        tick_font = max(7, style.get("tick_size", 11) - 1)
+        if longest_group > 18 or n_groups > 15:
+            tick_font = max(6, style.get("tick_size", 11) - 2)
+        x_tickangle = -90 if (longest_group > 18 or n_groups > 15) else (-45 if (longest_group > 12 or n_groups > 8) else 0)
+        fig.update_xaxes(tickmode="linear", dtick=1, tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
         return json.loads(fig.to_json())
 
     figures = {

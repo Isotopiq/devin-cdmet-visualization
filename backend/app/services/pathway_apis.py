@@ -566,6 +566,12 @@ def enrichment_bar_figure(rows: List[Dict[str, Any]], title: str, style: Dict[st
     scores = [max(0.0, -math.log10(max(p, 1e-300))) for p in pvals]
     colors = _pathway_colors(len(rows))
 
+    n_rows = len(rows)
+    max_label_len = max([len(str(l)) for l in labels], default=0)
+    tick_font = max(6, style.get("tick_size", 11) - 2) if n_rows > 30 else max(7, style.get("tick_size", 11) - 1)
+    left_margin = max(150, int(max_label_len * tick_font * 0.55))
+    plot_height = max(450, n_rows * 22 + 120)
+
     fig = go.Figure(go.Bar(
         x=scores,
         y=labels,
@@ -573,12 +579,13 @@ def enrichment_bar_figure(rows: List[Dict[str, Any]], title: str, style: Dict[st
         marker_color=colors,
         hovertemplate="%{y}<br>-log10(padj): %{x:.3f}<extra></extra>",
     ))
-    _apply_base_layout(fig, style, title=title)
+    _apply_base_layout(fig, style, title=title, y_labels=labels)
     fig.update_layout(
         xaxis_title="-log10(adjusted p-value)",
-        yaxis=dict(automargin=True, tickfont=dict(size=max(7, style.get("tick_size", 11) - 1))),
+        yaxis=dict(automargin=True, tickfont=dict(size=tick_font)),
         xaxis=dict(automargin=True),
-        margin=dict(l=150, r=40, t=80, b=60),
+        margin=dict(l=left_margin, r=40, t=80, b=60),
+        height=plot_height,
     )
     return fig.to_dict()
 
