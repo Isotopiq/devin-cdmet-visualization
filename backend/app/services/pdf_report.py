@@ -720,8 +720,12 @@ class _ReportPDF(FPDF):
             self._fit_image(buffer, x, y + title_h, slot_w, slot_h)
         self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
-    def _multi_plot_page(self, title: str, buffers: List[io.BytesIO]):
-        per_page = 4
+    def _multi_plot_page(self, title: str, buffers: List[io.BytesIO], per_page: int = 4):
+        per_page = max(1, min(per_page, 8))
+        cols = 1 if per_page == 1 else 2
+        rows = (per_page + cols - 1) // cols
+        gap_x = 8
+        gap_y = 10
         for i in range(0, len(buffers), per_page):
             self.add_page("P")
             self._page_header(self.style.get("title", "Report"), self.style.get("organization", ""))
@@ -732,20 +736,20 @@ class _ReportPDF(FPDF):
                 page_title = f"{title} ({i + 1}-{min(i + per_page, len(buffers))})"
             self._content_card(page_title, card_y, card_h)
 
-            positions = [
-                (self.margin + 8, card_y + 18, 88, 60),
-                (self.margin + 104, card_y + 18, 88, 60),
-                (self.margin + 8, card_y + 92, 88, 60),
-                (self.margin + 104, card_y + 92, 88, 60),
-            ]
+            max_w = self.w - 2 * self.margin - 12
+            max_h = card_h - 22
+            slot_w = (max_w - (cols - 1) * gap_x) / cols if cols > 0 else max_w
+            slot_h = (max_h - (rows - 1) * gap_y) / rows if rows > 0 else max_h
+            img_y = card_y + 18
             for j, buf in enumerate(buffers[i : i + per_page]):
-                if j >= len(positions):
-                    break
-                x, y, w, h = positions[j]
+                col = j % cols
+                row = j // cols
+                x = self.margin + 6 + col * (slot_w + gap_x)
+                y = img_y + row * (slot_h + gap_y)
                 _fill(self, "#ffffff")
                 _draw_color(self, "#e2e8f0")
-                self._rounded_rect(x, y, w, h, 3, style="DF")
-                self._fit_image(buf, x + 3, y + 3, w - 6, h - 6)
+                self._rounded_rect(x, y, slot_w, slot_h, 3, style="DF")
+                self._fit_image(buf, x + 3, y + 3, slot_w - 6, slot_h - 6)
             self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
     def _pathways_table_page(self, pathways: List[Dict[str, Any]]):
@@ -919,14 +923,15 @@ def _summary_metrics(dataset: models.Dataset, group_a: str, group_b: str, stats_
     }
 
 
-def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int = 2) -> io.BytesIO:
+def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int = 2, keep_title: bool = False) -> io.BytesIO:
     fig = go.Figure(data=fig_dict.get("data", []), layout=fig_dict.get("layout", {}))
 
-    # Strip the figure title because the PDF card already has a title.
-    if fig.layout.title is not None:
+    # Strip the figure title because the PDF card already has a title, unless the caller
+    # needs the per-plot title (e.g. individual lipid bar plots).
+    if not keep_title and fig.layout.title is not None:
         fig.update_layout(title_text="")
 
-    # Tighten the top margin since the title is gone.
+    # Tighten the top margin when the title is removed; keep enough room when kept.
     margin = {}
     if fig.layout.margin is not None:
         margin = {
@@ -934,7 +939,10 @@ def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int
             for k in ("l", "r", "t", "b")
             if getattr(fig.layout.margin, k) is not None
         }
-    margin["t"] = 30
+    if keep_title:
+        margin["t"] = max(margin.get("t", 60), 60)
+    else:
+        margin["t"] = 30
     fig.update_layout(
         paper_bgcolor="#ffffff",
         plot_bgcolor="#ffffff",
@@ -949,7 +957,7 @@ def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int
     return buffer
 
 
-def _section_params(section: str, group_a: str, group_b: str, stats_data: List[dict], req: schemas.PDFReportRequest, selected_groups: Optional[List[str]] = None) -> Optional[dict]:
+def _section_params(section: str, group_a: str, group_b: str, stats_data: List[dict], req: schemas.PDFReportRequest, selected_groups: Optional[List[str]] = None, dataset: Optional[models.Dataset] = None) -> Optional[dict]:
     params = req.parameters or {}
     p = {"group_a": group_a, "group_b": group_b, "rename_samples": bool(params.get("rename_samples", False))}
     if section == "heatmap_unclustered":
@@ -986,13 +994,18 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
     if section == "opls_da":
         return {"n_orth": 1, "n_perm": req.n_perm, **p}
     if section == "per_lipid_bars":
+        per_page = int(params.get("per_lipid_top_n", req.top_n) or 8)
+        top_n = per_page
+        if params.get("all_lipids") and dataset is not None:
+            top_n = max(top_n, len(dataset.feature_metadata or []))
         return {
             "stats": stats_data,
             "fc_threshold": req.fc_threshold,
             "p_threshold": req.p_threshold,
             "padj_threshold": req.p_threshold,
             "show_labels": req.show_labels,
-            "top_n": params.get("per_lipid_top_n", req.top_n),
+            "top_n": top_n,
+            "per_page": per_page,
             "groups": selected_groups,
             "test": params.get("test", req.test),
             **p,
@@ -1077,7 +1090,7 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
     for section in sections:
         if section == "summary":
             continue
-        section_params = _section_params(section, group_a, group_b, stats_data, req, selected_groups=selected_groups)
+        section_params = _section_params(section, group_a, group_b, stats_data, req, selected_groups=selected_groups, dataset=dataset)
         if section_params is None:
             continue
         plot_type = section
@@ -1102,9 +1115,10 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
         if section == "per_lipid_bars":
             if not isinstance(fig, list):
                 continue
-            buffers = [_fig_to_png(f, width=600, height=400, scale=2) for f in fig[: req.top_n]]
+            per_page = max(1, min(int(section_params.get("per_page", 4)), 8))
+            buffers = [_fig_to_png(f, width=600, height=400, scale=2, keep_title=True) for f in fig]
             if buffers:
-                pdf._multi_plot_page(title, buffers)
+                pdf._multi_plot_page(title, buffers, per_page=per_page)
         elif section == "chain_space" or section == "biomarker":
             if not isinstance(fig, list):
                 fig = [fig]
