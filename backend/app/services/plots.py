@@ -1676,7 +1676,7 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
 
     # rename labels
     plot_df.index = [_shorten_name(_clean_lipid_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx), 35) for idx in plot_df.index]
-    plot_df.columns = [_shorten_name(c, 30) for c in plot_df.columns]
+    plot_df.columns = [_shorten_name(c, 22) for c in plot_df.columns]
 
     m, n = plot_df.shape
     mask = plot_df.isna()
@@ -1738,11 +1738,11 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
             cg.ax_heatmap.set_yticklabels(cg.ax_heatmap.get_yticklabels(), fontsize=y_font)
         title = params.get("title") or f"Top {m} most-variable features"
         cg.fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
-        # group color legend below the heatmap
+        # group color legend to the right of the heatmap so it does not overlap vertical x-axis labels
         try:
             legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
-            ncol = min(4, max(1, len(legend_handles)))
-            cg.ax_heatmap.legend(handles=legend_handles, loc="upper center", bbox_to_anchor=(0.5, -0.22), title="Group", fontsize=7, frameon=True, ncol=ncol)
+            ncol = max(1, int(np.ceil(len(legend_handles) / 6)))
+            cg.ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.25, 1.0), title="Group", fontsize=7, frameon=True, ncol=ncol)
         except Exception:
             pass
         return _mpl_figure_to_plotly(cg.fig, title=None)
@@ -1773,8 +1773,8 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
         ax_heatmap.set_xticklabels(ax_heatmap.get_xticklabels(), rotation=90, ha="center", fontsize=x_font)
         ax_heatmap.set_yticklabels(ax_heatmap.get_yticklabels(), fontsize=y_font)
         legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
-        ncol = min(4, max(1, len(legend_handles)))
-        ax_heatmap.legend(handles=legend_handles, loc="upper center", bbox_to_anchor=(0.5, -0.18), title="Group", fontsize=7, frameon=True, ncol=ncol)
+        ncol = max(1, int(np.ceil(len(legend_handles) / 6)))
+        ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.25, 1.0), title="Group", fontsize=7, frameon=True, ncol=ncol)
         title = params.get("title") or f"Top {m} most-variable features"
         fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
         return _mpl_figure_to_plotly(fig, params.get("title"))
