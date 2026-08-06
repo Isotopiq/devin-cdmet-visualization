@@ -52,6 +52,15 @@ cover_styles:
     text_color: "#ffffff"
     accent: "#00c4a8"
     sidebar_width: 0.38
+  lipidone:
+    name: "LipidOne"
+    gradient:
+      - "#002b36"
+      - "#006d77"
+      - "#0a9396"
+      - "#94d2bd"
+    text_color: "#ffffff"
+    accent: "#f4a261"
 
 page:
   width_mm: 210

@@ -56,6 +56,23 @@ const LINKAGE_COLORS = [
 
 const LIPIDS_PER_PAGE = [4, 6, 8, 12, 16, 24, 32]
 
+const FONT_OPTIONS = [
+  { label: 'Default (system)', value: '' },
+  { label: 'Helvetica', value: 'Helvetica' },
+  { label: 'Times', value: 'Times' },
+  { label: 'Courier', value: 'Courier' },
+  { label: 'DejaVu', value: 'DejaVu' },
+  { label: 'Liberation', value: 'Liberation' },
+]
+
+const COVER_STYLES = [
+  { label: 'Classic Deep', value: 'classic' },
+  { label: 'Clean Minimal', value: 'minimal' },
+  { label: 'Ocean Teal', value: 'teal' },
+  { label: 'Split Panel', value: 'split' },
+  { label: 'LipidOne', value: 'lipidone' },
+]
+
 const ALL_PLOT_KEYS = [
   { key: 'pca', label: 'PCA' },
   { key: 'pls_da', label: 'PLS-DA' },
@@ -133,6 +150,8 @@ export default function Visualize() {
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrStatus, setOcrStatus] = useState('')
   const [pdfPreparedBy, setPdfPreparedBy] = useState('Metabolomics Platform')
+  const [pdfCoverStyle, setPdfCoverStyle] = useState('classic')
+  const [pdfFontFamily, setPdfFontFamily] = useState('')
   const [s3Configured, setS3Configured] = useState(false)
   const [saveReportToS3, setSaveReportToS3] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
@@ -507,7 +526,7 @@ export default function Visualize() {
         multiple_testing: reportParams.multiple_testing,
         show_labels: reportParams.show_labels,
         parameters: reportParams,
-        style: backendStyle,
+        style: { ...backendStyle, cover_style: pdfCoverStyle, font_family: pdfFontFamily || backendStyle.font_family },
         save_to_s3: saveReportToS3,
       })
       const blob = new Blob([res.data], { type: 'application/pdf' })
@@ -799,6 +818,18 @@ export default function Visualize() {
                 <div className="flex-1 min-w-[200px]">
                   <label className="label-like">Title</label>
                   <input value={reportTitle} onChange={(e) => setReportTitle(e.target.value)} className="input text-sm" placeholder="Report title" />
+                </div>
+                <div>
+                  <label className="label-like">PDF cover style</label>
+                  <select value={pdfCoverStyle} onChange={(e) => setPdfCoverStyle(e.target.value)} className="input text-sm">
+                    {COVER_STYLES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label-like">PDF font</label>
+                  <select value={pdfFontFamily} onChange={(e) => setPdfFontFamily(e.target.value)} className="input text-sm">
+                    {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                  </select>
                 </div>
                 {s3Configured && (
                   <div className="flex items-center h-10 gap-2">
