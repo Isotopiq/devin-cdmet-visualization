@@ -7,6 +7,8 @@ import PlotWithDownload from '../components/PlotWithDownload'
 import PlotStyling from '../components/PlotStyling'
 import { generatePlot, runStats, generatePDFReport, getSettings } from '../api'
 import { LuRefreshCw, LuFileDown, LuPrinter, LuChevronDown, LuChevronUp, LuX, LuDownload, LuFileText, LuFilter } from 'react-icons/lu'
+import JSZip from 'jszip'
+import Plotly from 'plotly.js/dist/plotly'
 
 const TABS = [
   { key: 'pca', label: 'PCA' },
@@ -147,6 +149,7 @@ export default function Visualize() {
   const [reportOpen, setReportOpen] = useState(false)
   const [reportSections, setReportSections] = useState<any[]>([])
   const [reportLoading, setReportLoading] = useState(false)
+  const [zipLoading, setZipLoading] = useState(false)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrStatus, setOcrStatus] = useState('')
   const [pdfPreparedBy, setPdfPreparedBy] = useState('Metabolomics Platform')
@@ -546,6 +549,43 @@ export default function Visualize() {
     }
   }
 
+  const downloadZip = async () => {
+    const figs = figures.length ? figures : figure ? [figure] : []
+    if (!figs.length) return
+    setZipLoading(true)
+    try {
+      const zip = new JSZip()
+      const baseName = (reportTitle || `${tab}_plots`).replace(/[^\w\-]+/g, '_')
+      for (let i = 0; i < figs.length; i++) {
+        const f = figs[i]
+        const layout = f.layout || {}
+        const titleText = typeof layout.title === 'string' ? layout.title : layout.title?.text
+        const plotName = (titleText || `${tab}_${i + 1}`).replace(/[^\w\-]+/g, '_').slice(0, 80)
+        const width = Math.max(400, layout.width || 1200)
+        const height = Math.max(300, layout.height || (tab === 'heatmap' ? 900 : 650))
+        const exportLayout = { ...layout, width, height }
+        const dataUrl = await Plotly.toImage({ data: f.data, layout: exportLayout }, { format: 'png', width, height, scale: 2 })
+        const base64 = dataUrl.split(',')[1]
+        const fileName = figs.length === 1 ? `${plotName}.png` : `${String(i + 1).padStart(2, '0')}_${plotName}.png`
+        zip.file(fileName, base64, { base64: true })
+      }
+      const blob = await zip.generateAsync({ type: 'blob' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${baseName}.zip`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      console.error(err)
+      alert('Failed to generate ZIP: ' + (err.message || 'unknown error'))
+    } finally {
+      setZipLoading(false)
+    }
+  }
+
   const renderSection = (section: any, idx: number) => {
     if (section.figures) {
       return (
@@ -843,7 +883,7 @@ export default function Visualize() {
                     <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="allLipidsTop" checked={allLipids} onChange={(e) => setAllLipids(e.target.checked)} /><label htmlFor="allLipidsTop">All lipids</label></div>
                   </>
                 )}
-                <button className="btn-secondary text-sm" disabled title="ZIP export coming soon"><LuFileDown /> ZIP plots</button>
+                <button onClick={downloadZip} disabled={zipLoading || !figure && !figures.length} className="btn-secondary text-sm"><LuFileDown /> {zipLoading ? 'Zipping...' : 'ZIP plots'}</button>
                 <button onClick={exportReport} disabled={reportLoading || loading} className="btn-primary text-sm"><LuPrinter /> Export PDF</button>
               </div>
 

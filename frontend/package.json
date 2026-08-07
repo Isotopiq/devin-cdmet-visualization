@@ -10,20 +10,21 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.25.1",
     "axios": "^1.7.2",
-    "plotly.js": "^2.34.0",
-    "react-plotly.js": "^2.6.0",
     "flowbite": "^2.4.1",
     "flowbite-react": "^0.10.1",
-    "react-dropzone": "^14.2.3"
+    "jszip": "^3.10.1",
+    "plotly.js": "^2.34.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-dropzone": "^14.2.3",
+    "react-plotly.js": "^2.6.0",
+    "react-router-dom": "^6.25.1"
   },
   "devDependencies": {
+    "@types/plotly.js": "^2.33.3",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@types/plotly.js": "^2.33.3",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
     "@vitejs/plugin-react": "^4.3.1",
