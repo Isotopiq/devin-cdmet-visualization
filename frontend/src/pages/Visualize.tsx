@@ -559,12 +559,22 @@ export default function Visualize() {
       for (let i = 0; i < figs.length; i++) {
         const f = figs[i]
         const layout = f.layout || {}
-        const titleText = typeof layout.title === 'string' ? layout.title : layout.title?.text
-        const plotName = (titleText || `${tab}_${i + 1}`).replace(/[^\w\-]+/g, '_').slice(0, 80)
+        const rawTitle = typeof layout.title === 'string' ? layout.title : layout.title?.text
+        const titleText = (rawTitle || '').replace(/<[^>]+>/g, '').trim()
+        const plotName = (titleText || `${tab}_${i + 1}`).replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80)
         const width = Math.max(400, layout.width || 1200)
         const height = Math.max(300, layout.height || (tab === 'heatmap' ? 900 : 650))
         const exportLayout = { ...layout, width, height }
-        const dataUrl = await Plotly.toImage({ data: f.data, layout: exportLayout }, { format: 'png', width, height, scale: 2 })
+        const tmp = document.createElement('div')
+        tmp.style.position = 'absolute'
+        tmp.style.left = '-9999px'
+        tmp.style.width = `${width}px`
+        tmp.style.height = `${height}px`
+        document.body.appendChild(tmp)
+        await Plotly.newPlot(tmp, f.data, exportLayout, f.config || {})
+        const dataUrl = await Plotly.toImage(tmp, { format: 'png', width, height, scale: 2 })
+        Plotly.purge(tmp)
+        tmp.remove()
         const base64 = dataUrl.split(',')[1]
         const fileName = figs.length === 1 ? `${plotName}.png` : `${String(i + 1).padStart(2, '0')}_${plotName}.png`
         zip.file(fileName, base64, { base64: true })
