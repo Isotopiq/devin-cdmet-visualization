@@ -1675,7 +1675,9 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
 
     # rename labels
     plot_df.index = [_shorten_name(_clean_lipid_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx), 35) for idx in plot_df.index]
-    plot_df.columns = [_shorten_name(c, 22) for c in plot_df.columns]
+    short_cols = [_shorten_name(c, 22) for c in plot_df.columns]
+    sample_groups = dict(zip(short_cols, [sample_groups.get(c, "Unknown") for c in plot_df.columns]))
+    plot_df.columns = short_cols
 
     m, n = plot_df.shape
     mask = plot_df.isna()
