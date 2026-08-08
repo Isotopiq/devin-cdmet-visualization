@@ -1504,7 +1504,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
 
     max_group_len = max([len(str(g)) for g in group_order], default=0)
     group_legend_width = max_group_len * 8 + 55
-    right_margin = max(260, int(max_y_len * y_tick_size * 0.75) + 40 + group_legend_width)
+    right_margin = max(260, int(max_y_len * y_tick_size * 0.75) + 55 + group_legend_width)
     if is_lipidone:
         x_label_extra = max_x_len * x_tick_size + 60
         bottom_margin = max(180, x_label_extra + 90)
@@ -1544,6 +1544,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         ticktext=short_rows[::y_step],
         tickfont=dict(size=y_tick_size),
         side="right",
+        ticklabelstandoff=6,
         automargin=True,
         showgrid=False,
         zeroline=False,
@@ -2184,7 +2185,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
             max_group_len = max([len(str(g)) for g in group_order], default=0)
             group_legend_width = max_group_len * 8 + 55
-            right_margin = max(260, int(max_y_len * y_tick_size * 0.75) + 40 + group_legend_width)
+            right_margin = max(260, int(max_y_len * y_tick_size * 0.75) + 55 + group_legend_width)
             projection = abs(np.sin(np.radians(x_tickangle))) if x_tickangle != 0 else 0
             x_label_extra = int(max_x_len * x_tick_size * projection) + 60 if x_tickangle != 0 else x_tick_size + 30
             bottom_margin = max(110, x_label_extra + 70)
@@ -2283,6 +2284,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 ticktext=short_rows[::y_step],
                 tickfont={"size": y_tick_size},
                 side="right",
+                ticklabelstandoff=6,
                 automargin=True,
                 showgrid=False,
                 zeroline=False,
