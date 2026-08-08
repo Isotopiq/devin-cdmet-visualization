@@ -1741,7 +1741,7 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
         try:
             legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
             ncol = max(1, int(np.ceil(len(legend_handles) / 6)))
-            cg.ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.55, 1.0), borderaxespad=0.6, title="Group", fontsize=7, frameon=True, ncol=ncol)
+            cg.ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.40, 1.0), borderaxespad=0.4, title="Group", fontsize=7, frameon=True, ncol=ncol)
         except Exception:
             pass
         return _mpl_figure_to_plotly(cg.fig, title=None)
@@ -1773,7 +1773,7 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
         ax_heatmap.set_yticklabels(ax_heatmap.get_yticklabels(), fontsize=y_font)
         legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
         ncol = max(1, int(np.ceil(len(legend_handles) / 6)))
-        ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.55, 1.0), borderaxespad=0.6, title="Group", fontsize=7, frameon=True, ncol=ncol)
+        ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.40, 1.0), borderaxespad=0.4, title="Group", fontsize=7, frameon=True, ncol=ncol)
         title = params.get("title") or f"Top {m} most-variable features"
         fig.suptitle(title, fontsize=12, color="#1e293b", y=0.99)
         return _mpl_figure_to_plotly(fig, params.get("title"))
