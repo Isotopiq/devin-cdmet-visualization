@@ -52,8 +52,8 @@ export default function Preprocessing() {
   const sampleMeta = selectedDataset?.sample_metadata || {}
   const blankSamples = useMemo(() => {
     return Object.entries(sampleMeta)
-      .filter(([_, group]) => /blank|solvent|ntc/i.test(String(group)))
-      .map(([sample]) => sample)
+      .filter((entry) => /blank|solvent|ntc/i.test(String(entry[1])))
+      .map((entry) => entry[0])
   }, [sampleMeta])
 
   const isLipid = selectedDataset?.feature_type === 'lipid'

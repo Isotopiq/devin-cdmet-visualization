@@ -2,6 +2,9 @@ import re
 import numpy as np
 from scipy import stats as scipy_stats
 from statsmodels.stats.multitest import multipletests
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 _CHAIN_RE = re.compile(r"([A-Za-z]?)-?(\d+):(\d+)")
@@ -19,7 +22,8 @@ def _ttest(a: np.ndarray, b: np.ndarray) -> float:
         return 1.0
     try:
         _, p = scipy_stats.ttest_ind(a, b, equal_var=False, nan_policy="omit")
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return 1.0
     if not np.isfinite(p):
         return 1.0

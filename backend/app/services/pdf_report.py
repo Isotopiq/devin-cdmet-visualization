@@ -20,6 +20,9 @@ from app.config import settings as app_settings
 from app.services.preprocessing import to_dataframe
 from app.services.stats import run_statistical_test
 from app.services.plots import generate_plot
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _pdf_logo_dir() -> str:
@@ -307,7 +310,8 @@ class _ReportPDF(FPDF):
                 logo_x = logo_right_edge - logo_w
                 logo_y = y + (self.footer_h - logo_h) / 2
                 self.image(logo_path, x=logo_x, y=logo_y, h=logo_h)
-            except Exception:
+            except Exception as _exc:
+                logger.exception("Unexpected error")
                 logo_w = 0.0
                 logo_h = 0.0
 
@@ -371,7 +375,8 @@ class _ReportPDF(FPDF):
                 px_per_mm = 4
                 img = _create_cover_png("minimal", int(card_w * px_per_mm), int(card_h * px_per_mm))
                 self.image(img, x=card_x, y=card_y, w=card_w)
-            except Exception:
+            except Exception as _exc:
+                logger.exception("Unexpected error")
                 pass
         else:
             px_per_mm = 4
@@ -1107,7 +1112,8 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
                 dataset,
                 schemas.PlotRequest(plot_type=plot_type, parameters=section_params, style=plot_style),
             )
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             continue
 
         title = SECTION_TITLES.get(section, section)
@@ -1201,13 +1207,15 @@ def build_pathway_pdf(
         try:
             img = _fig_to_png(fig, width=1100, height=700, scale=2)
             pdf._plot_page(fig_title, img, orientation="P")
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             continue
 
     if include_table and pathways:
         try:
             pdf._pathways_table_page(pathways[:40])
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             pass
 
     return bytes(pdf.output())
@@ -1298,7 +1306,8 @@ def build_qc_pdf(
                             pdf._plot_page(queue[0][0], queue[0][1], orientation=queue[0][2])
                     else:
                         pdf._plot_grid_page(queue, per_page=per_page)
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             pass
         queue.clear()
 
@@ -1318,7 +1327,8 @@ def build_qc_pdf(
                 queue.append((title, img, orient))
                 if len(queue) >= plots_per_page:
                     _flush_queue()
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             continue
     _flush_queue()
 

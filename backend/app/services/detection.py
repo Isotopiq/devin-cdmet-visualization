@@ -7,6 +7,9 @@ import openpyxl
 import pandas as pd
 from app.config import settings
 from app.services import storage
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 KNOWN_FORMATS = {
@@ -27,7 +30,8 @@ def _is_lipidsearch_alignment_file(path: str) -> bool:
                     break
                 if line.startswith("*Parameters setting") or line.startswith("*Target search job"):
                     return True
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         pass
     return False
 
@@ -143,7 +147,8 @@ def is_compound_discoverer_lipidset(path: str, sheet: str = None) -> bool:
     """Detect a Compound Discoverer export that contains an embedded LipidSearch candidate sub-table."""
     try:
         wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return False
     ws = wb[sheet] if sheet else wb.active
     for i, row in enumerate(ws.iter_rows(values_only=True)):
@@ -218,14 +223,16 @@ def select_top_lipid_candidate(candidates: List[Dict[str, Any]]) -> Dict[str, An
         rank = c.get("Rank")
         try:
             rank = int(float(rank))
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             rank = 999
         grade = c.get("Grade") or c.get("Best Grade")
         gs = _grade_score(grade)
         id_score = c.get("ID Score") or c.get("Best ID Score")
         try:
             id_score = float(id_score)
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             id_score = 0.0
         scored.append(((rank, gs, -id_score), c))
 
@@ -489,7 +496,8 @@ def parse_compound_discoverer_metadata(path: str) -> Dict[str, Dict[str, Any]]:
             df = pd.read_csv(path)
         else:
             df = pd.read_csv(path, sep="\t")
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return mapping
 
     for _, row in df.iterrows():

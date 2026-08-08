@@ -7,6 +7,9 @@ import pandas as pd
 from scipy.spatial.distance import pdist, squareform
 from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import StandardScaler
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _prepare_X(df: pd.DataFrame, samples: List[str]):
@@ -37,7 +40,8 @@ def _projection_matrix(X: np.ndarray) -> np.ndarray:
     XtX = X.T @ X
     try:
         inv = np.linalg.inv(XtX)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         inv = np.linalg.pinv(XtX)
     return X @ inv @ X.T
 
@@ -64,7 +68,8 @@ def permanova_analysis(
     X = _prepare_X(df, samples)
     try:
         D = pairwise_distances(X, metric=metric)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         D = squareform(pdist(X, metric="euclidean"))
     G = _gower_center(D)
     n = len(samples)

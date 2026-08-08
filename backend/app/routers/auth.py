@@ -1,6 +1,7 @@
 import datetime as dt
 import mimetypes
 from pathlib import Path
+from urllib.parse import urljoin
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.security import OAuth2PasswordRequestForm
@@ -167,9 +168,10 @@ async def forgot_password(
     user = result.scalar_one_or_none()
     if not user:
         return {"ok": True, "detail": "If this email exists, a reset link has been sent."}
+    if not settings.FRONTEND_URL:
+        raise HTTPException(status_code=400, detail="FRONTEND_URL is not configured; password reset links cannot be generated.")
     token = create_access_token({"sub": str(user.id), "scope": "reset"}, expires_delta=dt.timedelta(minutes=30))
-    base_url = settings.FRONTEND_URL or ""
-    reset_url = f"{base_url}/reset-password?token={token}"
+    reset_url = f"{urljoin(settings.FRONTEND_URL, '/reset-password')}?token={token}"
     try:
         await send_email(
             db,
@@ -179,9 +181,7 @@ async def forgot_password(
             html=f"<p>Click the following link to reset your password (expires in 30 minutes):</p><a href='{reset_url}'>{reset_url}</a>",
         )
     except Exception as exc:
-        if settings.RESET_TOKEN_IN_RESPONSE:
-            return {"ok": True, "detail": f"SMTP not configured ({exc}); reset token returned for development.", "reset_token": token, "reset_url": reset_url}
-        raise HTTPException(status_code=503, detail="SMTP not configured. Please configure SMTP in the admin panel or set FRONTEND_URL/RESET_TOKEN_IN_RESPONSE for development.")
+        raise HTTPException(status_code=503, detail=f"SMTP not configured. Please configure SMTP in the admin panel. Error: {exc}")
     return {"ok": True, "detail": "If this email exists, a reset link has been sent."}
 
 

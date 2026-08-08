@@ -16,6 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models
 from app.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _crypto() -> Fernet:
@@ -93,13 +96,15 @@ async def get_storage_config(db: AsyncSession) -> dict:
             # If the secret was stored encrypted, decrypt it; otherwise use it as-is.
             if secret_key.startswith("gAAAA"):
                 secret_key = decrypt_setting(secret_key)
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             pass
     if access_key:
         try:
             if access_key.startswith("gAAAA"):
                 access_key = decrypt_setting(access_key)
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             pass
 
     configured = bool(enabled and bucket and access_key and secret_key and endpoint_url)

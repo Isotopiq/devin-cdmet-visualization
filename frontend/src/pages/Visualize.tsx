@@ -6,7 +6,7 @@ import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import PlotStyling from '../components/PlotStyling'
 import { generatePlot, runStats, generatePDFReport, getSettings } from '../api'
-import { LuRefreshCw, LuFileDown, LuPrinter, LuChevronDown, LuChevronUp, LuX, LuDownload, LuFileText, LuFilter } from 'react-icons/lu'
+import { LuRefreshCw, LuFileDown, LuPrinter, LuChevronDown, LuChevronUp, LuX, LuFileText, LuFilter } from 'react-icons/lu'
 import JSZip from 'jszip'
 import Plotly from 'plotly.js/dist/plotly'
 
@@ -147,7 +147,7 @@ export default function Visualize() {
   const [showContents, setShowContents] = useState(false)
   const [groupFilterOpen, setGroupFilterOpen] = useState(true)
   const [reportOpen, setReportOpen] = useState(false)
-  const [reportSections, setReportSections] = useState<any[]>([])
+  const [reportSections] = useState<any[]>([])
   const [reportLoading, setReportLoading] = useState(false)
   const [zipLoading, setZipLoading] = useState(false)
   const [ocrLoading, setOcrLoading] = useState(false)
@@ -305,7 +305,6 @@ export default function Visualize() {
         generate()
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, selectedDataset, groupA, groupB, includedGroups])
 
   useEffect(() => {
@@ -313,12 +312,10 @@ export default function Visualize() {
       didInitRef.current = true
       generate()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready])
 
   useEffect(() => {
     if ((figure || figures.length) && !loading) generate()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [style, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder, renameSamples, biomarkerComparisons])
 
   const toggleInclude = (key: string) => {
@@ -450,7 +447,6 @@ export default function Visualize() {
       overlay.style.pointerEvents = 'none'
       overlay.style.overflow = 'hidden'
 
-      const cssHeight = cHeight / 2
       for (const word of data.words || []) {
         const bbox = word.bbox
         const left = (bbox.x0 / cWidth) * 100
@@ -555,13 +551,13 @@ export default function Visualize() {
     setZipLoading(true)
     try {
       const zip = new JSZip()
-      const baseName = (reportTitle || `${tab}_plots`).replace(/[^\w\-]+/g, '_')
+      const baseName = (reportTitle || `${tab}_plots`).replace(/[^\w-]+/g, '_')
       for (let i = 0; i < figs.length; i++) {
         const f = figs[i]
         const layout = f.layout || {}
         const rawTitle = typeof layout.title === 'string' ? layout.title : layout.title?.text
         const titleText = (rawTitle || '').replace(/<[^>]+>/g, '').trim()
-        const plotName = (titleText || `${tab}_${i + 1}`).replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80)
+        const plotName = (titleText || `${tab}_${i + 1}`).replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80)
         const width = Math.max(400, layout.width || 1200)
         const height = Math.max(300, layout.height || (tab === 'heatmap' ? 900 : 650))
         const exportLayout = { ...layout, width, height }

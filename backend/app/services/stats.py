@@ -5,6 +5,9 @@ from scipy import stats
 from statsmodels.stats.multitest import multipletests
 from app import models, schemas
 from app.services.preprocessing import to_dataframe, _to_json_safe
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _safe_log2fc(mean_a: float, mean_b: float, eps: float = 1e-12) -> float:
@@ -85,7 +88,8 @@ def run_statistical_test(dataset: models.Dataset, req: schemas.StatsRequest):
                     stat, p = stats.f_oneway(*arrays)
                 else:
                     stat, p = stats.kruskal(*arrays)
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             continue
 
         if p is None or not math.isfinite(p):
@@ -122,7 +126,8 @@ def run_statistical_test(dataset: models.Dataset, req: schemas.StatsRequest):
                 if r["pvalue"] is not None:
                     r["padj"] = _to_json_safe(padj[pi])
                     pi += 1
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             for r in results:
                 if r["pvalue"] is not None:
                     r["padj"] = r["pvalue"]

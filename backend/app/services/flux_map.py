@@ -13,6 +13,9 @@ import plotly.graph_objects as go
 import yaml
 
 from app.services.preprocessing import _to_json_safe
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 BIGG_BASE = "http://bigg.ucsd.edu/api/v2"
@@ -348,7 +351,8 @@ def build_bigg_network(model_json: dict, measured_nodes: Optional[set] = None) -
 def _gem_yaml_loader():
     try:
         return yaml.CSafeLoader
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return yaml.SafeLoader
 
 
@@ -577,7 +581,8 @@ def _apply_graph_mode(
             d["weight"] = d.get("weight", 1.0)
         try:
             T = nx.maximum_spanning_tree(UG, weight="weight")
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             T = nx.minimum_spanning_tree(UG, weight="weight")
         return nx.DiGraph(T)
 
@@ -609,7 +614,8 @@ def _apply_graph_mode(
                         H[u][v]["path_indices"] = [i]
                         H[u][v]["color"] = colors[i % len(colors)]
             return H
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             return G
 
     if graph_mode == "bipartite":
@@ -854,12 +860,14 @@ def _build_curated_escher_map(mean_map: Dict[str, float], title: str, map_name: 
     try:
         import escher
         import escher.plots
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return None
 
     try:
         map_json = escher.plots.map_json_for_name(map_name)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return None
 
     try:
@@ -867,7 +875,8 @@ def _build_curated_escher_map(mean_map: Dict[str, float], title: str, map_name: 
         if not isinstance(data, list) or len(data) < 2:
             return None
         escher_map = data[1]
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return None
 
     nodes = escher_map.get("nodes", {})
@@ -928,7 +937,8 @@ def _build_manual_escher_map(
     """Fallback: build a custom Escher map from the computed graph layout."""
     try:
         import escher
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return None
 
     import os

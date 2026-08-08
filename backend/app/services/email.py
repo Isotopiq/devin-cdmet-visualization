@@ -55,9 +55,10 @@ async def send_email(
     subject: str,
     body: str,
     html: Optional[str] = None,
+    smtp_config: Optional[dict] = None,
 ) -> None:
-    cfg = await get_smtp_config(db)
-    if not cfg["configured"]:
+    cfg = smtp_config if smtp_config is not None else await get_smtp_config(db)
+    if not (cfg.get("host") and cfg.get("user") and cfg.get("password")):
         raise RuntimeError("SMTP is not configured")
     context = ssl.create_default_context()
     if cfg["use_tls"]:

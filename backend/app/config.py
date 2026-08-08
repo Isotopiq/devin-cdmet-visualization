@@ -11,7 +11,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     UPLOAD_DIR: str = "uploads"
     FRONTEND_URL: Optional[str] = None
-    RESET_TOKEN_IN_RESPONSE: bool = False
     ADMIN_EMAIL: Optional[str] = None
     ADMIN_USERNAME: Optional[str] = None
     ADMIN_PASSWORD: Optional[str] = None

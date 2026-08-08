@@ -12,6 +12,7 @@ from app.services.plots import _merge_style
 from app.services.stats import run_statistical_test
 from app.services.pdf_report import build_pdf, get_pdf_footer_logo_path, get_pdf_prepared_by
 from app.services import storage
+from app.utils import content_disposition_header
 
 router = APIRouter()
 
@@ -192,7 +193,7 @@ async def report_pdf(
                 report_type="report",
                 s3_key=s3_key,
             )
-    headers = {"Content-Disposition": f"attachment; filename={filename}"}
+    headers = {"Content-Disposition": content_disposition_header(filename)}
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",

@@ -8,6 +8,9 @@ import numpy as np
 from scipy import stats as scipy_stats
 from statsmodels.stats.multitest import multipletests
 from app.services.lipid_indices import _parse_feature
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 KEGG_BASE = "https://rest.kegg.jp"
@@ -83,7 +86,8 @@ async def _notify(progress: ProgressCallback, message: str, percent: float):
     if progress:
         try:
             await progress(message, min(100.0, max(0.0, percent)))
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             pass
 
 
@@ -92,7 +96,8 @@ async def _kegg_text(client: httpx.AsyncClient, path: str, timeout: float = 15.0
         r = await client.get(f"{KEGG_BASE}/{path}", timeout=timeout)
         r.raise_for_status()
         return r.text
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return ""
 
 
@@ -334,7 +339,8 @@ def _fdr_adjust(pvalues: List[float]) -> List[float]:
     try:
         _, padj, _, _ = multipletests(np.array(pvalues, dtype=float), method="fdr_bh")
         return [float(x) for x in padj]
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return pvalues[:]
 
 
@@ -366,7 +372,7 @@ async def kegg_enrichment(
         return {"error": "No significant features provided for KEGG enrichment."}
 
     await _notify(progress, "Mapping features to KEGG compounds...", 0)
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         all_names = sorted(set(feature_names or []) | set(significant_names))
         name_to_cpd = await _map_features_to_kegg_cpds(client, all_names, progress=progress, start_pct=0, end_pct=25)
 
@@ -434,7 +440,7 @@ async def reactome_enrichment(
         return {"error": "No features provided for Reactome enrichment."}
 
     await _notify(progress, "Mapping features to KEGG compounds...", 0)
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         name_to_cpd = await _map_features_to_kegg_cpds(client, feature_names, progress=progress, start_pct=0, end_pct=30)
         cpd_ids = sorted({v for v in name_to_cpd.values() if v})
         # Reactome accepts KEGG compound IDs; if mapping failed fall back to original names
@@ -446,7 +452,7 @@ async def reactome_enrichment(
     species_q = f"&species={quote(species)}" if species else ""
     url = f"{REACTOME_BASE}/identifiers/projection?pageSize={max(top_n, 100)}&page=1{species_q}"
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.post(
                 url,
                 content=payload,
@@ -490,7 +496,7 @@ async def go_enrichment(
     gprofiler_org = GPROFILER_ORG_MAP.get(organism, organism)
 
     await _notify(progress, "Mapping features to KEGG compounds...", 0)
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         name_to_cpd = await _map_features_to_kegg_cpds(client, feature_names, progress=progress, start_pct=0, end_pct=20)
         cpd_ids = sorted({v for v in name_to_cpd.values() if v})
         if not cpd_ids:
@@ -513,7 +519,7 @@ async def go_enrichment(
         "all_results": False,
     }
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.post(GPROFILER_BASE, json=payload, headers={"User-Agent": "isotopiq-devin"}, timeout=45.0)
             r.raise_for_status()
             data = r.json()

@@ -3,7 +3,7 @@ import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import { runIsotope, searchBiGGModels, searchGEMModels, loadModelNetwork } from '../api'
-import { LuDna, LuRefreshCw, LuMap, LuNetwork, LuPalette, LuUsers } from 'react-icons/lu'
+import { LuDna, LuRefreshCw, LuMap, LuNetwork, LuUsers } from 'react-icons/lu'
 
 function FluxMapView({ map, filename }: { map: any; filename: string }) {
   if (map?.type === 'escher') {

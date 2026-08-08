@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { listProjects, createProject, updateProject, deleteProject, listReports, downloadReport, deleteReport } from '../api'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { Project } from '../types'
-import { LuPlus, LuTrash2, LuFolderOpen, LuSearch, LuArrowRight, LuPencil, LuCheck, LuX, LuFileText, LuDownload, LuFiles } from 'react-icons/lu'
+import { LuPlus, LuTrash2, LuFolderOpen, LuSearch, LuArrowRight, LuPencil, LuCheck, LuX, LuFileText, LuFiles } from 'react-icons/lu'
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([])

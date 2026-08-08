@@ -27,9 +27,10 @@ services:
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
       ALGORITHM: ${ALGORITHM:-HS256}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-preview@example.com}
+      FRONTEND_URL: ${FRONTEND_URL:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-preview123}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - upload-data-deploy:/app/uploads
     ports:
@@ -53,7 +54,8 @@ services:
     ports:
       - "13460:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

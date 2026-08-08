@@ -2,9 +2,9 @@ import { useEffect, useState, useRef } from 'react'
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom'
 import {
   LuLayoutDashboard, LuFolderOpen, LuUploadCloud, LuTable,
-  LuSlidersHorizontal, LuCalculator, LuBarChart3, LuPieChart, LuLayers, LuDna,
+  LuSlidersHorizontal, LuCalculator, LuBarChart3, LuLayers, LuDna,
   LuGitMerge, LuFileText, LuSettings, LuSun, LuMoon,
-  LuLogOut, LuMenu, LuChevronLeft, LuMicroscope, LuUsers, LuUser, LuActivity
+  LuLogOut, LuMenu, LuChevronLeft, LuUsers, LuUser, LuActivity
 } from 'react-icons/lu'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { useAuth } from '../context/AuthContext'

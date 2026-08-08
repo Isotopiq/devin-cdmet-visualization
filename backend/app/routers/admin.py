@@ -16,6 +16,7 @@ from app.auth import get_current_admin_user, get_password_hash
 from app.config import settings
 from app.services.email import encrypt_smtp_password, get_smtp_config
 from app.services.storage import encrypt_setting as _encrypt_setting, get_storage_config
+from app.services import storage
 
 router = APIRouter()
 
@@ -127,6 +128,27 @@ async def delete_user(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    # Clean up project files/reports and disown reports created by this user.
+    projects = (await db.execute(select(models.Project).where(models.Project.owner_id == user_id))).scalars().all()
+    for project in projects:
+        files = (await db.execute(select(models.UploadedFile).where(models.UploadedFile.project_id == project.id))).scalars().all()
+        for file in files:
+            await storage.delete_file(file.stored_name, db)
+        reports = (await db.execute(select(models.GeneratedReport).where(models.GeneratedReport.project_id == project.id))).scalars().all()
+        for report in reports:
+            await storage.delete_file(report.s3_key, db)
+            await db.delete(report)
+    reports = (await db.execute(select(models.GeneratedReport).where(models.GeneratedReport.user_id == user_id))).scalars().all()
+    for report in reports:
+        report.user_id = None
+    # Remove avatar files.
+    avatar_dir = Path(settings.UPLOAD_DIR) / "avatars"
+    if avatar_dir.exists():
+        for avatar in avatar_dir.glob(f"user_{user_id}_*"):
+            try:
+                avatar.unlink()
+            except OSError:
+                pass
     await _log(db, "delete_user", admin, target_user_id=user.id, details={"email": user.email})
     await db.delete(user)
     await db.commit()
@@ -428,16 +450,28 @@ async def test_smtp(
     db: AsyncSession = Depends(get_db),
     admin: models.User = Depends(get_current_admin_user),
 ):
-    cfg = await _smtp_config(db)
-    # Allow override from test payload
-    host = payload.host or cfg.get("host")
-    port = payload.port or cfg.get("port")
-    user = payload.user or cfg.get("user")
-    password = cfg.get("password")
-    from_address = payload.from_address or cfg.get("from_address") or user
-    use_tls = payload.use_tls if payload.use_tls is not None else cfg.get("use_tls", True)
+    stored = await _smtp_config(db)
+    # Allow override from test payload; fall back to stored values.
+    host = payload.host or stored.get("host")
+    port = payload.port or stored.get("port")
+    user = payload.user or stored.get("user")
+    password = stored.get("password")
+    from_address = payload.from_address or stored.get("from_address") or user
+    use_tls = payload.use_tls if payload.use_tls is not None else stored.get("use_tls", True)
     if not host or not port or not user or not password:
         raise HTTPException(status_code=400, detail="SMTP host, port, user and password are required")
+    try:
+        port_int = int(port)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="SMTP port must be an integer")
+    override_cfg = {
+        "host": host,
+        "port": port_int,
+        "user": user,
+        "password": password,
+        "from_address": from_address,
+        "use_tls": use_tls,
+    }
     from app.services.email import send_email
     try:
         await send_email(
@@ -445,6 +479,7 @@ async def test_smtp(
             to=admin.email,
             subject="SMTP test",
             body="This is a test email from your metabolomics platform.",
+            smtp_config=override_cfg,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"SMTP test failed: {exc}")

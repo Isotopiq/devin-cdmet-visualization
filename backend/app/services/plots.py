@@ -1,10 +1,13 @@
 import base64
 import io
 import json
+import logging
 import math
 import re
 from typing import Dict, List
 import matplotlib
+
+logger = logging.getLogger(__name__)
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -161,9 +164,10 @@ def _safe_float(value, default=0.0):
 def _intensity_from_transformed(values, history: list | None) -> np.ndarray:
     """Return positive intensity-like values from possibly log/scaled data."""
     vals = np.array(values, dtype=float)
-    step = (history or [{}])[-1] if history else None
-    params = step.get("params", {}) if isinstance(step, dict) else {}
-    log_transform = params.get("log_transform", False) if params else False
+    log_transform = any(
+        isinstance(step, dict) and step.get("params", {}).get("log_transform")
+        for step in (history or [])
+    )
     if log_transform:
         vals = np.clip(vals, -20, 50)
         vals = 2 ** vals
@@ -458,7 +462,8 @@ def _pca_publication(scores, labels, pca, sample_names, style, params):
                         showlegend=False,
                         hoverinfo="skip",
                     ))
-                except Exception:
+                except Exception as _exc:
+                    logger.exception("Unexpected error")
                     pass
         fig.add_trace(go.Scatter(
             x=pts[:, 0], y=pts[:, 1], mode="markers",
@@ -532,7 +537,8 @@ def _outlier_plot(df, sample_meta, style, params):
     cov = np.cov(scores.T)
     try:
         VI = np.linalg.pinv(cov)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         VI = np.eye(cov.shape[0])
     md2 = []
     for s in scores:
@@ -1249,7 +1255,8 @@ def _permanova_figure(df, sample_meta, feature_metadata, style, params):
         eigvals, eigvecs = np.linalg.eigh(G)
         idx = np.argsort(eigvals)[::-1]
         coords = eigvecs[:, idx] * np.sqrt(np.maximum(eigvals[idx], 0))
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         coords = np.zeros((n, 2))
 
     fig = make_subplots(
@@ -1365,7 +1372,8 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
                 link = linkage(dist, method=method)
                 order = leaves_list(link)
                 cols = [cols[i] for i in order]
-            except Exception:
+            except Exception as _exc:
+                logger.exception("Unexpected error")
                 pass
         ordered_cols.extend(cols)
     if ordered_cols:
@@ -1377,7 +1385,8 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
             row_link = linkage(pdist(plot_df.values, metric=metric), method=method)
             row_order = leaves_list(row_link)
             plot_df = plot_df.iloc[row_order]
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             pass
 
     group_codes = [group_order.index(sample_groups.get(c, "Unknown")) for c in plot_df.columns]
@@ -1691,7 +1700,8 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
             row_link = linkage(pdist(plot_df_imp, metric=metric), method=method)
         if cluster_cols and n > 2:
             col_link = linkage(pdist(plot_df_imp.T, metric=metric), method=method)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         pass
 
     # group color bar as a pandas Series so it stays aligned after clustering
@@ -1744,10 +1754,12 @@ def _heatmap_seaborn(df, sample_meta, feature_metadata, style, params):
             legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
             ncol = max(1, int(np.ceil(len(legend_handles) / 6)))
             cg.ax_heatmap.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.40, 1.0), borderaxespad=0.4, title="Group", fontsize=7, frameon=True, ncol=ncol)
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             pass
         return _mpl_figure_to_plotly(cg.fig, title=None)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         # fallback: simple seaborn heatmap with a manual group color bar
         if row_link is not None:
             row_order = leaves_list(row_link).tolist()
@@ -1838,7 +1850,8 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
         if cluster_cols and n > 2:
             col_link = linkage(pdist(z.T, metric=metric), method=method)
             col_order = leaves_list(col_link).tolist()
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         pass
     z = z[row_order][:, col_order]
     y_labels = [_shorten_name(_clean_lipid_name(feature_metadata[idx].get("feature_id", idx) if isinstance(idx, int) and idx < len(feature_metadata) else idx), 40) for idx in plot_df.index[row_order]]
@@ -1882,7 +1895,8 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
             scipy_dendrogram(col_link, orientation="top", no_labels=True, show_leaf_counts=False, ax=ax_col, color_threshold=0, above_threshold_color=linkage_color)
         if cluster_rows and m > 2 and row_link is not None:
             scipy_dendrogram(row_link, orientation="left", no_labels=True, show_leaf_counts=False, ax=ax_row, color_threshold=0, above_threshold_color=linkage_color)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         pass
     ax_col.axis("off")
     ax_row.axis("off")
@@ -1915,7 +1929,8 @@ def _heatmap_matplotlib(df, sample_meta, feature_metadata, style, params):
     try:
         legend_handles = [mpatches.Patch(color=gcolor_map.get(g, "#94a3b8"), label=g) for g in group_order]
         ax_legend.legend(handles=legend_handles, loc="upper left", title="Group", fontsize=8, frameon=True)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         pass
     ax_legend.axis("off")
 
@@ -2077,7 +2092,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     link = linkage(dist, method=method)
                     order = leaves_list(link)
                     df = df.iloc[:, order]
-                except Exception:
+                except Exception as _exc:
+                    logger.exception("Unexpected error")
                     pass
             corr = df.corr().fillna(0)
             short_cols = [_shorten_name(c) for c in corr.columns]
@@ -2137,7 +2153,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                         link = linkage(dist, method=method)
                         order = leaves_list(link)
                         cols = [cols[i] for i in order]
-                    except Exception:
+                    except Exception as _exc:
+                        logger.exception("Unexpected error")
                         pass
                 ordered_cols.extend(cols)
             if ordered_cols:
@@ -2149,7 +2166,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                     link = linkage(dist, method=method)
                     order = leaves_list(link)
                     plot_df = plot_df.iloc[order]
-                except Exception:
+                except Exception as _exc:
+                    logger.exception("Unexpected error")
                     pass
 
             group_codes = [group_order.index(sample_groups.get(c, "Unknown")) for c in plot_df.columns]

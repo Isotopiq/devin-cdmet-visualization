@@ -8,6 +8,7 @@ from app.database import get_db
 from app.auth import get_current_active_user
 from app import models, schemas
 from app.services import storage
+from app.utils import content_disposition_header
 
 router = APIRouter()
 
@@ -63,6 +64,14 @@ async def delete_project(project_id: int, db: AsyncSession = Depends(get_db),
     project = result.scalar_one_or_none()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    # Delete associated storage before removing DB rows so S3/local files don't leak.
+    files = (await db.execute(select(models.UploadedFile).where(models.UploadedFile.project_id == project_id))).scalars().all()
+    for file in files:
+        await storage.delete_file(file.stored_name, db)
+    reports = (await db.execute(select(models.GeneratedReport).where(models.GeneratedReport.project_id == project_id))).scalars().all()
+    for report in reports:
+        await storage.delete_file(report.s3_key, db)
+        await db.delete(report)
     await db.delete(project)
     await db.commit()
     return {"ok": True}
@@ -97,7 +106,7 @@ async def download_project_report(
     if not report or report.project_id != project_id:
         raise HTTPException(status_code=404, detail="Report not found")
     data = await storage.download_report_bytes(report, db)
-    headers = {"Content-Disposition": f"attachment; filename={report.name}"}
+    headers = {"Content-Disposition": content_disposition_header(report.name)}
     return StreamingResponse(io.BytesIO(data), media_type="application/pdf", headers=headers)
 
 

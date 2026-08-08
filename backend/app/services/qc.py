@@ -14,6 +14,9 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from app import models, schemas
 from app.services.preprocessing import to_dataframe, _to_json_safe
 from app.services.plots import _merge_style, _group_color_map, _apply_base_layout, generate_plot, _shorten_name
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _safe_log10(values):
@@ -230,7 +233,8 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
             filtered_dataset,
             schemas.PlotRequest(plot_type="pca", parameters={"plot": "score"}, style=style),
         )
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         pass
 
     try:
@@ -238,7 +242,8 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
             filtered_dataset,
             schemas.PlotRequest(plot_type="heatmap", parameters={"heatmap_type": "correlation"}, style=style),
         )
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         pass
 
     return {
@@ -372,7 +377,8 @@ def qc_export_excel(dataset: models.Dataset, style: dict | None = None, selected
                 ws2.cell(row=row, column=5).fill = warn_fill
             else:
                 ws2.cell(row=row, column=5).fill = good_fill
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             pass
         if ws2.cell(row=row, column=7).value == "Yes":
             ws2.cell(row=row, column=7).fill = bad_fill
@@ -456,5 +462,6 @@ def _is_dark(hex_color: str) -> bool:
         r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
         luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
         return luminance < 0.5
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return False

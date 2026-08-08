@@ -62,7 +62,7 @@ class Dataset(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    source_file_id = Column(Integer, ForeignKey("uploaded_files.id"), nullable=True)
+    source_file_id = Column(Integer, ForeignKey("uploaded_files.id", ondelete="SET NULL"), nullable=True)
     name = Column(String, nullable=False)
     feature_type = Column(String, nullable=False, default="metabolite")
     data_matrix = Column(JSON, default=dict)
@@ -72,7 +72,7 @@ class Dataset(Base):
     created_at = Column(DateTime(timezone=True), default=dt.datetime.utcnow)
 
     project = relationship("Project", back_populates="datasets")
-    source_file = relationship("UploadedFile", back_populates="dataset")
+    source_file = relationship("UploadedFile", back_populates="dataset", passive_deletes=True)
     analyses = relationship("Analysis", back_populates="dataset", cascade="all, delete-orphan")
 
 
@@ -110,17 +110,17 @@ class GeneratedReport(Base):
     __tablename__ = "generated_reports"
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    dataset_id = Column(Integer, ForeignKey("datasets.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    dataset_id = Column(Integer, ForeignKey("datasets.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     name = Column(String, nullable=False)
     report_type = Column(String, nullable=False)
     s3_key = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), default=dt.datetime.utcnow)
 
-    project = relationship("Project")
-    dataset = relationship("Dataset")
-    user = relationship("User")
+    project = relationship("Project", passive_deletes=True)
+    dataset = relationship("Dataset", passive_deletes=True)
+    user = relationship("User", passive_deletes=True)
 
 
 class SiteSetting(Base):

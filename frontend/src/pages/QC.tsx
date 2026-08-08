@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
@@ -24,16 +24,6 @@ interface QCData {
   }
   figures: Record<string, any>
 }
-
-const PLOT_KEYS = [
-  'tic',
-  'missing_pct',
-  'detected_features',
-  'log2_intensity',
-  'cv_by_group',
-  'pca',
-  'correlation_heatmap',
-]
 
 const FONT_OPTIONS = [
   { label: 'Default (system)', value: '' },

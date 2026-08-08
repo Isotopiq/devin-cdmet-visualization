@@ -14,6 +14,7 @@ from app.services.qc import qc_analysis, qc_export_excel
 from app.services.batch import combine_datasets
 from app.services.pdf_report import build_qc_pdf, get_pdf_footer_logo_path, get_pdf_prepared_by
 from app.services import storage
+from app.utils import content_disposition_header
 
 router = APIRouter()
 
@@ -185,7 +186,7 @@ async def get_qc_excel(
     return StreamingResponse(
         io.BytesIO(excel_bytes),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition_header(filename)},
     )
 
 
@@ -245,7 +246,7 @@ async def get_qc_pdf(
                 report_type="qc",
                 s3_key=s3_key,
             )
-    headers = {"Content-Disposition": f"attachment; filename={filename}"}
+    headers = {"Content-Disposition": content_disposition_header(filename)}
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
@@ -262,6 +263,10 @@ async def delete_dataset(project_id: int, dataset_id: int, db: AsyncSession = De
     dataset = result.scalar_one_or_none()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
+    # Disconnect reports from this dataset so FK constraints are not violated.
+    reports = (await db.execute(select(models.GeneratedReport).where(models.GeneratedReport.dataset_id == dataset_id))).scalars().all()
+    for report in reports:
+        report.dataset_id = None
     await db.delete(dataset)
     await db.commit()
     return {"ok": True}
@@ -371,5 +376,5 @@ async def export_dataset(
     return StreamingResponse(
         iter([out.getvalue().encode("utf-8")]),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition_header(filename)},
     )

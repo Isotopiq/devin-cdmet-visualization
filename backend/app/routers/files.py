@@ -63,6 +63,10 @@ async def delete_file(file_id: int, db: AsyncSession = Depends(get_db),
     uploaded = result.scalar_one_or_none()
     if not uploaded:
         raise HTTPException(status_code=404, detail="File not found")
+    # Clear references so dataset rows are not blocked by the FK.
+    datasets = (await db.execute(select(models.Dataset).where(models.Dataset.source_file_id == file_id))).scalars().all()
+    for dataset in datasets:
+        dataset.source_file_id = None
     await storage.delete_file(uploaded.stored_name, db)
     await db.delete(uploaded)
     await db.commit()

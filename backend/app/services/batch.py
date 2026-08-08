@@ -14,6 +14,9 @@ from app import models, schemas
 from app.services.preprocessing import _to_json_safe
 from app.services.qc import qc_analysis
 from app.services.plots import generate_plot, _merge_style
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 VALID_BATCH_METHODS = {
@@ -425,7 +428,8 @@ def _loess_signal_drift(
                 is_sorted=True,
                 return_sorted=False,
             )
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             continue
         if trend_log_sorted.shape[0] != n_valid:
             continue
@@ -513,7 +517,8 @@ def _ruv_iii_c(
         # Estimate unwanted factors from residuals.
         try:
             U, s, Vt = la.svd(R, full_matrices=False)
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             continue
         rank = min(k, U.shape[1] - 1, U.shape[0] - 1)
         if rank < 1:
@@ -523,7 +528,8 @@ def _ruv_iii_c(
         y = Y_sub[target].to_numpy(dtype=float)
         try:
             coeffs = la.pinv(X) @ y
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             continue
         beta = coeffs[M_sub.shape[1] :]
         corrected = y - W @ beta
@@ -726,11 +732,13 @@ def _build_batch_qc_report(
     batch_pca = {}
     try:
         batch_pca["before"] = generate_plot(before_batch_ds, pca_req)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         batch_pca["before"] = None
     try:
         batch_pca["after"] = generate_plot(after_batch_ds, pca_req)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         batch_pca["after"] = None
 
     # Add a title indicating the points are colored by batch

@@ -9,6 +9,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, roc_curve, accuracy_score
 from sklearn.model_selection import cross_val_predict, StratifiedKFold
 from statsmodels.stats.power import tt_ind_solve_power
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _cohens_d(a: np.ndarray, b: np.ndarray) -> float:
@@ -29,14 +32,16 @@ def _power_from_arrays(a: np.ndarray, b: np.ndarray, alpha: float = 0.05) -> flo
     d = _cohens_d(a, b)
     try:
         return float(tt_ind_solve_power(effect_size=abs(d), nobs1=n, alpha=alpha, ratio=len(b) / max(len(a), 1), alternative='two-sided'))
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return 0.0
 
 
 def _safe_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
     try:
         return float(roc_auc_score(y_true, y_score))
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         return 0.0
 
 
@@ -73,7 +78,8 @@ def biomarker_analysis(
         log2fc = float(np.log2(np.nanmean(b_vals) / np.nanmean(a_vals))) if np.nanmean(a_vals) > 0 and np.nanmean(b_vals) > 0 else 0.0
         try:
             _, p = scipy_stats.mannwhitneyu(a_vals, b_vals, alternative="two-sided")
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             p = 1.0
         auc = _safe_auc(y, X[:, j])
         d = _cohens_d(a_vals, b_vals)
@@ -132,7 +138,8 @@ def biomarker_analysis(
         mv_auc = _safe_auc(y, y_pred_proba)
         mv_acc = float(accuracy_score(y, (y_pred_proba > 0.5).astype(int)))
         fpr, tpr, _ = roc_curve(y, y_pred_proba)
-    except Exception:
+    except Exception as _exc:
+        logger.exception("Unexpected error")
         pass
 
     return {

@@ -13,6 +13,9 @@ from sklearn.cross_decomposition import PLSRegression
 from sklearn.metrics import r2_score, accuracy_score, roc_auc_score
 from sklearn.model_selection import cross_val_predict, KFold
 from sklearn.preprocessing import LabelEncoder, StandardScaler
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _encode_groups(sample_meta: Dict[str, str], group_a: str, group_b: str):
@@ -75,7 +78,8 @@ def _permutation_scores(
             y_cv = cross_val_predict(PLSRegression(n_components=n_components, scale=False), X, y_perm, cv=KFold(n_splits=min(5, len(y)), shuffle=True, random_state=0))
             q2 = r2_score(y_perm, y_cv)
             acc = accuracy_score(y_perm, (y_pred > 0.5).astype(int))
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             r2 = q2 = acc = 0.0
         r2s.append(float(r2))
         q2s.append(float(q2))
@@ -104,7 +108,8 @@ def _model_performance(
             X_pred = pls.x_scores_ @ pls.x_loadings_.T
             r2x = float(1 - np.sum((X - X_pred) ** 2) / np.sum((X - X.mean(axis=0)) ** 2))
             rows.append({"n_components": n, "r2y": r2, "q2y": q2, "accuracy": acc, "r2x": r2x})
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             rows.append({"n_components": n, "r2y": 0.0, "q2y": 0.0, "accuracy": 0.0, "r2x": 0.0})
     return rows
 
@@ -219,7 +224,8 @@ def opls_da_analysis(
         try:
             eigvals, eigvecs = np.linalg.eigh(M)
             w_o = eigvecs[:, np.argmax(eigvals)]
-        except Exception:
+        except Exception as _exc:
+            logger.exception("Unexpected error")
             break
         # ensure sign convention points toward maximal variance
         t_o = X_o @ w_o

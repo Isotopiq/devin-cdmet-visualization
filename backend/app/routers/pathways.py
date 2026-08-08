@@ -10,6 +10,7 @@ from app import models, schemas
 from app.services.pathways import create_pathway_job, run_pathway_job, get_job
 from app.services.pdf_report import build_pathway_pdf, get_pdf_footer_logo_path, get_pdf_prepared_by
 from app.services import storage
+from app.utils import content_disposition_header
 
 router = APIRouter()
 
@@ -108,5 +109,5 @@ async def pathway_pdf(
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition_header(filename)},
     )
