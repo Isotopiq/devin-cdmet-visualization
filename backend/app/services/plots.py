@@ -1473,32 +1473,28 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
     max_y_len = max([len(s) for s in short_rows], default=1)
 
     # Decide x-axis label density/rotation from sample name length and count.
-    long_x_labels = max_x_len > 12
-    x_step = _tick_text_step(n, max_labels=18 if long_x_labels else 25)
-    x_tickvals = list(range(0, n, x_step))
-    x_ticktext = [short_cols[i] for i in x_tickvals]
+    long_x_labels = max_x_len > 8
     x_tick_size = max(8, min(10 if long_x_labels else 13, int(300 / max(n, 1))))
     y_tick_size = max(7, min(11, int(height * 0.5 / max(m, 1))))
-    if is_lipidone or max_x_len > 16 or (long_x_labels and n > 8):
+    if is_lipidone or max_x_len > 12 or n > 15:
         x_tickangle = -90
-    elif long_x_labels or n > 15:
+    elif long_x_labels or n > 8:
         x_tickangle = -45
-    elif n > 25:
-        x_tickangle = -60
     else:
         x_tickangle = 0
-    # For vertical sample labels, cap the label length so the bottom margin
-    # stays reasonable and the footer has room below the names.
-    if is_lipidone or x_tickangle == -90:
+    # Cap label length for angled x-axis labels so the bottom margin stays reasonable.
+    if is_lipidone or x_tickangle in (-45, -90):
         x_tick_size = max(8, min(10, int(300 / max(n, 1))))
         max_allowed_x_len = max(8, int((height * 0.45 - 150) / max(x_tick_size, 1)))
         if max_x_len > max_allowed_x_len:
             short_cols = [_shorten_name(c, max_allowed_x_len) for c in plot_df.columns]
             max_x_len = max_allowed_x_len
-        long_x_labels = max_x_len > 12
-        x_step = _tick_text_step(n, max_labels=18 if long_x_labels else 25)
-        x_tickvals = list(range(0, n, x_step))
-        x_ticktext = [short_cols[i] for i in x_tickvals]
+            long_x_labels = max_x_len > 8
+    # Try to show every sample label while still respecting available width.
+    max_x_labels = max(40, int(900 / max(x_tick_size, 8)))
+    x_step = _tick_text_step(n, max_labels=max_x_labels)
+    x_tickvals = list(range(0, n, x_step))
+    x_ticktext = [short_cols[i] for i in x_tickvals]
     # Allow one label per row as long as there is ~14 px of vertical space per label.
     y_step = _tick_text_step(m, max_labels=max(1, int(height / 14)))
 
@@ -2088,7 +2084,13 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 colorscale=colorscale, zmid=1,
                 colorbar=dict(title={"text": "r", "side": "right"})))
             _apply_base_layout(fig, style, title="Sample Correlation Heatmap", x_labels=short_cols)
-            fig.update_layout(xaxis=dict(side="top", tickangle=-45))
+            tick_font = max(6, style.get("tick_size", 11) - 2) if len(short_cols) > 30 else style.get("tick_size", 11)
+            if len(short_cols) <= 60:
+                fig.update_xaxes(side="top", tickangle=-45, tickmode="linear", dtick=1, tickfont=dict(size=tick_font), automargin=True)
+                fig.update_yaxes(tickangle=0, tickfont=dict(size=tick_font), automargin=True)
+            else:
+                fig.update_xaxes(side="top", tickangle=-45, tickfont=dict(size=tick_font), automargin=True)
+                fig.update_yaxes(tickangle=0, tickfont=dict(size=tick_font), automargin=True)
         else:
             plot_df = df.copy()
             row_std = plot_df.std(axis=1, numeric_only=True)
@@ -2164,20 +2166,28 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             max_y_len = max([len(s) for s in short_rows], default=1)
 
             # Decide x-axis label density/rotation from sample name length and count.
-            long_x_labels = max_x_len > 12
-            x_step = _tick_text_step(n, max_labels=18 if long_x_labels else 25)
-            x_tickvals = list(range(0, n, x_step))
-            x_ticktext = [short_cols[i] for i in x_tickvals]
+            long_x_labels = max_x_len > 8
             x_tick_size = max(8, min(10 if long_x_labels else 13, int(300 / max(n, 1))))
             y_tick_size = max(7, min(11, int(height * 0.5 / max(m, 1))))
-            if max_x_len > 16 or (long_x_labels and n > 8):
+            if max_x_len > 12 or n > 15:
                 x_tickangle = -90
-            elif long_x_labels or n > 15:
+            elif long_x_labels or n > 8:
                 x_tickangle = -45
-            elif n > 25:
-                x_tickangle = -60
             else:
                 x_tickangle = 0
+            # Cap label length for angled x-axis labels so the bottom margin stays reasonable.
+            if x_tickangle in (-45, -90):
+                x_tick_size = max(8, min(10, int(300 / max(n, 1))))
+                max_allowed_x_len = max(8, int((height * 0.45 - 150) / max(x_tick_size, 1)))
+                if max_x_len > max_allowed_x_len:
+                    short_cols = [_shorten_name(c, max_allowed_x_len) for c in plot_df.columns]
+                    max_x_len = max_allowed_x_len
+                    long_x_labels = max_x_len > 8
+            # Try to show every sample label while still respecting available width.
+            max_x_labels = max(40, int(900 / max(x_tick_size, 8)))
+            x_step = _tick_text_step(n, max_labels=max_x_labels)
+            x_tickvals = list(range(0, n, x_step))
+            x_ticktext = [short_cols[i] for i in x_tickvals]
             # Allow one label per row as long as there is ~14 px of vertical space per label.
             y_step = _tick_text_step(m, max_labels=max(1, int(height / 14)))
             y_tickvals = feature_ids[::y_step]
