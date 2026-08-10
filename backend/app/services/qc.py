@@ -4,6 +4,7 @@ import math
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from scipy import stats
 from sklearn.decomposition import PCA as PCA_SKL
 from sklearn.preprocessing import StandardScaler
@@ -276,6 +277,107 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
         _apply_base_layout(fig, style, title=f"QC-Pool TIC drift: {qc_group}")
         return json.loads(fig.to_json())
 
+    def _before_after_figure() -> dict | None:
+        """Show raw vs corrected sample TIC and the applied correction factor.
+
+        Uses the QC-Pool drift correction diagnostics stored in the dataset
+        processing history so the user can verify the correction was applied.
+        """
+        drift_diag = None
+        for step in (dataset.processing_history or []):
+            if isinstance(step, dict) and step.get("qc_pool_drift"):
+                drift_diag = step["qc_pool_drift"]
+                break
+        if not drift_diag:
+            return None
+
+        names = drift_diag.get("sample_names") or []
+        groups = drift_diag.get("sample_groups") or ["Unknown"] * len(names)
+        positions = np.asarray(drift_diag.get("sample_positions", []), dtype=float)
+        before = np.asarray(drift_diag.get("sample_tic_before", []), dtype=float)
+        after = np.asarray(drift_diag.get("sample_tic_after", []), dtype=float)
+        if len(positions) == 0 or len(before) == 0:
+            return None
+
+        all_values = np.concatenate([before, after])
+        floor = float(np.nanmin(all_values[all_values > 0])) / 2 if np.any(all_values > 0) else 1e-12
+        before_safe = np.where(np.isfinite(before) & (before > 0), before, floor)
+        after_safe = np.where(np.isfinite(after) & (after > 0), after, floor)
+        log_before = np.log2(before_safe)
+        log_after = np.log2(after_safe)
+        scale = np.where(before_safe > 0, after_safe / before_safe, 1.0)
+        log_scale = np.log2(np.where(scale > 0, scale, 1.0))
+
+        all_groups = sorted({str(g) for g in groups})
+        corr_color_map = {**color_map}
+        palette = style.get("group_colors") or STYLE_DEFAULTS["group_colors"]
+        for i, g in enumerate(all_groups):
+            if g not in corr_color_map:
+                corr_color_map[g] = palette[i % len(palette)]
+
+        qc_group = auto_detect_qc_pool_group({n: g for n, g in zip(names, groups)})
+
+        fig = make_subplots(
+            rows=1,
+            cols=2,
+            subplot_titles=("log2(sample TIC)", "log2(correction factor)"),
+            horizontal_spacing=0.12,
+        )
+        for g in all_groups:
+            idx = [i for i, gg in enumerate(groups) if str(gg) == g]
+            if not idx:
+                continue
+            xs = positions[idx].tolist()
+            y_before = [round(float(log_before[i]), 3) for i in idx]
+            y_after = [round(float(log_after[i]), 3) for i in idx]
+            y_scale = [round(float(log_scale[i]), 3) for i in idx]
+            marker_symbol = "diamond" if (qc_group and g == qc_group) else "circle"
+            color = corr_color_map.get(g, "#94a3b8")
+            fig.add_trace(
+                go.Scatter(
+                    x=xs,
+                    y=y_before,
+                    mode="markers",
+                    name=f"{g} (before)",
+                    marker=dict(color=color, symbol=marker_symbol, size=8),
+                    legendgroup=g,
+                ),
+                row=1,
+                col=1,
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=xs,
+                    y=y_after,
+                    mode="markers",
+                    name=f"{g} (after)",
+                    marker=dict(color=color, symbol=marker_symbol, size=9, line=dict(color="white", width=1)),
+                    legendgroup=g,
+                ),
+                row=1,
+                col=1,
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=xs,
+                    y=y_scale,
+                    mode="markers",
+                    name=g,
+                    marker=dict(color=color, symbol=marker_symbol, size=8),
+                    showlegend=False,
+                    legendgroup=g,
+                ),
+                row=1,
+                col=2,
+            )
+        fig.add_hline(y=0, line_dash="dash", line_color="#64748b", row=1, col=2)
+        fig.update_xaxes(title_text="Run order", row=1, col=1)
+        fig.update_xaxes(title_text="Run order", row=1, col=2)
+        fig.update_yaxes(title_text="log2(TIC)", row=1, col=1)
+        fig.update_yaxes(title_text="log2(after / before)", row=1, col=2)
+        _apply_base_layout(fig, style, title="QC-Pool correction: before vs after")
+        return json.loads(fig.to_json())
+
     figures = {
         "tic": _bar_figure("Total Ion Current (TIC) by Sample", tic, "TIC"),
         "missing_pct": _bar_figure("Missing Values per Sample (%)", missing_pct, "Missing %"),
@@ -290,6 +392,14 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
             figures["qc_pool_drift"] = drift_fig
     except Exception as _exc:
         logger.exception("Unexpected error generating QC drift figure")
+        pass
+
+    try:
+        before_after_fig = _before_after_figure()
+        if before_after_fig:
+            figures["qc_pool_correction"] = before_after_fig
+    except Exception as _exc:
+        logger.exception("Unexpected error generating QC before/after figure")
         pass
 
     filtered_dataset = _build_filtered_dataset(dataset, df, sample_meta)

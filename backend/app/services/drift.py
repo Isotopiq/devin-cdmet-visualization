@@ -577,4 +577,9 @@ def _apply_single_batch(
         )
 
     diagnostics["qc_pool_group_used"] = qc_pool_group
+    # Preserve sample-level diagnostics for downstream before/after correction plots.
+    diagnostics["sample_names"] = list(corrected.columns)
+    diagnostics["sample_groups"] = [str(sample_metadata.get(c, "Unknown")) for c in corrected.columns]
+    diagnostics["sample_tic_before"] = df.sum(axis=0, skipna=True).to_numpy().tolist()
+    diagnostics["sample_tic_after"] = corrected.sum(axis=0, skipna=True).to_numpy().tolist()
     return corrected, diagnostics

@@ -393,6 +393,7 @@ function titleFor(key: string) {
     pca: 'PCA Score Plot',
     correlation_heatmap: 'Sample Correlation Heatmap',
     qc_pool_drift: 'QC-Pool TIC Drift',
+    qc_pool_correction: 'QC-Pool Correction (before vs after)',
   }
   return titles[key] || key
 }
