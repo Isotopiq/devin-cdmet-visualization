@@ -244,6 +244,71 @@ async def test_preprocess_qc_pool_drift_correction():
     assert any(step.get("step") == "preprocessing" and "qc_pool_drift" in step for step in new.processing_history)
 
 
+@pytest.mark.asyncio
+async def test_preprocess_exclude_blanks_from_imputation_manual():
+    df = pd.DataFrame(
+        {"S1": [np.nan, 2.0, 3.0], "S2": [1.0, 2.0, 3.0], "S3": [np.nan, 5.0, 6.0], "S4": [4.0, 5.0, 6.0]},
+        index=["F1", "F2", "F3"],
+    )
+    ds = _make_dataset(df, {"S1": "Blank", "S2": "Blank", "S3": "A", "S4": "A"})
+    params = schemas.PreprocessingParams(
+        missing_value_filter=0.0,
+        imputation="min",
+        blank_columns=["S1"],
+        exclude_blanks_from_imputation=True,
+    )
+    fake_db = _FakeAsyncSession()
+    new = await preprocess_dataset(fake_db, ds, params)
+    out_df = to_dataframe(new)
+    # Blank sample missing value should remain missing; non-blank missing value should be imputed.
+    assert pd.isna(out_df.loc[0, "S1"])
+    assert not pd.isna(out_df.loc[0, "S3"])
+
+
+@pytest.mark.asyncio
+async def test_preprocess_exclude_blanks_from_imputation_auto_detection():
+    df = pd.DataFrame(
+        {"S1": [np.nan, 2.0, 3.0], "S2": [1.0, np.nan, 3.0], "S3": [np.nan, 5.0, 6.0], "S4": [4.0, 5.0, 6.0]},
+        index=["F1", "F2", "F3"],
+    )
+    ds = _make_dataset(df, {"S1": "Blank 1", "S2": "Blank 1", "S3": "A", "S4": "A"})
+    params = schemas.PreprocessingParams(
+        missing_value_filter=0.0,
+        imputation="min",
+        exclude_blanks_from_imputation=True,
+    )
+    fake_db = _FakeAsyncSession()
+    new = await preprocess_dataset(fake_db, ds, params)
+    out_df = to_dataframe(new)
+    # Auto-detected blank columns should not be imputed.
+    assert pd.isna(out_df.loc[0, "S1"])
+    assert pd.isna(out_df.loc[1, "S2"])
+    assert not pd.isna(out_df.loc[0, "S3"])
+
+
+@pytest.mark.asyncio
+async def test_preprocess_exclude_blanks_from_imputation_with_normalization_log():
+    df = pd.DataFrame(
+        {"S1": [np.nan, 2.0, 3.0], "S2": [1.0, 2.0, 3.0], "S3": [np.nan, 5.0, 6.0], "S4": [4.0, 5.0, 6.0]},
+        index=["F1", "F2", "F3"],
+    )
+    ds = _make_dataset(df, {"S1": "Blank", "S2": "Blank", "S3": "A", "S4": "A"})
+    params = schemas.PreprocessingParams(
+        missing_value_filter=0.0,
+        imputation="min",
+        blank_columns=["S1"],
+        exclude_blanks_from_imputation=True,
+        normalization="total_area",
+        log_transform=True,
+    )
+    fake_db = _FakeAsyncSession()
+    new = await preprocess_dataset(fake_db, ds, params)
+    out_df = to_dataframe(new)
+    assert pd.isna(out_df.loc[0, "S1"])
+    assert not pd.isna(out_df.loc[0, "S3"])
+    assert not out_df.isin([np.inf, -np.inf]).any().any()
+
+
 class _FakeAsyncSession:
     """Minimal async session double used to exercise preprocess_dataset without a DB."""
 

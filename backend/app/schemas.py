@@ -172,6 +172,7 @@ class PreprocessingParams(BaseModel):
     missing_value_filter: float = 0.0
     blank_subtraction: bool = False
     blank_columns: List[str] = []
+    exclude_blanks_from_imputation: bool = False
     qc_cv_filter: float = 0.0
     qc_columns: List[str] = []
     duplicate_handling: str = "mean"

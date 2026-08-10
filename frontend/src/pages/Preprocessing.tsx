@@ -28,6 +28,7 @@ export default function Preprocessing() {
     qc_cv_filter: 0,
     blank_subtraction: false,
     blank_columns: [] as string[],
+    exclude_blanks_from_imputation: false,
     enable_isobaric_substitution_check: true,
     isobaric_substitution_mode: 'flag_ambiguous',
     isobaric_substitution_rules: [DEFAULT_ISOBARIC_RULE],
@@ -108,6 +109,7 @@ export default function Preprocessing() {
         imputation: params.imputation,
         blank_subtraction: params.blank_subtraction,
         blank_columns: params.blank_columns,
+        exclude_blanks_from_imputation: params.exclude_blanks_from_imputation,
         qc_cv_filter: params.qc_cv_filter,
         qc_columns: [],
         duplicate_handling: 'mean',
@@ -250,26 +252,47 @@ export default function Preprocessing() {
                 <label htmlFor="rename-samples" className="text-sm text-slate-700 dark:text-slate-200">Rename samples to group_R#</label>
               </div>
               <div className="md:col-span-3 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="blank-subtraction"
-                    checked={params.blank_subtraction}
-                    onChange={(e) => {
-                      const enabled = e.target.checked
-                      setParams({
-                        ...params,
-                        blank_subtraction: enabled,
-                        blank_columns: enabled ? blankSamples : [],
-                      })
-                    }}
-                    className="rounded border-slate-300"
-                  />
-                  <label htmlFor="blank-subtraction" className="text-sm text-slate-700 dark:text-slate-200">Subtract blank samples (recommended for lipidomics)</label>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="blank-subtraction"
+                      checked={params.blank_subtraction}
+                      onChange={(e) => {
+                        const enabled = e.target.checked
+                        const showSelector = enabled || params.exclude_blanks_from_imputation
+                        setParams({
+                          ...params,
+                          blank_subtraction: enabled,
+                          blank_columns: showSelector ? (params.blank_columns.length ? params.blank_columns : blankSamples) : [],
+                        })
+                      }}
+                      className="rounded border-slate-300"
+                    />
+                    <label htmlFor="blank-subtraction" className="text-sm text-slate-700 dark:text-slate-200">Subtract blank samples</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="exclude-blanks-imputation"
+                      checked={params.exclude_blanks_from_imputation}
+                      onChange={(e) => {
+                        const enabled = e.target.checked
+                        const showSelector = params.blank_subtraction || enabled
+                        setParams({
+                          ...params,
+                          exclude_blanks_from_imputation: enabled,
+                          blank_columns: showSelector ? (params.blank_columns.length ? params.blank_columns : blankSamples) : [],
+                        })
+                      }}
+                      className="rounded border-slate-300"
+                    />
+                    <label htmlFor="exclude-blanks-imputation" className="text-sm text-slate-700 dark:text-slate-200">Exclude blanks from imputation</label>
+                  </div>
                 </div>
-                {params.blank_subtraction && (
+                {(params.blank_subtraction || params.exclude_blanks_from_imputation) && (
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Blank samples to subtract</label>
+                    <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Blank samples</label>
                     <select
                       multiple
                       value={params.blank_columns}
@@ -280,7 +303,7 @@ export default function Preprocessing() {
                         <option key={s} value={s}>{s} ({sampleMeta[s] || 'unknown'})</option>
                       ))}
                     </select>
-                    <p className="text-xs text-slate-500 mt-1">Hold Ctrl/Cmd to select multiple. Detected blank groups are pre-selected.</p>
+                    <p className="text-xs text-slate-500 mt-1">Hold Ctrl/Cmd to select multiple. Auto-detected blank groups are pre-selected.</p>
                   </div>
                 )}
               </div>

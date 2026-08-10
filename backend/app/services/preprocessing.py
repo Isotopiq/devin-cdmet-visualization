@@ -54,6 +54,43 @@ def _make_non_negative(df: pd.DataFrame) -> pd.DataFrame:
     return df.where(df > 0, floor)
 
 
+def _detect_blank_columns(sample_metadata: Dict[str, Any]) -> List[str]:
+    """Auto-detect sample columns whose group name indicates a blank/control sample."""
+    pattern = re.compile(r"blank|solvent|ntc|negative.?control|no.?template", re.IGNORECASE)
+    return [s for s, g in sample_metadata.items() if pattern.search(str(g))]
+
+
+def _blank_columns(
+    df: pd.DataFrame,
+    params: schemas.PreprocessingParams,
+    sample_metadata: Dict[str, Any],
+) -> List[str]:
+    """Return blank columns using the user's selection or auto-detection."""
+    blank_cols = [c for c in (params.blank_columns or []) if c in df.columns]
+    if not blank_cols and (params.blank_subtraction or params.exclude_blanks_from_imputation):
+        blank_cols = _detect_blank_columns(sample_metadata or {})
+        blank_cols = [c for c in blank_cols if c in df.columns]
+    return blank_cols
+
+
+def _blank_missing_mask(df: pd.DataFrame, blank_cols: List[str]) -> Optional[pd.DataFrame]:
+    """Capture the original missing-value mask for blank columns."""
+    if not blank_cols:
+        return None
+    return df[blank_cols].isna()
+
+
+def _restore_blank_missing(
+    df: pd.DataFrame,
+    blank_cols: List[str],
+    mask: Optional[pd.DataFrame],
+) -> pd.DataFrame:
+    """Restore originally missing values in blank columns after an operation that may fill them."""
+    if blank_cols and mask is not None:
+        df[blank_cols] = df[blank_cols].where(~mask, np.nan)
+    return df
+
+
 def from_dataframe(
     df: pd.DataFrame,
     dataset: models.Dataset,
@@ -215,13 +252,19 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
         df = df.dropna(thresh=threshold)
         _sync_meta()
 
+    sample_meta = dataset.sample_metadata or {}
+    blank_cols = _blank_columns(df, params, sample_meta)
+    blank_missing_mask = _blank_missing_mask(df, blank_cols) if (blank_cols and params.exclude_blanks_from_imputation) else None
+
     # 2. Blank subtraction (per-feature mean across blanks)
-    if params.blank_subtraction and params.blank_columns:
-        blank_mean = df[params.blank_columns].mean(axis=1)
+    if params.blank_subtraction and blank_cols:
+        blank_mean = df[blank_cols].mean(axis=1)
         for col in df.columns:
-            if col not in params.blank_columns:
+            if col not in blank_cols:
                 df[col] = df[col] - blank_mean
         df = _make_non_negative(df)
+        if params.exclude_blanks_from_imputation and blank_missing_mask is not None:
+            df = _restore_blank_missing(df, blank_cols, blank_missing_mask)
 
     # 3. QC CV filtering (remove features highly variable across QC samples)
     if params.qc_cv_filter > 0 and params.qc_columns:
@@ -255,15 +298,33 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
 
     # 5. Imputation (before normalization/log to keep values interpretable)
     if params.imputation == "min":
-        pos_floor = _positive_floor(df) / 2
-        df = df.fillna(pos_floor)
+        if blank_cols and params.exclude_blanks_from_imputation:
+            non_blank_cols = [c for c in df.columns if c not in blank_cols]
+            if non_blank_cols:
+                pos_floor = _positive_floor(df[non_blank_cols]) / 2
+                df[non_blank_cols] = df[non_blank_cols].fillna(pos_floor)
+        else:
+            pos_floor = _positive_floor(df) / 2
+            df = df.fillna(pos_floor)
     elif params.imputation == "median":
-        df = df.fillna(df.median())
+        if blank_cols and params.exclude_blanks_from_imputation:
+            non_blank_cols = [c for c in df.columns if c not in blank_cols]
+            if non_blank_cols:
+                df[non_blank_cols] = df[non_blank_cols].fillna(df[non_blank_cols].median())
+        else:
+            df = df.fillna(df.median())
     elif params.imputation == "knn":
-        df = df.fillna(df.mean())
+        if blank_cols and params.exclude_blanks_from_imputation:
+            non_blank_cols = [c for c in df.columns if c not in blank_cols]
+            if non_blank_cols:
+                df[non_blank_cols] = df[non_blank_cols].fillna(df[non_blank_cols].mean())
+        else:
+            df = df.fillna(df.mean())
 
     # Ensure no negative values remain before normalization/log
     df = _make_non_negative(df)
+    if blank_cols and params.exclude_blanks_from_imputation:
+        df = _restore_blank_missing(df, blank_cols, blank_missing_mask)
 
     # 6. QC-Pool drift correction (optional, on positive raw intensities)
     if params.qc_pool_drift_correction:
@@ -283,9 +344,14 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
     if params.normalization == "total_area":
         sample_sums = df.sum(axis=0)
         sample_sums = sample_sums.replace(0, np.nan)
-        if sample_sums.notna().any():
-            df = df.div(sample_sums, axis=1) * sample_sums.median()
+        median_sums = sample_sums
+        if blank_cols and params.exclude_blanks_from_imputation:
+            median_sums = sample_sums.drop(labels=blank_cols, errors="ignore")
+        if median_sums.notna().any():
+            df = df.div(sample_sums, axis=1) * median_sums.median()
         df = df.fillna(0)
+        if blank_cols and params.exclude_blanks_from_imputation:
+            df = _restore_blank_missing(df, blank_cols, blank_missing_mask)
     elif params.normalization == "custom_factor" and params.custom_factor:
         df = df / float(params.custom_factor)
     elif params.normalization in NORMALIZATION_BY_SAMPLE:
@@ -299,6 +365,8 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
             raise HTTPException(status_code=400, detail="No valid normalization factors found in uploaded file")
         df = df.div(factors, axis=1) * median_factor
         df = df.fillna(0)
+        if blank_cols and params.exclude_blanks_from_imputation:
+            df = _restore_blank_missing(df, blank_cols, blank_missing_mask)
         history["normalization_values"] = values
 
     # 7. Log transformation
@@ -306,6 +374,8 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
         pos_floor = _positive_floor(df) / 2
         df = df.where(df > 0, pos_floor)
         df = np.log2(df)
+        if blank_cols and params.exclude_blanks_from_imputation:
+            df = _restore_blank_missing(df, blank_cols, blank_missing_mask)
 
     # 8. Batch correction (median-center per batch when batch labels are supplied)
     if params.batch_correction == "mean" and params.batch_labels:
@@ -322,11 +392,17 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
 
     # 9. Scaling (per feature, i.e. across samples; df rows are features)
     if params.scale == "standard":
-        df = pd.DataFrame(StandardScaler().fit_transform(df.T).T, index=df.index, columns=df.columns)
+        non_blank_cols = [c for c in df.columns if c not in blank_cols]
+        if non_blank_cols:
+            df[non_blank_cols] = pd.DataFrame(StandardScaler().fit_transform(df[non_blank_cols].T).T, index=df.index, columns=non_blank_cols)
     elif params.scale == "robust":
-        df = pd.DataFrame(RobustScaler().fit_transform(df.T).T, index=df.index, columns=df.columns)
+        non_blank_cols = [c for c in df.columns if c not in blank_cols]
+        if non_blank_cols:
+            df[non_blank_cols] = pd.DataFrame(RobustScaler().fit_transform(df[non_blank_cols].T).T, index=df.index, columns=non_blank_cols)
     elif params.scale == "minmax":
-        df = pd.DataFrame(MinMaxScaler().fit_transform(df.T).T, index=df.index, columns=df.columns)
+        non_blank_cols = [c for c in df.columns if c not in blank_cols]
+        if non_blank_cols:
+            df[non_blank_cols] = pd.DataFrame(MinMaxScaler().fit_transform(df[non_blank_cols].T).T, index=df.index, columns=non_blank_cols)
 
     # 10. Optional sample renaming to group_R<replicate>
     renamed_metadata = None
