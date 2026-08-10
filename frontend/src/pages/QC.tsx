@@ -392,6 +392,7 @@ function titleFor(key: string) {
     cv_by_group: 'Per-Feature CV by Group',
     pca: 'PCA Score Plot',
     correlation_heatmap: 'Sample Correlation Heatmap',
+    qc_pool_drift: 'QC-Pool TIC Drift',
   }
   return titles[key] || key
 }

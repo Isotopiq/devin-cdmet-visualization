@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import models, schemas
 from app.services import storage
 from app.services.isobaric import apply_isobaric_substitution
+from app.services.drift import correct_qc_pool_drift, load_run_order_file
 
 
 def _to_json_safe(value):
@@ -264,7 +265,20 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
     # Ensure no negative values remain before normalization/log
     df = _make_non_negative(df)
 
-    # 6. Normalization (on raw, non-logged sample totals)
+    # 6. QC-Pool drift correction (optional, on positive raw intensities)
+    if params.qc_pool_drift_correction:
+        run_order = params.qc_pool_run_order or None
+        if params.qc_pool_run_order_file_id:
+            run_order = await load_run_order_file(db, params.qc_pool_run_order_file_id, df.columns.tolist())
+        df, drift_diagnostics = correct_qc_pool_drift(
+            df,
+            dataset.sample_metadata or {},
+            params,
+            run_order=run_order,
+        )
+        history["qc_pool_drift"] = drift_diagnostics
+
+    # 7. Normalization (on raw, non-logged sample totals)
     NORMALIZATION_BY_SAMPLE = {"internal_standard", "protein", "dna", "cell_number", "tissue_weight"}
     if params.normalization == "total_area":
         sample_sums = df.sum(axis=0)

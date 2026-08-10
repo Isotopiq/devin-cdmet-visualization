@@ -146,6 +146,12 @@ async def batch_combine(
         n_unwanted_factors=body.n_unwanted_factors or 1,
         include_qc_plots=body.include_qc_plots,
         style=body.style,
+        qc_pool_group=body.qc_pool_group,
+        qc_pool_method=body.qc_pool_method,
+        qc_pool_space=body.qc_pool_space,
+        qc_pool_span=body.qc_pool_span,
+        qc_pool_target=body.qc_pool_target,
+        qc_pool_extrapolate=body.qc_pool_extrapolate,
     )
     if isinstance(result, dict):
         return result

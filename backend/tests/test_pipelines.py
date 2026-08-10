@@ -209,6 +209,41 @@ async def test_isotope_no_isotopologue_columns_returns_clear_error():
     assert "error" in result
 
 
+@pytest.mark.asyncio
+async def test_preprocess_qc_pool_drift_correction():
+    rng = np.random.default_rng(7)
+    samples = [f"S{i}" for i in range(20)]
+    df = pd.DataFrame(rng.lognormal(3, 1, (5, 20)), columns=samples)
+    # QC-Pool samples at positions 2, 10, 18 with declining signal
+    qc_positions = [2, 10, 18]
+    for rank, pos in enumerate(qc_positions):
+        df.iloc[:, pos] *= 1 - rank * 0.25
+    groups = {s: "Sample" for s in samples}
+    for pos in qc_positions:
+        groups[samples[pos]] = "QC-Pool"
+    ds = _make_dataset(df, groups)
+    params = schemas.PreprocessingParams(
+        missing_value_filter=0.0,
+        imputation="min",
+        log_transform=False,
+        scale="none",
+        normalization="none",
+        qc_pool_drift_correction=True,
+        qc_pool_method="loess_tic",
+        qc_pool_space="log",
+        qc_pool_target="median",
+    )
+    fake_db = _FakeAsyncSession()
+    new = await preprocess_dataset(fake_db, ds, params)
+    out_df = to_dataframe(new)
+    # QC-Pool TICs should be compressed after correction
+    qc_tic_raw = df.iloc[:, qc_positions].sum().to_numpy()
+    qc_tic_corr = out_df.iloc[:, qc_positions].sum().to_numpy()
+    assert np.std(qc_tic_corr) < np.std(qc_tic_raw)
+    # History records the drift correction
+    assert any(step.get("step") == "preprocessing" and "qc_pool_drift" in step for step in new.processing_history)
+
+
 class _FakeAsyncSession:
     """Minimal async session double used to exercise preprocess_dataset without a DB."""
 

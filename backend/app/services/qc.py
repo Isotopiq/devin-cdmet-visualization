@@ -14,6 +14,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from app import models, schemas
 from app.services.preprocessing import to_dataframe, _to_json_safe
 from app.services.plots import _merge_style, _group_color_map, _apply_base_layout, generate_plot, _shorten_name
+from app.services.drift import auto_detect_qc_pool_group, _run_order_map, _fit_lowess, _predict_at_positions
 import logging
 
 logger = logging.getLogger(__name__)
@@ -218,6 +219,63 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
         fig.update_xaxes(tickmode="linear", dtick=1, tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
         return json.loads(fig.to_json())
 
+    def _drift_figure() -> dict | None:
+        """Diagnostic plot of QC-Pool TIC drift with a LOWESS trend and all sample TICs."""
+        qc_group = auto_detect_qc_pool_group(sample_meta)
+        if not qc_group:
+            return None
+        qc_cols = [s for s in samples if str(sample_meta.get(s, "Unknown")).strip() == str(qc_group).strip()]
+        if len(qc_cols) < 2:
+            return None
+        order_map = _run_order_map(df, None)
+        positions = np.array([order_map[s] for s in samples], dtype=float)
+        qc_positions = np.array([order_map[s] for s in qc_cols], dtype=float)
+        tic_values = np.array([tic.get(s, 0.0) for s in samples], dtype=float)
+        floor = float(np.nanmin(tic_values[tic_values > 0])) / 2 if np.any(tic_values > 0) else 1e-12
+        qc_tic = np.where(tic_values > 0, tic_values, floor)
+        log_qc = np.log2(np.array([tic.get(s, floor) for s in qc_cols], dtype=float))
+        try:
+            y_fit = _fit_lowess(qc_positions, log_qc, span=0.75)
+            predicted = _predict_at_positions(qc_positions, y_fit, positions, "last")
+        except Exception:
+            logger.exception("QC drift figure fit failed")
+            return None
+
+        fig = go.Figure()
+        for g in group_order:
+            group_samples = [s for s in samples if sample_meta.get(s, "Unknown") == g]
+            if not group_samples:
+                continue
+            marker_symbol = "diamond" if g == qc_group else "circle"
+            fig.add_trace(
+                go.Scatter(
+                    x=[order_map[s] for s in group_samples],
+                    y=[round(float(np.log2(max(tic.get(s, floor), floor))), 3) for s in group_samples],
+                    mode="markers",
+                    name=g,
+                    marker=dict(color=color_map.get(g, "#94a3b8"), symbol=marker_symbol, size=10),
+                )
+            )
+        # Add fitted trend line across the full run order
+        sort_idx = np.argsort(positions)
+        fig.add_trace(
+            go.Scatter(
+                x=positions[sort_idx].tolist(),
+                y=[round(v, 3) for v in predicted[sort_idx].tolist()],
+                mode="lines",
+                name="QC-Pool trend",
+                line=dict(color="#ef4444", width=2, dash="dash"),
+                showlegend=True,
+            )
+        )
+        fig.update_layout(
+            xaxis_title="Run order",
+            yaxis_title="log2(TIC)",
+            title=f"QC-Pool TIC drift: {qc_group}",
+        )
+        _apply_base_layout(fig, style, title=f"QC-Pool TIC drift: {qc_group}")
+        return json.loads(fig.to_json())
+
     figures = {
         "tic": _bar_figure("Total Ion Current (TIC) by Sample", tic, "TIC"),
         "missing_pct": _bar_figure("Missing Values per Sample (%)", missing_pct, "Missing %"),
@@ -225,6 +283,14 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
         "log2_intensity": _log2_box_figure(),
         "cv_by_group": _cv_box_figure(),
     }
+
+    try:
+        drift_fig = _drift_figure()
+        if drift_fig:
+            figures["qc_pool_drift"] = drift_fig
+    except Exception as _exc:
+        logger.exception("Unexpected error generating QC drift figure")
+        pass
 
     filtered_dataset = _build_filtered_dataset(dataset, df, sample_meta)
 

@@ -185,6 +185,15 @@ class PreprocessingParams(BaseModel):
     batch_correction: str = "none"
     batch_column: Optional[str] = None
     batch_labels: Optional[Dict[str, str]] = None
+    qc_pool_drift_correction: bool = False
+    qc_pool_group: Optional[str] = None
+    qc_pool_method: str = "loess_tic"
+    qc_pool_space: str = "log"
+    qc_pool_span: float = 0.75
+    qc_pool_target: str = "median"
+    qc_pool_extrapolate: str = "last"
+    qc_pool_run_order: Optional[Dict[str, int]] = None
+    qc_pool_run_order_file_id: Optional[int] = None
     enable_isobaric_substitution_check: bool = True
     isobaric_substitution_mode: str = "flag_ambiguous"
     isobaric_substitution_rules: List[Dict[str, Any]] = [{
@@ -400,6 +409,12 @@ class BatchCombineRequest(BaseModel):
     n_unwanted_factors: Optional[int] = 1
     include_qc_plots: bool = False
     style: Optional[Dict[str, Any]] = None
+    qc_pool_group: Optional[str] = None
+    qc_pool_method: str = "loess_tic"
+    qc_pool_space: str = "log"
+    qc_pool_span: float = 0.75
+    qc_pool_target: str = "median"
+    qc_pool_extrapolate: str = "last"
 
 
 class BatchCombineOut(BaseModel):

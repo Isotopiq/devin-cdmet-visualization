@@ -41,6 +41,15 @@ export default function Preprocessing() {
     normalization_column: 'Value',
     normalization_file_name: '',
     rename_samples: false,
+    qc_pool_drift_correction: false,
+    qc_pool_group: '',
+    qc_pool_method: 'loess_tic',
+    qc_pool_space: 'log',
+    qc_pool_span: 0.75,
+    qc_pool_target: 'median',
+    qc_pool_extrapolate: 'last',
+    qc_pool_run_order_file_id: null as number | null,
+    qc_pool_run_order_file_name: '',
   })
 
   useEffect(() => {
@@ -55,6 +64,25 @@ export default function Preprocessing() {
       .filter((entry) => /blank|solvent|ntc/i.test(String(entry[1])))
       .map((entry) => entry[0])
   }, [sampleMeta])
+
+  const uniqueGroups = useMemo(() => {
+    const set = new Set<string>()
+    Object.values(sampleMeta).forEach((g) => set.add(String(g || 'unknown')))
+    return Array.from(set)
+  }, [sampleMeta])
+
+  const qcPoolGroups = useMemo(() => {
+    const poolPattern = /qc[-_\s]*pool|pool[-_\s]*qc|pooled[-_\s]*qc|quality[-_\s]*control[-_\s]*pool/i
+    const fallback = /\bqc\b|quality[-_\s]*control|pooled/i
+    const groups = uniqueGroups.filter((g) => poolPattern.test(g) || fallback.test(g))
+    return groups
+  }, [uniqueGroups])
+
+  useEffect(() => {
+    if (selectedDataset && qcPoolGroups.length > 0 && !params.qc_pool_group) {
+      setParams((prev: any) => ({ ...prev, qc_pool_group: qcPoolGroups[0] }))
+    }
+  }, [selectedDataset, qcPoolGroups])
 
   const isLipid = selectedDataset?.feature_type === 'lipid'
 
@@ -97,6 +125,14 @@ export default function Preprocessing() {
         isobaric_rollup_preference: params.isobaric_rollup_preference,
         output_name: params.output_name || undefined,
         rename_samples: params.rename_samples,
+        qc_pool_drift_correction: params.qc_pool_drift_correction,
+        qc_pool_group: params.qc_pool_drift_correction ? params.qc_pool_group : null,
+        qc_pool_method: params.qc_pool_drift_correction ? params.qc_pool_method : 'loess_tic',
+        qc_pool_space: params.qc_pool_drift_correction ? params.qc_pool_space : 'log',
+        qc_pool_span: params.qc_pool_drift_correction ? params.qc_pool_span : 0.75,
+        qc_pool_target: params.qc_pool_drift_correction ? params.qc_pool_target : 'median',
+        qc_pool_extrapolate: params.qc_pool_drift_correction ? params.qc_pool_extrapolate : 'last',
+        qc_pool_run_order_file_id: params.qc_pool_drift_correction ? params.qc_pool_run_order_file_id : null,
       }
       const res = await preprocess(Number(projectId), Number(datasetId), body)
       setProcessedDataset(res.data)
@@ -248,6 +284,126 @@ export default function Preprocessing() {
                   </div>
                 )}
               </div>
+
+              <div className="md:col-span-3 flex flex-col gap-3 border-t border-slate-200 dark:border-slate-700 pt-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="qc-drift"
+                    checked={params.qc_pool_drift_correction}
+                    onChange={(e) => setParams({ ...params, qc_pool_drift_correction: e.target.checked })}
+                    className="rounded border-slate-300"
+                  />
+                  <label htmlFor="qc-drift" className="text-sm font-medium text-slate-700 dark:text-slate-200">QC-Pool drift correction</label>
+                </div>
+                {params.qc_pool_drift_correction && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-3">
+                      <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">QC-Pool group</label>
+                      <select
+                        value={params.qc_pool_group}
+                        onChange={(e) => setParams({ ...params, qc_pool_group: e.target.value })}
+                        className="input"
+                      >
+                        <option value="">Select a group...</option>
+                        {uniqueGroups.map((g) => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                      {qcPoolGroups.length > 0 && !params.qc_pool_group && (
+                        <p className="text-xs text-amber-600 mt-1">Auto-detected candidate groups: {qcPoolGroups.join(', ')}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Method</label>
+                      <select value={params.qc_pool_method} onChange={(e) => setParams({ ...params, qc_pool_method: e.target.value })} className="input">
+                        <option value="median_tic">Median QC TIC</option>
+                        <option value="linear_tic">Linear TIC</option>
+                        <option value="loess_tic">LOWESS TIC</option>
+                        <option value="spline_tic">Spline TIC</option>
+                        <option value="median_per_feature">Median per feature</option>
+                        <option value="linear_per_feature">Linear per feature</option>
+                        <option value="loess_per_feature">LOWESS per feature</option>
+                        <option value="spline_per_feature">Spline per feature</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Correction space</label>
+                      <select value={params.qc_pool_space} onChange={(e) => setParams({ ...params, qc_pool_space: e.target.value })} className="input">
+                        <option value="log">Log2 additive (recommended)</option>
+                        <option value="raw">Raw multiplicative</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Span / smoothing</label>
+                      <input type="number" step={0.05} min={0.1} max={1.0} value={params.qc_pool_span} onChange={(e) => setParams({ ...params, qc_pool_span: Number(e.target.value) })} className="input" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Reference target</label>
+                      <select value={params.qc_pool_target} onChange={(e) => setParams({ ...params, qc_pool_target: e.target.value })} className="input">
+                        <option value="median">Median QC</option>
+                        <option value="mean">Mean QC</option>
+                        <option value="first">First QC</option>
+                        <option value="last">Last QC</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Extrapolation</label>
+                      <select value={params.qc_pool_extrapolate} onChange={(e) => setParams({ ...params, qc_pool_extrapolate: e.target.value })} className="input">
+                        <option value="last">Nearest QC</option>
+                        <option value="linear">Linear</option>
+                        <option value="none">No correction</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-3 flex flex-wrap items-end gap-3">
+                      <button
+                        onClick={() => {
+                          const cols = Object.keys(selectedDataset?.sample_metadata || {})
+                          const header = 'Sample,Order'
+                          const rows = cols.map((s, i) => `"${s.replace(/"/g, '""')}",${i + 1}`)
+                          const csv = [header, ...rows].join('\n')
+                          const blob = new Blob([csv], { type: 'text/csv' })
+                          const url = window.URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = 'run_order_template.csv'
+                          document.body.appendChild(a)
+                          a.click()
+                          a.remove()
+                          window.URL.revokeObjectURL(url)
+                        }}
+                        className="btn-secondary text-sm"
+                      >
+                        <LuDownload /> Download run-order template
+                      </button>
+                      <label className="btn-secondary text-sm cursor-pointer inline-flex items-center gap-1">
+                        <LuUpload /> {params.qc_pool_run_order_file_name || 'Upload run-order file'}
+                        <input
+                          type="file"
+                          accept=".csv,.xlsx,.xls,.txt"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (!file || !projectId) return
+                            setLoading(true)
+                            try {
+                              const res = await uploadFile(Number(projectId), file)
+                              setParams((prev: any) => ({ ...prev, qc_pool_run_order_file_id: res.data.id, qc_pool_run_order_file_name: file.name }))
+                            } catch (err: any) {
+                              setError(err.response?.data?.detail || 'Upload failed')
+                            } finally {
+                              setLoading(false)
+                            }
+                          }}
+                        />
+                      </label>
+                      {params.qc_pool_run_order_file_name && <p className="text-xs text-slate-500">Uploaded: {params.qc_pool_run_order_file_name}</p>}
+                    </div>
+                    <p className="md:col-span-3 text-xs text-slate-500">If no run-order file is uploaded, the column order in the dataset is used. Use a Sample and Order column.</p>
+                  </div>
+                )}
+              </div>
+
               {['internal_standard', 'protein', 'dna', 'cell_number', 'tissue_weight'].includes(params.normalization) && (
                 <div className="md:col-span-3 flex flex-col gap-2">
                   <div className="flex flex-wrap items-end gap-3">

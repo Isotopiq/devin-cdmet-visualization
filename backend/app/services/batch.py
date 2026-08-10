@@ -28,6 +28,8 @@ VALID_BATCH_METHODS = {
     "combat",
     "loess_signal_drift",
     "ruv_iii_c",
+    "qc_pool_drift_tic",
+    "qc_pool_drift_per_feature",
 }
 
 
@@ -551,6 +553,12 @@ def _apply_batch_correction(
     per_dataset_reference_group: Optional[Dict[str, str]] = None,
     control_features: Optional[List[str]] = None,
     n_unwanted_factors: int = 1,
+    qc_pool_group: Optional[str] = None,
+    qc_pool_method: str = "loess_tic",
+    qc_pool_space: str = "log",
+    qc_pool_span: float = 0.75,
+    qc_pool_target: str = "median",
+    qc_pool_extrapolate: str = "last",
 ) -> pd.DataFrame:
     per_dataset_reference_group = {str(k): v for k, v in (per_dataset_reference_group or {}).items() if v}
     sample_reference: Dict[str, str] = {}
@@ -577,6 +585,22 @@ def _apply_batch_correction(
         return _combat_empirical_bayes(df, sample_meta, sample_batch)
     if method == "loess_signal_drift":
         return _loess_signal_drift(df, sample_batch)
+    if method in ("qc_pool_drift_tic", "qc_pool_drift_per_feature"):
+        from app.services.drift import correct_qc_pool_drift
+
+        level = "feature" if method == "qc_pool_drift_per_feature" else "tic"
+        base = qc_pool_method.replace("_tic", "").replace("_per_feature", "").strip("_")
+        qc_pool_method_full = f"{base}_{level}" if base not in ("median", "mean") else f"median_{level}"
+        qc_params = {
+            "qc_pool_group": qc_pool_group,
+            "qc_pool_method": qc_pool_method_full,
+            "qc_pool_space": qc_pool_space,
+            "qc_pool_span": qc_pool_span,
+            "qc_pool_target": qc_pool_target,
+            "qc_pool_extrapolate": qc_pool_extrapolate,
+        }
+        corrected, _ = correct_qc_pool_drift(df, sample_meta, qc_params, batch_labels=sample_batch)
+        return corrected
     if method == "ruv_iii_c":
         return _ruv_iii_c(df, sample_meta, sample_batch, control_features=control_features, n_unwanted_factors=n_unwanted_factors)
     raise HTTPException(status_code=400, detail=f"Unknown batch correction method: {method}")
@@ -773,6 +797,12 @@ async def combine_datasets(
     include_qc_plots: bool = False,
     style: Optional[Dict[str, Any]] = None,
     per_dataset_reference_group: Optional[Dict[str, str]] = None,
+    qc_pool_group: Optional[str] = None,
+    qc_pool_method: str = "loess_tic",
+    qc_pool_space: str = "log",
+    qc_pool_span: float = 0.75,
+    qc_pool_target: str = "median",
+    qc_pool_extrapolate: str = "last",
 ) -> models.Dataset | Dict[str, Any]:
     if method not in VALID_BATCH_METHODS:
         raise HTTPException(status_code=400, detail=f"Invalid method. Choose from {sorted(VALID_BATCH_METHODS)}")
@@ -812,6 +842,12 @@ async def combine_datasets(
         per_dataset_reference_group=per_dataset_reference_group,
         control_features=control_features,
         n_unwanted_factors=n_unwanted_factors,
+        qc_pool_group=qc_pool_group,
+        qc_pool_method=qc_pool_method,
+        qc_pool_space=qc_pool_space,
+        qc_pool_span=qc_pool_span,
+        qc_pool_target=qc_pool_target,
+        qc_pool_extrapolate=qc_pool_extrapolate,
     )
 
     # choose a sensible name
