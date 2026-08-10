@@ -14,7 +14,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 
 from app import models, schemas
 from app.services.preprocessing import to_dataframe, _to_json_safe
-from app.services.plots import _merge_style, _group_color_map, _apply_base_layout, generate_plot, _shorten_name
+from app.services.plots import STYLE_DEFAULTS, _merge_style, _group_color_map, _apply_base_layout, generate_plot, _shorten_name
 from app.services.drift import auto_detect_qc_pool_group, _run_order_map, _fit_lowess, _predict_at_positions
 import logging
 
@@ -297,6 +297,8 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
         before = np.asarray(drift_diag.get("sample_tic_before", []), dtype=float)
         after = np.asarray(drift_diag.get("sample_tic_after", []), dtype=float)
         if len(positions) == 0 or len(before) == 0:
+            return None
+        if len({len(names), len(groups), len(positions), len(before), len(after)}) != 1:
             return None
 
         all_values = np.concatenate([before, after])
