@@ -234,7 +234,7 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
         tic_values = np.array([tic.get(s, 0.0) for s in samples], dtype=float)
         floor = float(np.nanmin(tic_values[tic_values > 0])) / 2 if np.any(tic_values > 0) else 1e-12
         qc_tic = np.where(tic_values > 0, tic_values, floor)
-        log_qc = np.log2(np.array([tic.get(s, floor) for s in qc_cols], dtype=float))
+        log_qc = np.log2(np.array([max(tic.get(s, floor), floor) for s in qc_cols], dtype=float))
         try:
             y_fit = _fit_lowess(qc_positions, log_qc, span=0.75)
             predicted = _predict_at_positions(qc_positions, y_fit, positions, "last")

@@ -670,7 +670,7 @@ class _ReportPDF(FPDF):
         self._fit_image(buffer, self.margin + 6, img_y, max_w, max_h)
         self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
-    def _plot_pair_page(self, items: List[Tuple[str, io.BytesIO]], orientation: str = "P"):
+    def _plot_pair_page(self, items: List[Tuple[str, io.BytesIO, str]], orientation: str = "P"):
         """Render up to two plots on one page, stacked vertically."""
         self.add_page(orientation)
         self._page_header(self.style.get("title", "Report"), self.style.get("organization", ""))
@@ -683,7 +683,7 @@ class _ReportPDF(FPDF):
         title_h = 6
         slot_h = (card_h - 16 - (n - 1) * gap - n * title_h) / n if n > 0 else card_h - 16
         y = img_y
-        for plot_title, buffer in items:
+        for plot_title, buffer, *_ in items:
             _color(self, "#1a1040")
             self.set_body_font(10, "B")
             self.set_xy(self.margin + 6, y)
@@ -693,7 +693,7 @@ class _ReportPDF(FPDF):
             y += slot_h + gap
         self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
-    def _plot_grid_page(self, items: List[Tuple[str, io.BytesIO]], per_page: int = 4):
+    def _plot_grid_page(self, items: List[Tuple[str, io.BytesIO, str]], per_page: int = 4):
         """Render up to 4 or 6 plots on one page in a grid."""
         if per_page == 6:
             cols, rows, orientation = 2, 3, "P"
