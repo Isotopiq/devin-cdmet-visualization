@@ -9,7 +9,9 @@ from app import models, schemas
 from app.services.preprocessing import _to_json_safe, _positive_floor, preprocess_dataset, to_dataframe
 from app.services.stats import _safe_log2fc, run_statistical_test
 from app.services.plots import generate_plot
-from app.services.isotope import run_isotope_analysis
+from app.services.isotope import run_isotope_analysis, _correct_natural_abundance
+from app.services.importer import _pivot_el_maven
+from app.services.detection import detect_file_format, detect_columns
 
 
 def test_to_json_safe_replaces_infinities():
@@ -323,3 +325,98 @@ class _FakeAsyncSession:
 
     async def refresh(self, obj):
         obj.id = 1
+
+
+def _make_el_maven_df() -> pd.DataFrame:
+    return pd.DataFrame({
+        "label": ["", ""],
+        "metaGroupId": [1, 1],
+        "groupId": [1, 2],
+        "goodPeakCount": [10, 5],
+        "medMz": [468.3, 469.3],
+        "medRt": [3.0, 3.0],
+        "maxQuality": [0.8, 0.7],
+        "adductName": ["[M+H]+", ""],
+        "isotopeLabel": ["C12 PARENT", "D2-label-1"],
+        "compound": ["LPC(14:0)", "LPC(14:0)"],
+        "compoundId": ["LPC(14:0)", "LPC(14:0)"],
+        "formula": ["C22H46NO7P", "C22H46NO7P"],
+        "expectedRtDiff": [0.0, 0.0],
+        "ppmDiff": [0.0, 0.0],
+        "parent": [468.3, 468.3],
+        "FLVCR1-ETN_CTRL_R1_pos": [1000.0, 50.0],
+        "FLVCR1-ETN_CTRL_R2_pos": [1100.0, 60.0],
+        "FLVCR1-ETN_KO_R1_pos": [900.0, 200.0],
+        "QC-Pool1_pos": [1000.0, 70.0],
+    })
+
+
+def test_el_maven_format_detection():
+    df = _make_el_maven_df()
+    result = detect_columns(df)
+    assert set(result["sample_columns"]) == {
+        "FLVCR1-ETN_CTRL_R1_pos", "FLVCR1-ETN_CTRL_R2_pos",
+        "FLVCR1-ETN_KO_R1_pos", "QC-Pool1_pos",
+    }
+    assert result["sample_groups"] == {
+        "FLVCR1-ETN_CTRL_R1_pos": "FLVCR1-ETN_CTRL",
+        "FLVCR1-ETN_CTRL_R2_pos": "FLVCR1-ETN_CTRL",
+        "FLVCR1-ETN_KO_R1_pos": "FLVCR1-ETN_KO",
+        "QC-Pool1_pos": "QC-Pool",
+    }
+    assert result["suggested_mapping"]["feature_id"] == "compound"
+
+
+def test_el_maven_pivot_produces_m_columns():
+    df = _make_el_maven_df()
+    pivoted = _pivot_el_maven(df, "test.csv", "lipid", [])
+    assert len(pivoted["feature_metadata"]) == 1
+    assert pivoted["feature_metadata"][0]["feature_id"] == "LPC(14:0)"
+    assert pivoted["feature_metadata"][0]["formula"] == "C22H46NO7P"
+    # 4 sample columns x (M+0..M+1) = 8 columns
+    assert len(pivoted["data_matrix"]) == 8
+    assert set(pivoted["sample_metadata"].values()) == {"FLVCR1-ETN_CTRL", "FLVCR1-ETN_KO", "QC-Pool"}
+    # Parent M+0 value should be preserved.
+    assert pivoted["data_matrix"]["FLVCR1-ETN_CTRL_R1_pos_M+0"][0] == 1000.0
+    assert pivoted["data_matrix"]["FLVCR1-ETN_KO_R1_pos_M+1"][0] == 200.0
+
+
+def test_natural_abundance_correction_reduces_unlabeled_m1():
+    # C22 with 13C natural abundance: a pure M+0 metabolite should have ~23% M+1
+    # from natural 13C. After correction M+1 should be near zero.
+    iso = pd.DataFrame({
+        "M+0": [0.77],
+        "M+1": [0.21],
+        "M+2": [0.02],
+    }, index=[0])
+    corrected = _correct_natural_abundance(iso, formulas=["C22H46NO7P"], tracer="13C", max_label=2)
+    assert corrected.loc[0, "M+0"] > 0.95
+    assert corrected.loc[0, "M+1"] < 0.05
+    assert abs(corrected.sum(axis=1).iloc[0] - 1.0) < 1e-6
+
+
+@pytest.mark.asyncio
+async def test_isotope_analysis_on_el_maven_pivot():
+    df = _make_el_maven_df()
+    pivoted = _pivot_el_maven(df, "test.csv", "lipid", [])
+    ds = models.Dataset(
+        id=1,
+        project_id=1,
+        source_file_id=1,
+        name="test",
+        feature_type="lipid",
+        data_matrix=pivoted["data_matrix"],
+        sample_metadata=pivoted["sample_metadata"],
+        feature_metadata=pivoted["feature_metadata"],
+        processing_history=pivoted["processing_history"],
+    )
+    req = schemas.IsotopeRequest(tracer="D", max_label=1, natural_abundance_correction=True)
+    result = await run_isotope_analysis(ds, req)
+    assert "error" not in result or result.get("error") is None
+    assert "fractions" in result
+    assert "FLVCR1-ETN_CTRL" in result["groups"]
+    assert "FLVCR1-ETN_KO" in result["groups"]
+    # KO has stronger M+1 labeling than CTRL
+    ko_frac = result["groups"]["FLVCR1-ETN_KO"]["fractions"]["LPC(14:0)"]["M+1"]
+    ctrl_frac = result["groups"]["FLVCR1-ETN_CTRL"]["fractions"]["LPC(14:0)"]["M+1"]
+    assert ko_frac > ctrl_frac

@@ -1159,7 +1159,7 @@ def _make_plotly_figure(
         y=node_y,
         mode="markers+text" if show_labels else "markers",
         text=node_text,
-        textposition="top center" if show_labels else "none",
+        textposition="top center",
         textfont=dict(size=9, color=style_cfg["text_color"]),
         marker=dict(
             showscale=True,

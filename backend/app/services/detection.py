@@ -16,9 +16,41 @@ KNOWN_FORMATS = {
     "compound_discoverer": ["Name", "Formula", "m/z", "RT", "Area"],
     "lipidsearch": ["LipidMolec", "ClassKey", "FAKey", "CalcMass", "BaseRt", "TotalGrade", "Area"],
     "lipidsearch_alignment": [],
+    "el_maven": ["label", "metaGroupId", "groupId", "goodPeakCount", "medMz", "medRt", "maxQuality", "adductName", "isotopeLabel", "compound", "compoundId", "formula", "expectedRtDiff", "ppmDiff", "parent"],
     "compound_discoverer_metadata": ["Sample Identifier", "File", "Sample Type", "Condition"],
     "sample_metadata": ["Sample", "Group"],
 }
+
+EL_MAVEN_FEATURE_COLUMNS = {
+    "label", "metagroupid", "groupid", "goodpeakcount", "medmz", "medrt", "maxquality",
+    "adductname", "isotopelabel", "compound", "compoundid", "formula", "expectedrtdiff",
+    "ppmdiff", "parent",
+}
+
+
+
+def _is_el_maven_df(df: pd.DataFrame) -> bool:
+    """Return True if the DataFrame looks like an El-MAVEN isotopologue export."""
+    cols = {str(c).lower() for c in df.columns}
+    return {"isotopelabel", "compound", "parent"}.issubset(cols) or (
+        "isotopelabel" in cols and "compoundid" in cols
+    )
+
+
+def _el_maven_sample_group(col: str) -> str:
+    """Derive a group label from an El-MAVEN sample intensity column name."""
+    name = str(col).strip()
+    # Strip common polarity suffix (e.g. *_pos, *_neg, *pos, *neg).
+    name = re.sub(r"(?:^|_)(?:pos|neg)$", "", name, flags=re.I)
+    # Explicit replicate marker: GROUP_R1, GROUP_R2, ...
+    m = re.match(r"^(?P<group>.+?)_R\d+$", name, re.I)
+    if m:
+        return m.group("group").strip("_")
+    # Trailing replicate index after a letter, e.g. Blank1, Pool1, 250K1.
+    m = re.match(r"^(?P<group>.*?[A-Za-z])\d+$", name)
+    if m:
+        return m.group("group").strip("_")
+    return name
 
 
 def _is_lipidsearch_alignment_file(path: str) -> bool:
@@ -398,6 +430,29 @@ def detect_columns(df: pd.DataFrame, metadata: Dict[str, Dict[str, Any]] = None)
                     suggested[key] = col
                     already.add(col)
                     break
+
+    # El-MAVEN isotopologue exports: each row is a compound-isotopologue and the
+    # remaining columns are per-sample intensities (e.g. *_R1_pos).
+    if _is_el_maven_df(df):
+        feature_cols = {c for c in columns if str(c).lower() in EL_MAVEN_FEATURE_COLUMNS}
+        already.update(feature_cols)
+        sample_columns = [c for c in columns if c not in already]
+        sample_groups = {c: _el_maven_sample_group(c) for c in sample_columns}
+        suggested.setdefault("feature_id", "compound")
+        suggested.setdefault("formula", "formula")
+        if "medMz" in columns:
+            suggested.setdefault("mz", "medMz")
+        if "medRt" in columns:
+            suggested.setdefault("rt", "medRt")
+        if "adductName" in columns:
+            suggested.setdefault("adduct", "adductName")
+        return {
+            "suggested_mapping": suggested,
+            "sample_columns": sample_columns,
+            "feature_columns": [c for c in columns if c in feature_cols],
+            "sample_groups": sample_groups,
+            "lipidsearch_candidates": {},
+        }
 
     # Try Compound Discoverer-specific area columns first
     cd_samples, cd_groups = _detect_compound_discoverer_samples(columns, metadata or {})

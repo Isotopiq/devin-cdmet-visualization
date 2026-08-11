@@ -1,6 +1,7 @@
 import math
 import re
 from collections import defaultdict
+from typing import List
 import numpy as np
 import pandas as pd
 from app import models, schemas
@@ -12,6 +13,108 @@ def _sanitize_series(s):
     if isinstance(s, (pd.Series, pd.DataFrame)):
         return _to_json_safe(s.replace([np.inf, -np.inf], np.nan).fillna(0).to_dict())
     return _to_json_safe(s)
+
+
+# Natural isotope abundances for common tracers (approximate, from IUPAC).
+TRACER_ABUNDANCE = {
+    "C": 0.01109,   # 13C
+    "H": 0.0001375, # 2H / D
+    "N": 0.00366,   # 15N
+    "O": 0.00204,   # 18O
+}
+
+
+def _parse_formula(formula: str) -> dict:
+    """Return element -> count mapping for a simple molecular formula."""
+    counts = {}
+    if not formula:
+        return counts
+    for elem, num in re.findall(r"([A-Z][a-z]*)(\d*)", str(formula).strip()):
+        counts[elem] = counts.get(elem, 0) + (int(num) if num else 1)
+    return counts
+
+
+def _tracer_info(tracer: str):
+    """Return (element_symbol, natural_abundance) for the requested tracer."""
+    t = str(tracer).strip().upper()
+    if t in ("13C", "C"):
+        return "C", TRACER_ABUNDANCE["C"]
+    if t == "15N":
+        return "N", TRACER_ABUNDANCE["N"]
+    if t in ("D", "2H", "H"):
+        return "H", TRACER_ABUNDANCE["H"]
+    if t == "18O":
+        return "O", TRACER_ABUNDANCE["O"]
+    return None, 0.0
+
+
+def _correct_natural_abundance(
+    iso_df: pd.DataFrame, formulas: List[str], tracer: str, max_label: int
+) -> pd.DataFrame:
+    """Apply a lower-triangular natural-abundance correction to each row.
+
+    For a tracer element with natural abundance p and n total atoms, the
+    measured M+i given k labeled atoms is binomial over the remaining n-k atoms.
+    This solves the linear system to recover the corrected labeling vector.
+    """
+    element, p = _tracer_info(tracer)
+    if not element or p <= 0 or iso_df.empty:
+        return iso_df
+
+    corrected = iso_df.copy()
+    cols = [f"M+{i}" for i in range(max_label + 1) if f"M+{i}" in iso_df.columns]
+    if not cols:
+        return iso_df
+
+    for idx, formula in enumerate(formulas):
+        if idx not in iso_df.index:
+            continue
+        counts = _parse_formula(formula)
+        n = counts.get(element, 0)
+        if n <= 0:
+            continue
+
+        measured = iso_df.loc[idx, cols].to_numpy(dtype=float)
+        if measured.sum() <= 0:
+            continue
+
+        max_correct = min(max_label, n)
+        size = max_correct + 1
+        # Build lower-triangular correction matrix C[i, k] for i >= k.
+        C = np.zeros((size, size))
+        for k in range(size):
+            for i in range(k, size):
+                j = i - k
+                c = math.comb(n - k, j)
+                C[i, k] = c * (p ** j) * ((1 - p) ** (n - k - j))
+
+        # Forward substitution to solve C * corrected = measured (truncated).
+        corrected_vec = np.zeros(size)
+        for k in range(size):
+            residual = measured[k] - sum(C[k, j] * corrected_vec[j] for j in range(k))
+            diag = C[k, k]
+            if diag > 0:
+                corrected_vec[k] = residual / diag
+            else:
+                corrected_vec[k] = 0.0
+
+        # Remove small negatives caused by noise and preserve the row sum.
+        corrected_vec = np.maximum(corrected_vec, 0)
+        orig_sum = measured[:size].sum()
+        cv_sum = corrected_vec.sum()
+        if cv_sum > 0:
+            corrected_vec = corrected_vec * (orig_sum / cv_sum)
+
+        # If max_label exceeded n, keep the measured tail unchanged.
+        if max_label > n:
+            full = np.zeros(max_label + 1)
+            full[:size] = corrected_vec
+            full[size:] = measured[size:]
+            corrected_vec = full
+
+        corrected.loc[idx, cols] = corrected_vec
+
+    return corrected.clip(lower=0).fillna(0)
 
 
 def _feature_lookup(dataset: models.Dataset, df: pd.DataFrame):
@@ -163,6 +266,9 @@ async def run_isotope_analysis(dataset: models.Dataset, req: schemas.IsotopeRequ
         for idx, cols in mcols.items():
             overall_mcols[idx].extend(cols)
     overall_iso = _build_iso_df(df, overall_mcols, max_label)
+    if req.natural_abundance_correction and dataset.feature_metadata:
+        formulas = [dataset.feature_metadata[i].get("formula") for i in overall_iso.index]
+        overall_iso = _correct_natural_abundance(overall_iso, formulas, tracer, max_label)
     overall_metrics = _compute_metrics(overall_iso, max_label, req, feature_ids)
     overall_flux = await _build_flux_map_for_group(
         dataset, feature_ids, overall_metrics, req, "Flux map"
@@ -189,6 +295,9 @@ async def run_isotope_analysis(dataset: models.Dataset, req: schemas.IsotopeRequ
             if group not in groups:
                 continue
             group_iso = _build_iso_df(df, groups[group], max_label)
+            if req.natural_abundance_correction and dataset.feature_metadata:
+                formulas = [dataset.feature_metadata[i].get("formula") for i in group_iso.index]
+                group_iso = _correct_natural_abundance(group_iso, formulas, tracer, max_label)
             group_metrics = _compute_metrics(group_iso, max_label, req, feature_ids)
             group_flux = await _build_flux_map_for_group(
                 dataset, feature_ids, group_metrics, req, f"Flux map — {group}"

@@ -1,5 +1,7 @@
 import os
 import math
+import re
+from typing import Any, Dict, List
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import models
@@ -12,6 +14,8 @@ from app.services.detection import (
     LIPIDSEARCH_AREA_RE,
     _normalize_lipidsearch_sample_id,
     _base_raw_name,
+    _is_el_maven_df,
+    _el_maven_sample_group,
 )
 from app.services.preprocessing import _to_json_safe
 from app.services import storage
@@ -83,6 +87,115 @@ def _deduplicate_lipid_features(feature_metadata, data_matrix):
     return feature_metadata, data_matrix, {}
 
 
+def _parse_isotope_label(label: Any) -> int:
+    """Extract the mass-shift index from an El-MAVEN isotopeLabel string.
+
+    Examples:
+        "C12 PARENT" -> 0
+        "D2-label-1" -> 1
+        "C13-label-10" -> 10
+        "N15-label-2" -> 2
+    """
+    s = str(label) if label is not None else ""
+    if "PARENT" in s.upper():
+        return 0
+    m = re.search(r"(\d+)$", s.strip())
+    if m:
+        return int(m.group(1))
+    return 0
+
+
+def _pivot_el_maven(
+    df: pd.DataFrame,
+    source_name: str,
+    feature_type: str,
+    processing_history: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Pivot an El-MAVEN isotopologue export into a dataset matrix with M+ columns."""
+    feature_cols = {
+        "label", "metagroupid", "groupid", "goodpeakcount", "medmz", "medrt",
+        "maxquality", "adductname", "isotopelabel", "compound", "compoundid",
+        "formula", "expectedrtdiff", "ppmdiff", "parent",
+    }
+    sample_cols = [c for c in df.columns if str(c).lower() not in feature_cols]
+
+    sample_groups = {c: _el_maven_sample_group(c) for c in sample_cols}
+
+    df["_m_index"] = df["isotopeLabel"].apply(_parse_isotope_label)
+    # Group by the compound name. Different adducts, if present, will be treated
+    # as separate compounds only if the parent row and isotopologue rows share the
+    # same adduct string; El-MAVEN typically leaves adductName blank for labels.
+    df["_compound_key"] = df.apply(
+        lambda r: str(r.get("compound") or r.get("compoundId") or "").strip(),
+        axis=1,
+    )
+
+    max_m = int(df["_m_index"].max())
+
+    # Build one row per compound using parent-row metadata when available.
+    compound_meta: Dict[str, Dict[str, Any]] = {}
+    compound_values: Dict[str, Dict[str, Any]] = {}
+
+    for idx, row in df.iterrows():
+        key = str(row["_compound_key"]) if pd.notna(row.get("_compound_key")) else str(idx)
+        if key not in compound_meta:
+            compound_meta[key] = {}
+            compound_values[key] = {}
+        # Prefer the parent isotopologue row (m=0) for metadata.
+        if row["_m_index"] == 0 or not compound_meta[key]:
+            formula = row.get("formula")
+            compound_meta[key] = {
+                "feature_id": str(row.get("compound")) if pd.notna(row.get("compound")) else key,
+                "formula": str(formula) if pd.notna(formula) else None,
+                "mz": float(row["medMz"]) if pd.notna(row.get("medMz")) else None,
+                "rt": float(row["medRt"]) if pd.notna(row.get("medRt")) else None,
+                "adduct": str(row["adductName"]) if pd.notna(row.get("adductName")) else None,
+                "compound_id": str(row["compoundId"]) if pd.notna(row.get("compoundId")) else None,
+                "parent_mz": float(row["parent"]) if pd.notna(row.get("parent")) else None,
+            }
+            if not compound_values[key]:
+                compound_values[key] = {}
+        m = int(row["_m_index"])
+        for col in sample_cols:
+            val = row[col]
+            try:
+                v = float(val) if pd.notna(val) else 0.0
+            except (TypeError, ValueError):
+                v = 0.0
+            compound_values[key].setdefault(col, {})[m] = v
+
+    feature_metadata = []
+    data_matrix: Dict[str, List[Any]] = {}
+    sorted_keys = sorted(compound_meta.keys())
+
+    for key in sorted_keys:
+        meta = compound_meta[key]
+        feature_metadata.append({k: _to_json_safe(v) for k, v in meta.items()})
+        values = compound_values[key]
+        for col in sample_cols:
+            col_values = values.get(col, {})
+            for m in range(max_m + 1):
+                new_col = f"{col}_M+{m}"
+                data_matrix.setdefault(new_col, []).append(_to_json_safe(col_values.get(m, 0.0)))
+
+    sample_metadata = {f"{col}_M+{m}": sample_groups[col] for col in sample_cols for m in range(max_m + 1)}
+
+    processing_history.append({
+        "step": "import",
+        "format": "el_maven",
+        "source": source_name,
+        "compounds": len(feature_metadata),
+        "max_label": max_m,
+    })
+
+    return {
+        "feature_metadata": feature_metadata,
+        "data_matrix": data_matrix,
+        "sample_metadata": sample_metadata,
+        "processing_history": processing_history,
+    }
+
+
 async def import_dataset(
     db: AsyncSession,
     uploaded: models.UploadedFile,
@@ -97,6 +210,30 @@ async def import_dataset(
         metadata = parse_sample_metadata(metadata_path)
 
     detected = detect_columns(df, metadata=metadata)
+
+    # El-MAVEN isotopologue exports are pivoted into M+0/M+1... columns per sample.
+    if _is_el_maven_df(df) or uploaded.detected_format == "el_maven":
+        pivoted = _pivot_el_maven(
+            df,
+            source_name=uploaded.original_name,
+            feature_type=feature_type,
+            processing_history=[{"step": "import", "source": uploaded.original_name}],
+        )
+        dataset = models.Dataset(
+            project_id=uploaded.project_id,
+            source_file_id=uploaded.id,
+            name=uploaded.original_name,
+            feature_type=feature_type,
+            data_matrix=pivoted["data_matrix"],
+            sample_metadata=pivoted["sample_metadata"],
+            feature_metadata=pivoted["feature_metadata"],
+            processing_history=pivoted["processing_history"],
+        )
+        db.add(dataset)
+        uploaded.status = "imported"
+        await db.commit()
+        await db.refresh(dataset)
+        return dataset
 
     mapping = uploaded.column_mapping or {}
     feature_id_col = (
