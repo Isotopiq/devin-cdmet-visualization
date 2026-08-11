@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import { preprocess, uploadFile, exportDataset } from '../api'
-import { LuSlidersHorizontal, LuPlay, LuHistory, LuAlertCircle, LuCheckCircle2, LuPlus, LuTrash2, LuDownload, LuUpload } from 'react-icons/lu'
+import { LuSlidersHorizontal, LuPlay, LuHistory, LuAlertCircle, LuCheckCircle2, LuPlus, LuTrash2, LuDownload, LuUpload, LuX, LuSearch } from 'react-icons/lu'
 
 const DEFAULT_ISOBARIC_RULE = {
   name: 'O-/P- ether/vinyl-ether',
@@ -19,6 +19,11 @@ export default function Preprocessing() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [processedDataset, setProcessedDataset] = useState<any | null>(null)
+  const [blankModalOpen, setBlankModalOpen] = useState(false)
+  const [blankModalSearch, setBlankModalSearch] = useState('')
+  const [blankModalPage, setBlankModalPage] = useState(1)
+  const [blankModalSelected, setBlankModalSelected] = useState<string[]>([])
+  const blankModalPageSize = 10
   const [params, setParams] = useState({
     missing_value_filter: 0.2,
     log_transform: true,
@@ -59,10 +64,16 @@ export default function Preprocessing() {
     }
   }, [selectedDataset])
 
+  useEffect(() => {
+    if (!params.blank_subtraction && !params.exclude_blanks_from_imputation && blankModalOpen) {
+      setBlankModalOpen(false)
+    }
+  }, [params.blank_subtraction, params.exclude_blanks_from_imputation, blankModalOpen])
+
   const sampleMeta = selectedDataset?.sample_metadata || {}
   const blankSamples = useMemo(() => {
     return Object.entries(sampleMeta)
-      .filter((entry) => /blank|solvent|ntc/i.test(String(entry[1])))
+      .filter((entry) => /blank|solvent|ntc|negative.?control|no.?template/i.test(String(entry[1])))
       .map((entry) => entry[0])
   }, [sampleMeta])
 
@@ -84,6 +95,60 @@ export default function Preprocessing() {
       setParams((prev: any) => ({ ...prev, qc_pool_group: qcPoolGroups[0] }))
     }
   }, [selectedDataset, qcPoolGroups])
+
+  const openBlankModal = () => {
+    setBlankModalSelected(params.blank_columns)
+    setBlankModalSearch('')
+    setBlankModalPage(1)
+    setBlankModalOpen(true)
+  }
+
+  const applyBlankModal = () => {
+    setParams((prev: any) => ({ ...prev, blank_columns: blankModalSelected }))
+    setBlankModalOpen(false)
+  }
+
+  const toggleBlankSample = (name: string) => {
+    setBlankModalSelected((prev: string[]) =>
+      prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]
+    )
+  }
+
+  const selectBlankPage = () => {
+    const pageNames = blankModalPageItems.map((s) => s.name)
+    setBlankModalSelected((prev: string[]) => Array.from(new Set([...prev, ...pageNames])))
+  }
+
+  const deselectBlankPage = () => {
+    const pageNames = new Set(blankModalPageItems.map((s) => s.name))
+    setBlankModalSelected((prev: string[]) => prev.filter((s) => !pageNames.has(s)))
+  }
+
+  const autoDetectBlanks = () => setBlankModalSelected(blankSamples)
+
+  const clearBlankSelection = () => setBlankModalSelected([])
+
+  const blankModalSamples = useMemo(() => {
+    return Object.entries(sampleMeta)
+      .map(([name, group]) => ({ name, group: String(group || 'unknown') }))
+      .filter((s) => {
+        const q = blankModalSearch.toLowerCase()
+        return q === '' || s.name.toLowerCase().includes(q) || s.group.toLowerCase().includes(q)
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [sampleMeta, blankModalSearch])
+
+  const blankModalTotalPages = Math.max(1, Math.ceil(blankModalSamples.length / blankModalPageSize))
+  const blankModalPageItems = blankModalSamples.slice(
+    (blankModalPage - 1) * blankModalPageSize,
+    blankModalPage * blankModalPageSize
+  )
+
+  useEffect(() => {
+    if (blankModalPage > blankModalTotalPages) {
+      setBlankModalPage(blankModalTotalPages)
+    }
+  }, [blankModalPage, blankModalTotalPages])
 
   const isLipid = selectedDataset?.feature_type === 'lipid'
 
@@ -291,19 +356,9 @@ export default function Preprocessing() {
                   </div>
                 </div>
                 {(params.blank_subtraction || params.exclude_blanks_from_imputation) && (
-                  <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Blank samples</label>
-                    <select
-                      multiple
-                      value={params.blank_columns}
-                      onChange={(e) => setParams({ ...params, blank_columns: Array.from(e.target.selectedOptions).map((o) => o.value) })}
-                      className="input h-32"
-                    >
-                      {Object.keys(sampleMeta).map((s) => (
-                        <option key={s} value={s}>{s} ({sampleMeta[s] || 'unknown'})</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-slate-500 mt-1">Hold Ctrl/Cmd to select multiple. Auto-detected blank groups are pre-selected.</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button type="button" onClick={openBlankModal} className="btn-secondary text-sm">Select blank samples</button>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{params.blank_columns.length} selected. Auto-detected blank groups are pre-selected.</span>
                   </div>
                 )}
               </div>
@@ -616,6 +671,65 @@ export default function Preprocessing() {
             <p className="text-sm text-slate-600 dark:text-slate-300">Each transformation is recorded in the dataset history. The current dataset is not overwritten; a new processed dataset is created.</p>
           </div>
         </>
+      )}
+
+      {blankModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Select blank samples</h3>
+              <button onClick={() => setBlankModalOpen(false)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700"><LuX /></button>
+            </div>
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+              <LuSearch className="text-slate-400" />
+              <input
+                type="text"
+                value={blankModalSearch}
+                onChange={(e) => { setBlankModalSearch(e.target.value); setBlankModalPage(1) }}
+                placeholder="Search samples or groups..."
+                className="input flex-1"
+              />
+            </div>
+            <div className="p-4 overflow-auto flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <button type="button" onClick={selectBlankPage} className="btn-secondary text-xs px-2 py-1">Select page</button>
+                <button type="button" onClick={deselectBlankPage} className="btn-secondary text-xs px-2 py-1">Deselect page</button>
+                <button type="button" onClick={autoDetectBlanks} className="btn-secondary text-xs px-2 py-1">Auto-detect blanks</button>
+                <button type="button" onClick={clearBlankSelection} className="btn-secondary text-xs px-2 py-1">Clear all</button>
+                <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">{blankModalSelected.length} selected</span>
+              </div>
+              {blankModalPageItems.length === 0 ? (
+                <div className="text-center text-slate-500 dark:text-slate-400 py-6">No samples match.</div>
+              ) : (
+                <div className="space-y-1">
+                  {blankModalPageItems.map((s) => (
+                    <label key={s.name} className="flex items-center gap-2 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={blankModalSelected.includes(s.name)}
+                        onChange={() => toggleBlankSample(s.name)}
+                        className="rounded border-slate-300"
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-200 flex-1">{s.name}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{s.group}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between p-4 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={blankModalPage <= 1} onClick={() => setBlankModalPage((p) => p - 1)} className="btn-secondary text-sm">Previous</button>
+                <span className="text-sm text-slate-600 dark:text-slate-300">Page {blankModalPage} of {blankModalTotalPages}</span>
+                <button type="button" disabled={blankModalPage >= blankModalTotalPages} onClick={() => setBlankModalPage((p) => p + 1)} className="btn-secondary text-sm">Next</button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setBlankModalOpen(false)} className="btn-secondary text-sm">Cancel</button>
+                <button type="button" onClick={applyBlankModal} className="btn-primary text-sm">Apply</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
