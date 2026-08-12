@@ -90,10 +90,9 @@ export default function Isotope() {
 
   const availableGroups = useMemo(() => {
     if (!selectedDataset) return []
-    const cols = Object.keys(selectedDataset.data_matrix || {})
     const meta = selectedDataset.sample_metadata || {}
     const groups = new Set<string>()
-    for (const col of cols) {
+    for (const col of Object.keys(meta)) {
       let g: string | undefined = meta[col]
       if (!g || g === 'unknown') {
         const prefix = col.match(/^(.+?)_M\+\d+/)?.[1]
@@ -107,6 +106,18 @@ export default function Isotope() {
 
   const [selectedGroups, setSelectedGroups] = useState<string[]>([])
   useEffect(() => { setSelectedGroups(availableGroups) }, [availableGroups])
+
+  // Class-level labeling group selections.
+  const [classRefGroup, setClassRefGroup] = useState('')
+  const [classCompareGroup, setClassCompareGroup] = useState('')
+  const [classViewGroup, setClassViewGroup] = useState('overall')
+  useEffect(() => {
+    if (availableGroups.length > 0) {
+      setClassRefGroup(availableGroups[0])
+      setClassCompareGroup(availableGroups[1] || availableGroups[0])
+      setClassViewGroup('overall')
+    }
+  }, [availableGroups])
 
   useEffect(() => { if (featureOptions[0]) setSelectedFeature(featureOptions[0]) }, [featureOptions])
 
@@ -182,6 +193,8 @@ export default function Isotope() {
       if (selectedGroups.length > 0 && availableGroups.length > 0) {
         payload.selected_groups = selectedGroups
       }
+      if (classRefGroup) payload.class_reference_group = classRefGroup
+      if (classCompareGroup) payload.class_compare_group = classCompareGroup
       const res = await runIsotope(Number(projectId), Number(datasetId), payload)
       setResults(res.data)
     } catch (err: any) {
@@ -199,6 +212,45 @@ export default function Isotope() {
     const values = Object.values(fractions).map((v) => Number(v))
     const palette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16', '#14b8a6', '#f97316', '#6366f1', '#22c55e']
     return { data: [{ x: labels, y: values, type: 'bar' as const, marker: { color: labels.map((_, i) => palette[i % palette.length]) } }], layout: { title: `Isotopologue fractions - ${selectedFeature}`, yaxis: { title: 'Fraction' }, xaxis: { title: 'Isotopologue' } } }
+  }
+
+  const makeClassBar = (group: string) => {
+    if (!results?.class_labeling) return null
+    const labeling = results.class_labeling[group]
+    if (!labeling) return null
+    const classes = Object.keys(labeling).sort()
+    if (classes.length === 0) return null
+    const ms = Object.keys(labeling[classes[0]]).filter((k) => k.startsWith('M+')).sort((a, b) => parseInt(a.slice(2)) - parseInt(b.slice(2)))
+    if (ms.length === 0) return null
+    const palette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16', '#14b8a6', '#f97316', '#6366f1', '#22c55e']
+    const data = ms.map((m, i) => ({
+      x: classes,
+      y: classes.map((c) => (labeling[c][m] || 0) * 100),
+      name: m,
+      type: 'bar' as const,
+      marker: { color: palette[i % palette.length] },
+    }))
+    return { data, layout: { title: `Class-level isotopologue labeling — ${group}`, yaxis: { title: 'Average fraction (%)' }, xaxis: { title: 'Lipid class' }, barmode: 'stack' } }
+  }
+
+  const makeClassDiffBar = () => {
+    if (!results?.class_differences) return null
+    const diffs = results.class_differences
+    const classes = Object.keys(diffs).sort()
+    if (classes.length === 0) return null
+    const ms = Object.keys(diffs[classes[0]]).filter((k) => k.startsWith('M+') && !k.endsWith('_pct')).sort((a, b) => parseInt(a.slice(2)) - parseInt(b.slice(2)))
+    if (ms.length === 0) return null
+    const palette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16', '#14b8a6', '#f97316', '#6366f1', '#22c55e']
+    const data = ms.map((m, i) => ({
+      x: classes,
+      y: classes.map((c) => diffs[c][`${m}_pct`] || 0),
+      name: m,
+      type: 'bar' as const,
+      marker: { color: palette[i % palette.length] },
+    }))
+    const ref = results.class_reference_group
+    const cmp = results.class_compare_group
+    return { data, layout: { title: `Class-level labeling difference — ${cmp} vs ${ref} (percentage points)`, yaxis: { title: 'Δ Fraction (percentage points)' }, xaxis: { title: 'Lipid class' }, barmode: 'group' } }
   }
 
   const groupNames = useMemo(() => {
@@ -427,6 +479,40 @@ export default function Isotope() {
                   <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50"><span className="text-slate-500 dark:text-slate-400">Pooled labeling</span><pre className="font-medium text-slate-900 dark:text-white mt-1 overflow-auto max-h-32">{JSON.stringify(results.pooled_labeling, null, 2)}</pre></div>
                 </div>
               </div>
+
+              {results.class_labeling && (
+                <div className="card p-5">
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Class-level Labeling</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-end">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">View group</label>
+                      <select value={classViewGroup} onChange={(e) => setClassViewGroup(e.target.value)} className="input">
+                        <option value="overall">Overall</option>
+                        {availableGroups.map((g) => <option key={`view-${g}`} value={g}>{g}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Reference group</label>
+                      <select value={classRefGroup} onChange={(e) => setClassRefGroup(e.target.value)} className="input">
+                        {availableGroups.map((g) => <option key={`ref-${g}`} value={g}>{g}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Compare group</label>
+                      <select value={classCompareGroup} onChange={(e) => setClassCompareGroup(e.target.value)} className="input">
+                        {availableGroups.map((g) => <option key={`cmp-${g}`} value={g}>{g}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Select reference/compare groups and click <strong>Run</strong> to refresh the difference plot.</p>
+                  {makeClassBar(classViewGroup) && <PlotWithDownload data={makeClassBar(classViewGroup)!.data} layout={makeClassBar(classViewGroup)!.layout} style={{ width: '100%', height: '420px' }} filename={`class_labeling_${classViewGroup}`} />}
+                  {makeClassDiffBar() && (
+                    <div className="mt-6">
+                      <PlotWithDownload data={makeClassDiffBar()!.data} layout={makeClassDiffBar()!.layout} style={{ width: '100%', height: '420px' }} filename={`class_diff_${classRefGroup}_vs_${classCompareGroup}`} />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {results.flux_map && (
                 <div className="card p-5">

@@ -311,6 +311,8 @@ class IsotopeRequest(BaseModel):
     selected_groups: Optional[List[str]] = None  # compute per-group flux maps; None = all groups / overall
     style: Optional[str] = "classic"  # classic, dark_modern, minimal, subway, fluxer
     show_labels: bool = False  # show metabolite/enzyme labels on Escher/flux maps
+    class_reference_group: Optional[str] = None  # group used as baseline for class-level comparison
+    class_compare_group: Optional[str] = None    # group compared against the reference for class-level differences
 
 
 class PathwayRequest(BaseModel):

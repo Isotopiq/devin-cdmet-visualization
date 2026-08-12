@@ -1,12 +1,21 @@
 import math
 import re
 from collections import defaultdict
-from typing import List
+from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 from app import models, schemas
 from app.services.preprocessing import to_dataframe, _to_json_safe
 from app.services.flux_map import build_flux_map
+
+
+_LIPID_CLASS_RE = re.compile(r"^([A-Za-z]+)")
+
+
+def _lipid_class(name: str) -> str:
+    """Extract the lipid class prefix (e.g. PC, LPC, PE) from a feature name."""
+    m = _LIPID_CLASS_RE.match(str(name).strip())
+    return m.group(1) if m else "Other"
 
 
 def _sanitize_series(s):
@@ -115,6 +124,56 @@ def _correct_natural_abundance(
         corrected.loc[idx, cols] = corrected_vec
 
     return corrected.clip(lower=0).fillna(0)
+
+
+def _compute_class_labeling(fractions_by_feature: Dict[str, Dict[str, float]]) -> Dict[str, Dict[str, any]]:
+    """Average isotopologue fractions across lipid classes."""
+    class_sums = defaultdict(lambda: defaultdict(float))
+    class_counts = defaultdict(int)
+    for fid, fracs in fractions_by_feature.items():
+        cls = _lipid_class(fid)
+        for m, val in fracs.items():
+            if m == "feature_count":
+                continue
+            try:
+                class_sums[cls][m] += float(val)
+            except (ValueError, TypeError):
+                continue
+        class_counts[cls] += 1
+
+    result = {}
+    for cls in sorted(class_sums.keys()):
+        count = max(class_counts[cls], 1)
+        sums = class_sums[cls]
+        sorted_ms = sorted(
+            sums.keys(),
+            key=lambda x: int(x[2:]) if x.startswith("M+") else 0,
+        )
+        result[cls] = {m: _to_json_safe(sums[m] / count) for m in sorted_ms}
+        result[cls]["feature_count"] = class_counts[cls]
+    return result
+
+
+def _compute_class_differences(class_ref: Dict[str, Dict], class_cmp: Dict[str, Dict]) -> Dict[str, Dict]:
+    """Compute delta isotopologue fractions between two class-labeling profiles."""
+    diffs = {}
+    for cls in sorted(set(class_ref.keys()) & set(class_cmp.keys())):
+        a_vals = class_ref[cls]
+        b_vals = class_cmp[cls]
+        ms = sorted(
+            {k for k in a_vals if k.startswith("M+")} & {k for k in b_vals if k.startswith("M+")},
+            key=lambda x: int(x[2:]),
+        )
+        entry = {}
+        for m in ms:
+            a = float(a_vals.get(m, 0.0))
+            b = float(b_vals.get(m, 0.0))
+            entry[m] = _to_json_safe(b - a)
+            entry[f"{m}_pct"] = _to_json_safe((b - a) * 100.0)
+        entry["reference_count"] = a_vals.get("feature_count", 0)
+        entry["compare_count"] = b_vals.get("feature_count", 0)
+        diffs[cls] = entry
+    return diffs
 
 
 def _feature_lookup(dataset: models.Dataset, df: pd.DataFrame):
@@ -310,5 +369,21 @@ async def run_isotope_analysis(dataset: models.Dataset, req: schemas.IsotopeRequ
                 "pooled_labeling": group_metrics["pooled_labeling"],
                 "flux_map": group_flux,
             }
+
+    # Aggregate isotopologue labeling by lipid class (overall + each group).
+    class_labeling = {"overall": _compute_class_labeling(overall_metrics["fractions"])}
+    for group, gdata in results["groups"].items():
+        class_labeling[group] = _compute_class_labeling(gdata["fractions"])
+    results["class_labeling"] = class_labeling
+
+    # Pairwise class-level difference if both reference and compare groups are supplied.
+    ref = getattr(req, "class_reference_group", None)
+    cmp = getattr(req, "class_compare_group", None)
+    if ref and cmp and ref in class_labeling and cmp in class_labeling:
+        results["class_differences"] = _compute_class_differences(
+            class_labeling[ref], class_labeling[cmp]
+        )
+        results["class_reference_group"] = ref
+        results["class_compare_group"] = cmp
 
     return results
