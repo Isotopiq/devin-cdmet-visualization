@@ -126,8 +126,10 @@ def _correct_natural_abundance(
     return corrected.clip(lower=0).fillna(0)
 
 
-def _compute_class_labeling(fractions_by_feature: Dict[str, Dict[str, float]]) -> Dict[str, Dict[str, any]]:
-    """Average isotopologue fractions across lipid classes."""
+def _compute_class_labeling(
+    fractions_by_feature: Dict[str, Dict[str, float]], max_label: int = 0
+) -> Dict[str, Dict[str, any]]:
+    """Average isotopologue fractions across lipid classes and add per-class summary metrics."""
     class_sums = defaultdict(lambda: defaultdict(float))
     class_counts = defaultdict(int)
     for fid, fracs in fractions_by_feature.items():
@@ -141,6 +143,7 @@ def _compute_class_labeling(fractions_by_feature: Dict[str, Dict[str, float]]) -
                 continue
         class_counts[cls] += 1
 
+    all_ms = set()
     result = {}
     for cls in sorted(class_sums.keys()):
         count = max(class_counts[cls], 1)
@@ -149,13 +152,30 @@ def _compute_class_labeling(fractions_by_feature: Dict[str, Dict[str, float]]) -
             sums.keys(),
             key=lambda x: int(x[2:]) if x.startswith("M+") else 0,
         )
+        all_ms.update(sorted_ms)
         result[cls] = {m: _to_json_safe(sums[m] / count) for m in sorted_ms}
         result[cls]["feature_count"] = class_counts[cls]
+
+    max_m = max_label
+    if all_ms:
+        max_m = max(max_m, max(int(m[2:]) for m in all_ms if m.startswith("M+")))
+
+    for cls in result:
+        fracs = result[cls]
+        total_labeled = 1.0 - float(fracs.get("M+0", 0.0))
+        mean_labeled_atoms = sum(
+            int(m[2:]) * float(fracs.get(m, 0.0))
+            for m in fracs if m.startswith("M+")
+        )
+        result[cls]["total_labeled_fraction"] = _to_json_safe(total_labeled)
+        result[cls]["mean_labeled_atoms"] = _to_json_safe(mean_labeled_atoms)
+        result[cls]["pooled_labeling"] = _to_json_safe(mean_labeled_atoms / max_m if max_m > 0 else 0.0)
+
     return result
 
 
 def _compute_class_differences(class_ref: Dict[str, Dict], class_cmp: Dict[str, Dict]) -> Dict[str, Dict]:
-    """Compute delta isotopologue fractions between two class-labeling profiles."""
+    """Compute delta isotopologue fractions and summary metrics between two class-labeling profiles."""
     diffs = {}
     for cls in sorted(set(class_ref.keys()) & set(class_cmp.keys())):
         a_vals = class_ref[cls]
@@ -172,6 +192,11 @@ def _compute_class_differences(class_ref: Dict[str, Dict], class_cmp: Dict[str, 
             entry[f"{m}_pct"] = _to_json_safe((b - a) * 100.0)
         entry["reference_count"] = a_vals.get("feature_count", 0)
         entry["compare_count"] = b_vals.get("feature_count", 0)
+        for key in ("total_labeled_fraction", "mean_labeled_atoms", "pooled_labeling"):
+            a = float(a_vals.get(key, 0.0))
+            b = float(b_vals.get(key, 0.0))
+            entry[f"{key}_delta"] = _to_json_safe(b - a)
+            entry[f"{key}_delta_pct"] = _to_json_safe((b - a) * 100.0)
         diffs[cls] = entry
     return diffs
 
@@ -371,9 +396,9 @@ async def run_isotope_analysis(dataset: models.Dataset, req: schemas.IsotopeRequ
             }
 
     # Aggregate isotopologue labeling by lipid class (overall + each group).
-    class_labeling = {"overall": _compute_class_labeling(overall_metrics["fractions"])}
+    class_labeling = {"overall": _compute_class_labeling(overall_metrics["fractions"], max_label)}
     for group, gdata in results["groups"].items():
-        class_labeling[group] = _compute_class_labeling(gdata["fractions"])
+        class_labeling[group] = _compute_class_labeling(gdata["fractions"], max_label)
     results["class_labeling"] = class_labeling
 
     # Pairwise class-level difference if both reference and compare groups are supplied.
