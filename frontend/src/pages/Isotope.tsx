@@ -136,6 +136,7 @@ export default function Isotope() {
 
   useEffect(() => {
     setModelQuery('')
+    setSelectedModel(null)
     if (mapSource !== 'none') fetchModelList()
   }, [mapSource])
 
