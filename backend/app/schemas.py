@@ -299,7 +299,7 @@ class IsotopeRequest(BaseModel):
     circulating_enrichment: Optional[float] = None
     normalization: str = "none"
     # flux map options
-    layout: Optional[str] = "spring"  # spring, curated, circular, kamada_kawai, escher
+    layout: Optional[str] = "spring"  # spring, curated, circular, kamada_kawai, fruchterman_reingold, shell, grid, escher
     graph_mode: Optional[str] = "full"  # full, spanning_tree, k_shortest_paths, bipartite
     edge_weight: Optional[str] = "label_gradient"  # label_gradient, intensity, flux, uniform
     k: Optional[int] = 3
@@ -309,7 +309,7 @@ class IsotopeRequest(BaseModel):
     map_id: Optional[str] = None
     map_organism: Optional[str] = None
     selected_groups: Optional[List[str]] = None  # compute per-group flux maps; None = all groups / overall
-    style: Optional[str] = "classic"  # classic, dark_modern, minimal, subway
+    style: Optional[str] = "classic"  # classic, dark_modern, minimal, subway, fluxer
     show_labels: bool = False  # show metabolite/enzyme labels on Escher/flux maps
 
 

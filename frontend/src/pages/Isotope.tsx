@@ -3,22 +3,54 @@ import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import { runIsotope, searchBiGGModels, searchGEMModels, loadModelNetwork } from '../api'
-import { LuDna, LuRefreshCw, LuMap, LuNetwork, LuUsers } from 'react-icons/lu'
+import { LuDna, LuRefreshCw, LuMap, LuNetwork, LuUsers, LuDownload, LuExternalLink } from 'react-icons/lu'
 
 function FluxMapView({ map, filename }: { map: any; filename: string }) {
-  if (map?.type === 'escher') {
-    return (
-      <div className="w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700" style={{ height: '600px' }}>
-        <iframe
-          title={filename}
-          srcDoc={map.html}
-          sandbox="allow-scripts allow-same-origin"
-          style={{ width: '100%', height: '100%', border: 'none' }}
-        />
-      </div>
-    )
+  const downloadGraphML = () => {
+    if (!map?.graphml) return
+    const blob = new Blob([map.graphml], { type: 'application/graphml+xml' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${filename}.graphml`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
   }
-  return <PlotWithDownload data={map.data} layout={map.layout} style={{ width: '100%', height: '600px' }} filename={filename} />
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {map?.graphml && (
+          <button onClick={downloadGraphML} className="btn-secondary text-xs">
+            <LuDownload /> Export GraphML
+          </button>
+        )}
+        <a
+          href="https://fluxer.umbc.edu/"
+          target="_blank"
+          rel="noreferrer"
+          className="btn-secondary text-xs inline-flex items-center gap-1"
+          title="Open Fluxer to upload the exported GraphML"
+        >
+          <LuExternalLink /> Open Fluxer
+        </a>
+      </div>
+      {map?.type === 'escher' ? (
+        <div className="w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700" style={{ height: '600px' }}>
+          <iframe
+            title={filename}
+            srcDoc={map.html}
+            sandbox="allow-scripts allow-same-origin"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+          />
+        </div>
+      ) : (
+        <PlotWithDownload data={map.data} layout={map.layout} style={{ width: '100%', height: '600px' }} filename={filename} />
+      )}
+    </div>
+  )
 }
 
 export default function Isotope() {
@@ -38,11 +70,6 @@ export default function Isotope() {
   const [targetNode, setTargetNode] = useState('')
   const [style, setStyle] = useState('classic')
   const [showLabels, setShowLabels] = useState(false)
-
-  // Default labels on for Plotly maps, off for Escher maps.
-  useEffect(() => {
-    setShowLabels(layout !== 'escher')
-  }, [layout])
 
   // Map source / model loading
   const [mapSource, setMapSource] = useState<'none' | 'bigg' | 'gem'>('none')
@@ -239,6 +266,9 @@ export default function Isotope() {
                   <option value="curated">Curated pathways</option>
                   <option value="circular">Circular</option>
                   <option value="kamada_kawai">Kamada-Kawai</option>
+                  <option value="fruchterman_reingold">Fruchterman-Reingold</option>
+                  <option value="shell">Shell</option>
+                  <option value="grid">Grid</option>
                   <option value="escher">Escher map</option>
                 </select>
               </div>
@@ -285,6 +315,7 @@ export default function Isotope() {
                   <option value="dark_modern">Dark modern</option>
                   <option value="minimal">Minimal clean</option>
                   <option value="subway">Subway map</option>
+                  <option value="fluxer">Fluxer style</option>
                 </select>
               </div>
               <div className="flex items-center gap-2 pb-2 md:col-span-2">

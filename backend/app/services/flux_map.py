@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import math
 import re
@@ -69,6 +70,10 @@ PATHWAY_COLORS = {
     "Nucleotide & Protein Metabolism": "#8b5cf6",
     "Fatty Acid Synthesis": "#22c55e",
     "Lipid Metabolism": "#84cc16",
+    "Glycerophospholipid": "#3b82f6",
+    "Sphingolipid": "#a855f7",
+    "Neutral lipid": "#f59e0b",
+    "Sterol lipid": "#ec4899",
     "Steroid Metabolism": "#ec4899",
     "Vitamin & Cofactor Metabolism": "#64748b",
     "Other": "#94a3b8",
@@ -136,6 +141,21 @@ FLUX_STYLES = {
         "annotations": True,
         "grid_color": None,
     },
+    "fluxer": {
+        "node_line_width": 1,
+        "edge_positive": "#0ea5e9",
+        "edge_negative": "#f97316",
+        "edge_width_factor": 4.0,
+        "colorscale": "YlOrRd",
+        "paper_bgcolor": "#ffffff",
+        "plot_bgcolor": "#ffffff",
+        "text_color": "#1e293b",
+        "legend_font_color": "#334155",
+        "legend_bgcolor": "rgba(255,255,255,0.9)",
+        "marker_line": False,
+        "annotations": True,
+        "grid_color": "#e2e8f0",
+    },
 }
 
 
@@ -180,13 +200,17 @@ def _normalize(text: Optional[str]) -> str:
     if not text:
         return ""
     s = str(text).lower()
-    s = re.sub(r"[-_./,;:'\"()\[\]]+", " ", s)
+    # Keep plus signs in labels (M+1) and slashes in lipid names, but remove other punctuation.
+    s = re.sub(r"[-_.,;:'\"()\[\]]+", " ", s)
     s = re.sub(r"\s+", " ", s).strip()
-    for prefix in ("d ", "l ", "alpha ", "beta ", "gamma ", "dl ", "n ", "c "):
-        s = s.replace(prefix, "")
-    # apply common synonyms
+    # Apply whole-word synonyms (e.g. g6p -> glucose 6 phosphate).
     for k, v in SYNONYMS.items():
-        s = s.replace(k, v)
+        pattern = r"\b" + re.escape(k) + r"\b"
+        s = re.sub(pattern, v, s)
+    # Remove stereochemistry / anomer prefixes only when they appear at the start of the string.
+    for prefix in ("d ", "l ", "alpha ", "beta ", "gamma ", "dl ", "n "):
+        if s.startswith(prefix):
+            s = s[len(prefix):].strip()
     return s
 
 
@@ -203,19 +227,26 @@ def _name_score(query: str, candidate_name: str, candidate_id: str, candidate_fo
         return 0.9
 
     q_words = set(q.split())
-    if q_words.issubset(set(c_name.split())):
+    # Ignore pure-numeric tokens (e.g. 34:1 -> "34" "1") so lipid carbon counts do not match central-carbon metabolites.
+    q_alpha = {w for w in q_words if any(c.isalpha() for c in w)}
+    if not q_alpha:
+        return 0.0
+
+    c_name_words = set(c_name.split())
+    c_id_words = set(c_id.split())
+    if q_alpha.issubset(c_name_words):
         return 0.8
-    if q_words.issubset(set(c_id.split())):
+    if q_alpha.issubset(c_id_words):
         return 0.75
 
     if query_formula and candidate_formula and _normalize(query_formula) == _normalize(candidate_formula):
         return 0.85
 
-    name_match = len(q_words & set(c_name.split()))
-    id_match = len(q_words & set(c_id.split()))
+    name_match = len(q_alpha & c_name_words)
+    id_match = len(q_alpha & c_id_words)
     best = max(name_match, id_match)
     if best:
-        return min(0.7, best / max(len(q_words), 1))
+        return min(0.7, best / max(len(q_alpha), 1))
     return 0.0
 
 
@@ -277,6 +308,152 @@ def _build_manual_graph() -> nx.DiGraph:
         G.nodes[n]["name"] = n
         G.nodes[n]["formula"] = ""
         G.nodes[n]["compartment"] = ""
+    return G
+
+
+# ---------------------------------------------------------------------------
+# Lipid graph builder
+# ---------------------------------------------------------------------------
+
+LIPID_CLASS_NAMES = {
+    "LPC", "LPE", "LPG", "LPS", "LPI", "LPA",
+    "PC", "PE", "PG", "PS", "PI", "PA",
+    "SM", "Cer", "HexCer", "LacCer",
+    "DAG", "DG", "TAG", "TG", "MG", "MAG",
+    "CE", "CL", "BMP",
+}
+
+LIPID_SUPERCLASS = {
+    "LPC": "Glycerophospholipid", "LPE": "Glycerophospholipid", "LPG": "Glycerophospholipid",
+    "LPS": "Glycerophospholipid", "LPI": "Glycerophospholipid", "LPA": "Glycerophospholipid",
+    "PC": "Glycerophospholipid", "PE": "Glycerophospholipid", "PG": "Glycerophospholipid",
+    "PS": "Glycerophospholipid", "PI": "Glycerophospholipid", "PA": "Glycerophospholipid",
+    "BMP": "Glycerophospholipid", "CL": "Glycerophospholipid",
+    "SM": "Sphingolipid", "Cer": "Sphingolipid", "HexCer": "Sphingolipid", "LacCer": "Sphingolipid",
+    "DAG": "Neutral lipid", "DG": "Neutral lipid", "TAG": "Neutral lipid", "TG": "Neutral lipid",
+    "MG": "Neutral lipid", "MAG": "Neutral lipid", "CE": "Sterol lipid",
+}
+
+LIPID_CLASS_TRANSITIONS = {
+    "PA": ["DAG", "PC", "PE", "PI", "PS", "PG"],
+    "DAG": ["PC", "PE", "PA", "TAG", "MG"],
+    "PC": ["LPC", "PE", "PS", "SM"],
+    "PE": ["PC", "PS", "LPE", "DAG"],
+    "PS": ["PE", "PC"],
+    "PI": ["PA", "DAG"],
+    "PG": ["LPG", "CL", "PA"],
+    "CL": ["PG"],
+    "LPC": ["PC"],
+    "LPE": ["PE"],
+    "LPG": ["PG"],
+    "LPS": ["PS"],
+    "LPI": ["PI"],
+    "LPA": ["PA"],
+    "MG": ["DAG"],
+    "MAG": ["DAG"],
+    "TAG": ["DAG"],
+    "TG": ["DAG"],
+    "SM": ["Cer", "PC"],
+    "Cer": ["SM", "HexCer"],
+    "HexCer": ["LacCer"],
+    "CE": [],
+}
+
+_LIPID_NAME_RE = re.compile(r"^(?P<class>[A-Za-z]+)\(?\s*(?P<chains>[^)]*)\)?$")
+_LIPID_CHAIN_RE = re.compile(r"(?:[dOP]-?)?(?P<c>\d+):(?P<u>\d+)")
+
+
+def _parse_lipid(name: str) -> Optional[dict]:
+    m = _LIPID_NAME_RE.match(str(name).strip())
+    if not m:
+        return None
+    cls = m.group("class")
+    if cls not in LIPID_CLASS_NAMES:
+        return None
+    chains = []
+    total_c = 0
+    total_u = 0
+    for cm in _LIPID_CHAIN_RE.finditer(m.group("chains")):
+        c = int(cm.group("c"))
+        u = int(cm.group("u"))
+        chains.append((c, u))
+        total_c += c
+        total_u += u
+    return {
+        "class": cls,
+        "chains": chains,
+        "total_c": total_c,
+        "total_u": total_u,
+        "superclass": LIPID_SUPERCLASS.get(cls, "Other"),
+    }
+
+
+def _looks_like_lipid(name: str) -> bool:
+    return _parse_lipid(name) is not None
+
+
+def _detect_lipid_dataset(feature_names: List[str], threshold: float = 0.5) -> bool:
+    if not feature_names:
+        return False
+    n_lipids = sum(1 for n in feature_names if _looks_like_lipid(n))
+    return n_lipids / len(feature_names) >= threshold
+
+
+def _build_lipid_graph(feature_ids: List[str], feature_names: List[str], formulas: List[Optional[str]]) -> nx.DiGraph:
+    """Build a directed graph of measured lipids using curated class transitions and acyl-chain edits."""
+    G = nx.DiGraph()
+    parsed: Dict[str, dict] = {}
+    key_to_fid: Dict[str, str] = {}
+
+    for fid, name, formula in zip(feature_ids, feature_names, formulas):
+        p = _parse_lipid(name)
+        if not p:
+            continue
+        key = str(name)
+        parsed[key] = p
+        key_to_fid[key] = fid
+        G.add_node(
+            key,
+            name=key,
+            formula=formula or "",
+            compartment="",
+            lipid_class=p["class"],
+            pathway=p["superclass"],
+            total_c=p["total_c"],
+            total_u=p["total_u"],
+        )
+
+    # Class transitions that preserve total acyl composition.
+    composition_index: Dict[Tuple[str, int, int], List[str]] = {}
+    for key, p in parsed.items():
+        composition_index.setdefault((p["class"], p["total_c"], p["total_u"]), []).append(key)
+
+    for (cls, c, u), nodes in composition_index.items():
+        for target_cls in LIPID_CLASS_TRANSITIONS.get(cls, []):
+            targets = composition_index.get((target_cls, c, u), [])
+            for src in nodes:
+                for tgt in targets:
+                    if src == tgt:
+                        continue
+                    G.add_edge(src, tgt, reaction=f"{cls} → {target_cls}", subsystem="Lipid metabolism")
+
+    # Acyl-chain modification edges within the same class (elongation/desaturation).
+    ACYL_EDITS = [(2, 0), (0, 1), (2, 1), (-2, 0), (0, -1), (-2, -1)]
+    for key, p in parsed.items():
+        cls = p["class"]
+        for dc, du in ACYL_EDITS:
+            tgt_c = p["total_c"] + dc
+            tgt_u = p["total_u"] + du
+            if tgt_c < 2 or tgt_u < 0:
+                continue
+            targets = composition_index.get((cls, tgt_c, tgt_u), [])
+            for tgt in targets:
+                if key == tgt:
+                    continue
+                label = f"{dc:+d}C,{du:+d}U"
+                if not G.has_edge(key, tgt):
+                    G.add_edge(key, tgt, reaction=f"Acyl edit ({label})", subsystem="Fatty acid metabolism")
+
     return G
 
 
@@ -447,6 +624,13 @@ async def load_network_for_isotope(
     dataset: Any = None,
 ) -> Tuple[nx.DiGraph, Dict[str, str]]:
     """Return a graph of metabolites relevant to the measured features and a feature->node map."""
+    # Detect lipid datasets early so we can build a lipid-specific graph instead of forcing
+    # lipid names (e.g. PC(34:1)) onto the generic central-carbon manual graph.
+    is_lipid_dataset = (
+        getattr(dataset, "feature_type", None) == "lipid"
+        or _detect_lipid_dataset(feature_names)
+    )
+
     if map_source == "bigg" and map_id:
         model = await get_bigg_model(map_id)
         mets = _model_metabolites_bigg(model)
@@ -462,10 +646,22 @@ async def load_network_for_isotope(
             G_meta.add_node(nid, **attrs)
         mapping = _match_features_to_nodes(feature_ids, feature_names, G_meta, dataset=dataset)
         measured = set(mapping.values())
+        if not measured and is_lipid_dataset:
+            # If the model does not contain the measured lipids, fall back to the lipid graph.
+            formulas = _feature_formulas(feature_ids, dataset)
+            G = _build_lipid_graph(feature_ids, feature_names, formulas)
+            mapping = {fid: key for fid, key in zip(feature_ids, feature_names) if key in G}
+            return G, mapping
         if map_source == "bigg":
             G = build_bigg_network(model, measured_nodes=measured)
         else:
             G = build_gem_network(model, measured_nodes=measured)
+        return G, mapping
+
+    if is_lipid_dataset:
+        formulas = _feature_formulas(feature_ids, dataset)
+        G = _build_lipid_graph(feature_ids, feature_names, formulas)
+        mapping = {fid: key for fid, key in zip(feature_ids, feature_names) if key in G}
         return G, mapping
 
     G_full = _build_manual_graph()
@@ -644,8 +840,10 @@ def _bipartite_reaction_graph(G: nx.DiGraph) -> nx.DiGraph:
 
 
 def _node_pathway(n: str, attrs: dict) -> str:
-    if attrs.get("name") in PATHWAY_LAYOUT:
-        return PATHWAY_LAYOUT[attrs["name"]][2]
+    # If an explicit pathway / superclass has been assigned (e.g. lipid graph), use it.
+    pway = attrs.get("pathway") or attrs.get("lipid_superclass")
+    if pway:
+        return pway
     if attrs.get("name") in PATHWAY_LAYOUT:
         return PATHWAY_LAYOUT[attrs["name"]][2]
     sub = attrs.get("subsystem", "")
@@ -662,13 +860,38 @@ def _compute_positions(G: nx.DiGraph, layout: str) -> Dict[str, Tuple[float, flo
     if layout == "circular":
         return nx.circular_layout(G)
     if layout == "kamada_kawai":
-        return nx.kamada_kawai_layout(G)
+        try:
+            return nx.kamada_kawai_layout(G)
+        except Exception:
+            return nx.spring_layout(G, seed=42, k=2.0, iterations=300)
     if layout == "spring":
         return nx.spring_layout(G, seed=42, k=2.0, iterations=300)
+    if layout == "fruchterman_reingold":
+        try:
+            return nx.fruchterman_reingold_layout(G, seed=42, iterations=300)
+        except Exception:
+            return nx.spring_layout(G, seed=42, k=2.0, iterations=300)
     if layout == "shell":
-        return nx.shell_layout(G)
+        try:
+            return nx.shell_layout(G)
+        except Exception:
+            return nx.spring_layout(G, seed=42, k=2.0, iterations=300)
+    if layout == "grid":
+        return _grid_layout(G)
     # default spring
     return nx.spring_layout(G, seed=42, k=2.0, iterations=300)
+
+
+def _grid_layout(G: nx.DiGraph) -> Dict[str, Tuple[float, float]]:
+    """Place nodes on a square grid ordered by pathway and name for a predictable layout."""
+    nodes = sorted(G.nodes(), key=lambda n: (_node_pathway(n, G.nodes[n]), str(n)))
+    cols = max(1, math.ceil(math.sqrt(len(nodes))))
+    pos = {}
+    for i, n in enumerate(nodes):
+        x = (i % cols) / max(cols - 1, 1)
+        y = 1.0 - (i // cols) / max(math.ceil(len(nodes) / cols) - 1, 1)
+        pos[n] = (x, y)
+    return pos
 
 
 def _curated_layout(G: nx.DiGraph) -> Dict[str, Tuple[float, float]]:
@@ -1078,7 +1301,7 @@ def _make_plotly_figure(
     max_mean = max((v for v in mean_map.values() if math.isfinite(v)), default=1.0) or 1.0
     max_total = max((v for v in total_map.values() if math.isfinite(v)), default=1.0) or 1.0
 
-    node_x, node_y, node_text, node_color, node_size, node_line_color = [], [], [], [], [], []
+    node_x, node_y, node_text, node_color, node_size, node_line_color, node_custom = [], [], [], [], [], [], []
     for n in G.nodes():
         x, y = pos.get(n, (0, 0))
         node_x.append(x)
@@ -1090,9 +1313,13 @@ def _make_plotly_figure(
             label = f"{label} ({feature})"
         node_text.append(label)
         node_color.append(mean_map.get(n, 0.0))
-        node_size.append(12 + 28 * (total_map.get(n, 0.0) / max_total))
+        # Scale node area by total intensity (sqrt) so large values do not dominate.
+        size = 12 + 32 * math.sqrt(total_map.get(n, 0.0) / max_total) if max_total > 0 else 12
+        node_size.append(size)
         pway = _node_pathway(n, G.nodes[n])
         node_line_color.append(PATHWAY_COLORS.get(pway, PATHWAY_COLORS["Other"]))
+        formula = G.nodes[n].get("formula", "") or ""
+        node_custom.append((name, formula, pway, total_map.get(n, 0.0)))
 
     edge_traces = []
     annotations = []
@@ -1117,6 +1344,7 @@ def _make_plotly_figure(
         else:
             width = 1.0 + style_cfg["edge_width_factor"] * min(w, 1.0)
 
+        reaction = data.get("reaction", f"{src} → {tgt}")
         edge_traces.append(
             go.Scatter(
                 x=[x0, x1, None],
@@ -1124,7 +1352,7 @@ def _make_plotly_figure(
                 mode="lines",
                 line=dict(color=color, width=width),
                 hoverinfo="text",
-                text=f"{src} → {tgt}<br>Δ mean labels: {gradient:.3f}<br>weight: {w:.3f}",
+                text=f"{src} → {tgt}<br>Reaction: {reaction}<br>Δ mean labels: {gradient:.3f}<br>weight: {w:.3f}",
                 showlegend=False,
             )
         )
@@ -1132,19 +1360,21 @@ def _make_plotly_figure(
         if style_cfg["annotations"]:
             annotations.append(
                 dict(
-                    x=x0 + 0.88 * (x1 - x0),
-                    y=y0 + 0.88 * (y1 - y0),
-                    ax=x0 + 0.12 * (x1 - x0),
-                    ay=y0 + 0.12 * (y1 - y0),
+                    x=x1,
+                    y=y1,
+                    ax=x0,
+                    ay=y0,
                     xref="x",
                     yref="y",
                     axref="x",
                     ayref="y",
                     showarrow=True,
                     arrowhead=2,
-                    arrowsize=1,
-                    arrowwidth=max(1, width / 2),
+                    arrowsize=1.2,
+                    arrowwidth=max(1, width * 0.7),
                     arrowcolor=color,
+                    standoff=0,
+                    startstandoff=0,
                 )
             )
 
@@ -1161,37 +1391,46 @@ def _make_plotly_figure(
         text=node_text,
         textposition="top center",
         textfont=dict(size=9, color=style_cfg["text_color"]),
+        customdata=node_custom,
         marker=dict(
             showscale=True,
             colorscale=style_cfg["colorscale"],
             color=node_color,
             size=node_size,
+            sizemode="diameter",
             colorbar=dict(
                 title=dict(text="Mean<br>labeled<br>atoms", font=dict(color=style_cfg["text_color"])),
                 thickness=12,
-                x=1.06,
+                x=1.05,
                 tickfont=dict(color=style_cfg["text_color"]),
             ),
             line=marker_line,
         ),
-        hovertemplate="%{text}<br>Mean labeled atoms: %{marker.color:.3f}<extra></extra>",
+        hovertemplate=(
+            "<b>%{customdata[0]}</b><br>"
+            "Pathway: %{customdata[2]}<br>"
+            "Formula: %{customdata[1]}<br>"
+            "Total intensity: %{customdata[3]:.3e}<br>"
+            "Mean labeled atoms: %{marker.color:.3f}<extra></extra>"
+        ),
         showlegend=False,
     )
 
     # Build a custom legend for pathways by adding invisible traces.
     legend_traces = []
-    for pway, color in sorted(PATHWAY_COLORS.items()):
-        if any(_node_pathway(n, G.nodes[n]) == pway for n in G.nodes()):
-            legend_traces.append(
-                go.Scatter(
-                    x=[None],
-                    y=[None],
-                    mode="markers",
-                    marker=dict(size=10, color=color, symbol="circle", line=dict(width=0)),
-                    name=pway,
-                    showlegend=True,
-                )
+    present_pathways = {_node_pathway(n, G.nodes[n]) for n in G.nodes()}
+    for pway in sorted(present_pathways):
+        color = PATHWAY_COLORS.get(pway, PATHWAY_COLORS["Other"])
+        legend_traces.append(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                marker=dict(size=10, color=color, symbol="circle", line=dict(width=0)),
+                name=pway,
+                showlegend=True,
             )
+        )
 
     xaxis = dict(
         showgrid=style_cfg["grid_color"] is not None,
@@ -1214,7 +1453,7 @@ def _make_plotly_figure(
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,
+            y=1.08,
             xanchor="left",
             x=0,
             bgcolor=style_cfg["legend_bgcolor"],
@@ -1224,13 +1463,56 @@ def _make_plotly_figure(
         hovermode="closest",
         xaxis=xaxis,
         yaxis=yaxis,
-        margin=dict(l=60, r=120, t=100, b=60),
+        margin=dict(l=60, r=120, t=110, b=60),
         plot_bgcolor=style_cfg["plot_bgcolor"],
         paper_bgcolor=style_cfg["paper_bgcolor"],
         annotations=annotations,
         font=dict(color=style_cfg["text_color"]),
     )
     return json.loads(fig.to_json())
+
+
+# ---------------------------------------------------------------------------
+# GraphML export for Fluxer / external tools
+# ---------------------------------------------------------------------------
+
+
+def _sanitize_graphml_value(value: Any) -> Any:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, (int, float, str)):
+        return value
+    if isinstance(value, (list, tuple, set)):
+        return ",".join(str(v) for v in value)
+    return str(value)
+
+
+def _graphml_for_network(
+    G: nx.DiGraph,
+    pos: Dict[str, Tuple[float, float]],
+    mean_map: Dict[str, float],
+    total_map: Dict[str, float],
+    title: str = "Flux map",
+) -> str:
+    """Serialize the flux graph as GraphML so it can be opened in Fluxer, Cytoscape, etc."""
+    H = nx.DiGraph()
+    H.graph["name"] = title
+    for n, attrs in G.nodes(data=True):
+        node_attrs = {k: _sanitize_graphml_value(v) for k, v in attrs.items()}
+        node_attrs["mean_labeled_atoms"] = _sanitize_graphml_value(mean_map.get(n, 0.0))
+        node_attrs["total_intensity"] = _sanitize_graphml_value(total_map.get(n, 0.0))
+        x, y = pos.get(n, (0.0, 0.0))
+        node_attrs["x"] = float(x)
+        node_attrs["y"] = float(y)
+        H.add_node(str(n), **node_attrs)
+    for u, v, attrs in G.edges(data=True):
+        edge_attrs = {k: _sanitize_graphml_value(v) for k, v in attrs.items()}
+        H.add_edge(str(u), str(v), **edge_attrs)
+    buf = io.BytesIO()
+    nx.write_graphml(H, buf)
+    return buf.getvalue().decode("utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -1256,16 +1538,16 @@ async def build_flux_map(
     title = options.get("title", "Flux map")
     style = options.get("style", "classic")
 
-    # Default labels: off for Escher (clean by default), on for Plotly maps.
-    show_labels = options.get("show_labels")
-    if show_labels is None:
-        show_labels = False if layout == "escher" else True
-
     feature_names = _feature_names(dataset, feature_ids)
 
     G, feature_to_node = await load_network_for_isotope(map_source, map_id, feature_ids, feature_names, dataset=dataset)
     if G.number_of_nodes() == 0:
         return None
+
+    # Default labels: off for Escher or very dense networks, on otherwise.
+    show_labels = options.get("show_labels")
+    if show_labels is None:
+        show_labels = False if layout == "escher" or G.number_of_nodes() > 25 else True
 
     # Build value maps keyed by graph node id.
     node_to_feature = {v: k for k, v in feature_to_node.items()}
@@ -1295,11 +1577,16 @@ async def build_flux_map(
     pos_layout = "curated" if layout == "escher" else layout
     pos = _compute_positions(G, pos_layout)
 
+    graphml = _graphml_for_network(G, pos, mean_map, total_map, title=title)
+
     if layout == "escher":
         escher_options = {**options, "title": title, "show_labels": show_labels}
-        return _build_escher_map(G, pos, mean_map, total_map, escher_options)
+        fig = _build_escher_map(G, pos, mean_map, total_map, escher_options)
+        if isinstance(fig, dict):
+            fig["graphml"] = graphml
+        return fig
 
-    return _make_plotly_figure(
+    fig = _make_plotly_figure(
         G,
         pos,
         mean_map,
@@ -1312,3 +1599,5 @@ async def build_flux_map(
         style,
         show_labels=show_labels,
     )
+    fig["graphml"] = graphml
+    return fig
