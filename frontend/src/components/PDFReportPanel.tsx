@@ -55,6 +55,9 @@ export default function PDFReportPanel() {
   const [tags, setTags] = useState('')
   const [footerText, setFooterText] = useState('Confidential')
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0])
+  const [titleFontSize, setTitleFontSize] = useState(16)
+  const [axisLabelFontSize, setAxisLabelFontSize] = useState(12)
+  const [tickFontSize, setTickFontSize] = useState(11)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -102,6 +105,9 @@ export default function PDFReportPanel() {
           tags,
           footer_text: footerText,
           date: reportDate,
+          title_size: titleFontSize,
+          axis_label_size: axisLabelFontSize,
+          tick_size: tickFontSize,
         },
       })
       const blob = new Blob([res.data], { type: 'application/pdf' })
@@ -157,6 +163,15 @@ export default function PDFReportPanel() {
             <div><label className="label-like">Statistical test</label><select value={test} onChange={(e) => setTest(e.target.value)} className="input"><option value="t_test">t_test</option><option value="mannwhitneyu">Mann-Whitney U</option><option value="wilcoxon">Wilcoxon</option></select></div>
             <div><label className="label-like">Multiple testing</label><select value={multipleTesting} onChange={(e) => setMultipleTesting(e.target.value)} className="input"><option value="fdr_bh">fdr_bh</option><option value="bonferroni">Bonferroni</option><option value="holm">Holm</option><option value="none">None</option></select></div>
             <div className="flex items-center gap-2 md:col-span-2"><input id="showLabels" type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /><label htmlFor="showLabels">Label top features on volcano plot</label></div>
+          </div>
+
+          <div>
+            <label className="label-like mb-2 block">Plot font sizes</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div><label className="label-like">Plot title</label><input type="number" min={8} max={32} value={titleFontSize} onChange={(e) => setTitleFontSize(Number(e.target.value))} className="input" /></div>
+              <div><label className="label-like">Axis labels</label><input type="number" min={8} max={24} value={axisLabelFontSize} onChange={(e) => setAxisLabelFontSize(Number(e.target.value))} className="input" /></div>
+              <div><label className="label-like">Tick labels</label><input type="number" min={8} max={24} value={tickFontSize} onChange={(e) => setTickFontSize(Number(e.target.value))} className="input" /></div>
+            </div>
           </div>
 
           <div>
