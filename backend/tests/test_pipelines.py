@@ -351,6 +351,28 @@ def _make_el_maven_df() -> pd.DataFrame:
     })
 
 
+@pytest.mark.asyncio
+async def test_preprocess_no_imputation_preserves_missing():
+    df = pd.DataFrame(
+        {"S1": [np.nan, 2.0, 3.0], "S2": [1.0, np.nan, 3.0]},
+        index=["F1", "F2", "F3"],
+    )
+    ds = _make_dataset(df, {"S1": "A", "S2": "A"})
+    params = schemas.PreprocessingParams(
+        missing_value_filter=0.0,
+        imputation="none",
+        log_transform=False,
+        scale="none",
+        normalization="none",
+    )
+    fake_db = _FakeAsyncSession()
+    new = await preprocess_dataset(fake_db, ds, params)
+    out_df = to_dataframe(new)
+    assert pd.isna(out_df.iloc[0, 0])
+    assert pd.isna(out_df.iloc[1, 1])
+    assert out_df.iloc[0, 1] == 1.0
+
+
 def test_el_maven_format_detection():
     df = _make_el_maven_df()
     result = detect_columns(df)

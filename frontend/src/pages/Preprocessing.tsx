@@ -276,10 +276,12 @@ export default function Preprocessing() {
               <div>
                 <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Imputation</label>
                 <select value={params.imputation} onChange={(e) => setParams({ ...params, imputation: e.target.value })} className="input">
+                  <option value="none">None</option>
                   <option value="min">Half minimum</option>
                   <option value="median">Median</option>
                   <option value="knn">Mean (KNN fallback)</option>
                 </select>
+                <p className="text-xs text-slate-500 mt-1">No imputation keeps missing values as missing.</p>
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Scaling</label>

@@ -49,9 +49,9 @@ def _positive_floor(df: pd.DataFrame) -> float:
 
 
 def _make_non_negative(df: pd.DataFrame) -> pd.DataFrame:
-    """Replace zeros and negative values with a small positive floor."""
+    """Replace zeros and negative values with a small positive floor while preserving NaNs."""
     floor = _positive_floor(df) / 2
-    return df.where(df > 0, floor)
+    return df.clip(lower=floor)
 
 
 def _detect_blank_columns(sample_metadata: Dict[str, Any]) -> List[str]:
@@ -297,7 +297,9 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
             current_meta = [meta_by_fid.get(fid, {}) for fid in df.index]
 
     # 5. Imputation (before normalization/log to keep values interpretable)
-    if params.imputation == "min":
+    if params.imputation == "none":
+        pass  # no missing-value imputation; NaNs are preserved through downstream steps
+    elif params.imputation == "min":
         if blank_cols and params.exclude_blanks_from_imputation:
             non_blank_cols = [c for c in df.columns if c not in blank_cols]
             if non_blank_cols:
@@ -372,7 +374,7 @@ async def preprocess_dataset(db: AsyncSession, dataset: models.Dataset, params: 
     # 7. Log transformation
     if params.log_transform:
         pos_floor = _positive_floor(df) / 2
-        df = df.where(df > 0, pos_floor)
+        df = df.clip(lower=pos_floor)
         df = np.log2(df)
         if blank_cols and params.exclude_blanks_from_imputation:
             df = _restore_blank_missing(df, blank_cols, blank_missing_mask)
