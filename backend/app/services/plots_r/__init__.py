@@ -277,6 +277,7 @@ def _prepare_heatmap_data(df: pd.DataFrame, params: Dict[str, Any], style: Dict[
         "title_size": int(style.get("title_size", 16)),
         "axis_label_size": int(style.get("axis_label_size", 12)),
         "tick_size": int(style.get("tick_size", 11)),
+        "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
         "caption": caption,
     }
 
@@ -378,6 +379,7 @@ def _prepare_per_lipid_bars_data(df: pd.DataFrame, params: Dict[str, Any], style
         "res": int(style.get("r_resolution", 120)),
         "r_theme": style.get("r_theme", "publication"),
         "bar_width": float(style.get("r_bar_width", 0.55)),
+        "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
         "per_page": int(params.get("per_page", 4)),
     }
 
@@ -425,6 +427,7 @@ def _prepare_volcano_data(params: Dict[str, Any], style: Dict[str, Any]) -> Dict
         "title_size": int(style.get("title_size", 16)),
         "axis_label_size": int(style.get("axis_label_size", 12)),
         "tick_size": int(style.get("tick_size", 11)),
+        "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
         "r_theme": style.get("r_theme", "publication"),
     }
 
@@ -471,6 +474,7 @@ def _prepare_pca_data(df: pd.DataFrame, params: Dict[str, Any], style: Dict[str,
         "title_size": int(style.get("title_size", 16)),
         "axis_label_size": int(style.get("axis_label_size", 12)),
         "tick_size": int(style.get("tick_size", 11)),
+        "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
         "r_theme": style.get("r_theme", "publication"),
     }
 
@@ -524,6 +528,7 @@ def _prepare_lipid_class_data(df: pd.DataFrame, params: Dict[str, Any], style: D
         "title_size": int(style.get("title_size", 16)),
         "axis_label_size": int(style.get("axis_label_size", 12)),
         "tick_size": int(style.get("tick_size", 11)),
+        "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
         "r_theme": style.get("r_theme", "publication"),
     }
 

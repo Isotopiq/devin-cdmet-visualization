@@ -38,19 +38,21 @@ width <- as.numeric(payload$width)
 height <- as.numeric(payload$height)
 res <- as.numeric(payload$res)
 if (is.na(res) || res <= 0) res <- 120
+font_family <- as.character(payload$font_family)
+if (is.null(font_family) || font_family == "") font_family <- "Liberation Sans"
 
 p <- ggplot(df, aes(x = lfc, y = neglogp, color = regulation)) +
   geom_point(alpha = 0.8, size = 2.2, stroke = 0) +
   geom_hline(yintercept = -log10(p_thresh), linetype = "dashed", color = "#64748b", linewidth = 0.5) +
   geom_vline(xintercept = c(-fc_thresh, fc_thresh), linetype = "dashed", color = "#64748b", linewidth = 0.5) +
   scale_color_manual(values = color_map, breaks = c("up", "down", "ns"), name = NULL) +
-  geom_text_repel(data = labeled, aes(label = name), size = 3, max.overlaps = 30, show.legend = FALSE, family = "DejaVu Sans", box.padding = 0.2, point.padding = 0.15) +
+  geom_text_repel(data = labeled, aes(label = name), size = 3, max.overlaps = 30, show.legend = FALSE, family = font_family, box.padding = 0.2, point.padding = 0.15) +
   labs(
     title = payload$title,
     x = expression(Log[2] ~ fold ~ change),
     y = expression(-Log[10] ~ adjusted ~ P ~ value)
   ) +
-  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "x_y", width = width, height = height)
+  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "x_y", width = width, height = height)
 
 png(file.path(output_dir, "plot.png"), width = width, height = height, units = "px", res = res)
 tryCatch(print(p), finally = dev.off())

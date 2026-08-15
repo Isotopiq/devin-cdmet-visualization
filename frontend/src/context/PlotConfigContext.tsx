@@ -18,6 +18,7 @@ export interface PlotStyle {
   rTheme: 'publication' | 'minimal' | 'bw'
   rResolution: 120 | 150 | 300
   rBarWidth: number
+  rFont: string
 }
 
 export const DEFAULT_PLOT_STYLE: PlotStyle = {
@@ -38,6 +39,7 @@ export const DEFAULT_PLOT_STYLE: PlotStyle = {
   rTheme: 'publication',
   rResolution: 150,
   rBarWidth: 0.55,
+  rFont: 'Liberation Sans',
 }
 
 export const DEFAULT_INCLUDE_PLOTS: Record<string, boolean> = {
@@ -104,5 +106,6 @@ export function styleToBackend(style: PlotStyle): Record<string, any> {
     r_theme: style.rTheme,
     r_resolution: style.rResolution,
     r_bar_width: style.rBarWidth,
+    r_font: style.rFont,
   }
 }

@@ -37,6 +37,8 @@ width <- as.numeric(payload$width)
 height <- as.numeric(payload$height)
 res <- as.numeric(payload$res)
 if (is.na(res) || res <= 0) res <- 120
+font_family <- as.character(payload$font_family)
+if (is.null(font_family) || font_family == "") font_family <- "Liberation Sans"
 
 p <- ggplot(df, aes(x = pc1, y = pc2, color = group, label = sample)) +
   geom_point(size = 3, alpha = 0.85, stroke = 0) +
@@ -46,7 +48,7 @@ p <- ggplot(df, aes(x = pc1, y = pc2, color = group, label = sample)) +
     x = payload$pc1_label,
     y = payload$pc2_label
   ) +
-  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "x_y", width = width, height = height) +
+  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "x_y", width = width, height = height) +
   theme(legend.position = "right")
 
 png(file.path(output_dir, "plot.png"), width = width, height = height, units = "px", res = res)

@@ -51,6 +51,8 @@ res <- as.numeric(payload$res)
 if (is.na(res) || res <= 0) res <- 120
 r_theme <- as.character(payload$r_theme)
 if (is.null(r_theme) || r_theme == "") r_theme <- "publication"
+font_family <- as.character(payload$font_family)
+if (is.null(font_family) || font_family == "") font_family <- "Liberation Sans"
 bar_width <- as.numeric(payload$bar_width)
 if (is.na(bar_width) || bar_width <= 0 || bar_width > 1) bar_width <- 0.55
 
@@ -92,14 +94,14 @@ for (idx in seq_along(features)) {
   }
 
   p <- ggplot(sub_summary, aes(x = group, y = mean, fill = group)) +
-    geom_col(width = bar_width, color = "white") +
-    geom_errorbar(aes(ymin = pmax(mean - sem, 0), ymax = mean + sem), width = 0.2, linewidth = 0.4) +
-    geom_jitter(data = sub_points, aes(x = group, y = value), width = 0.1, size = 1.4, stroke = 0, alpha = 0.6, color = "#334155") +
+    geom_col(width = bar_width, colour = NA) +
+    geom_errorbar(aes(ymin = pmax(mean - sem, 0), ymax = mean + sem), width = 0.2, linewidth = 0.5, colour = "#334155") +
+    geom_jitter(data = sub_points, aes(x = group, y = value), width = 0.12, size = 1.8, shape = 21, fill = "white", colour = "#334155", stroke = 0.5, alpha = 0.9) +
     scale_fill_manual(values = local_colors, drop = FALSE) +
-    scale_x_discrete(expand = expansion(add = 0.8)) +
+    scale_x_discrete(expand = expansion(add = 0.6)) +
     labs(title = feat_title, x = NULL, y = "Mean intensity") +
-    theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "y", width = width, height = height) +
-    theme(legend.position = "none", plot.title = element_text(face = "plain"))
+    theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "y", width = width, height = height, x_labels = groups_used) +
+    theme(legend.position = "none")
 
   png(file.path(output_dir, sprintf("%03d.png", idx)), width = width, height = height, units = "px", res = res)
   tryCatch(print(p), finally = dev.off())

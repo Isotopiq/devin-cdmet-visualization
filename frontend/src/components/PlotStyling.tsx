@@ -96,6 +96,16 @@ export default function PlotStyling() {
             </select>
           </div>
           <div>
+            <label className="label-like text-xs">R font</label>
+            <select value={style.rFont} onChange={(e) => update('rFont', e.target.value)} className="input text-sm mt-1">
+              <option value="Liberation Sans">Liberation Sans</option>
+              <option value="Helvetica">Helvetica</option>
+              <option value="DejaVu Sans">DejaVu Sans</option>
+              <option value="Times">Times</option>
+              <option value="Courier New">Courier New</option>
+            </select>
+          </div>
+          <div>
             <label className="label-like text-xs">R resolution (DPI)</label>
             <select value={style.rResolution} onChange={(e) => update('rResolution', Number(e.target.value) as any)} className="input text-sm mt-1">
               <option value={120}>120</option>

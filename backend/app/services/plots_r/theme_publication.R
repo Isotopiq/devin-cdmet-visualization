@@ -16,8 +16,8 @@ get_script_dir <- function() {
 
 # Publication-ready ggplot2 theme used by all R plot templates.
 theme_publication <- function(base_size = 11, title_size = 16, axis_label_size = 12,
-                              font_family = "DejaVu Sans", grid = c("y", "x_y", "none"),
-                              width = NULL, height = NULL) {
+                              font_family = "Liberation Sans", grid = c("y", "x_y", "none"),
+                              width = NULL, height = NULL, x_labels = NULL, y_labels = NULL) {
   grid <- match.arg(grid)
   scale <- 1
   if (!is.null(width) && !is.null(height) && is.numeric(width) && is.numeric(height) && width > 0 && height > 0) {
@@ -26,11 +26,17 @@ theme_publication <- function(base_size = 11, title_size = 16, axis_label_size =
   title_size <- max(10, min(18, title_size * scale))
   axis_label_size <- max(9, min(14, axis_label_size * scale))
   base_size <- max(8, min(12, base_size * scale))
+
+  x_label_info <- .axis_label_params(x_labels, base_size)
+  y_label_info <- .axis_label_params(y_labels, base_size, is_x = FALSE)
+
   t <- theme_bw(base_size = base_size, base_family = font_family) +
     theme(
-      plot.title = element_text(size = title_size, face = "bold", hjust = 0.5, margin = margin(b = 10)),
-      axis.title = element_text(size = axis_label_size, face = "plain", color = "#334155"),
-      axis.text = element_text(size = base_size, color = "#475569"),
+      plot.title = element_text(size = title_size, face = "bold", hjust = 0.5, margin = margin(b = 10), family = font_family),
+      axis.title = element_text(size = axis_label_size, face = "bold", color = "#334155", family = font_family),
+      axis.text = element_text(size = base_size, color = "#475569", family = font_family),
+      axis.text.x = element_text(size = x_label_info$size, angle = x_label_info$angle, hjust = x_label_info$hjust, family = font_family),
+      axis.text.y = element_text(size = y_label_info$size, angle = y_label_info$angle, hjust = y_label_info$hjust, family = font_family),
       panel.background = element_rect(fill = "white", colour = NA),
       panel.grid.major.y = element_line(colour = "#e2e8f0", linewidth = 0.3),
       panel.grid.major.x = if (grid == "y") element_blank() else element_line(colour = "#e2e8f0", linewidth = 0.3),
@@ -39,13 +45,33 @@ theme_publication <- function(base_size = 11, title_size = 16, axis_label_size =
       axis.line = element_line(colour = "#cbd5e1", linewidth = 0.6),
       plot.margin = unit(c(0.4, 0.4, 0.4, 0.4), "cm"),
       legend.position = "bottom",
-      legend.title = element_text(size = base_size, face = "bold"),
-      legend.text = element_text(size = base_size - 1)
+      legend.title = element_text(size = base_size, face = "bold", family = font_family),
+      legend.text = element_text(size = base_size - 1, family = font_family)
     )
   if (grid == "none") {
     t <- t + theme(panel.grid = element_blank())
   }
   t
+}
+
+.axis_label_params <- function(labels, base_size, is_x = TRUE) {
+  if (is.null(labels) || length(labels) == 0) {
+    return(list(size = base_size, angle = 0, hjust = 0.5))
+  }
+  n <- length(labels)
+  chars <- nchar(as.character(labels))
+  max_chars <- max(chars, na.rm = TRUE)
+  angle <- 0
+  hjust <- 0.5
+  if (is_x && (max_chars > 8 || n > 8)) {
+    angle <- 45
+    hjust <- 1
+  } else if (!is_x && max_chars > 10) {
+    angle <- 0
+    hjust <- 1
+  }
+  size <- max(7, min(base_size, 120 / max(max_chars, 1)))
+  list(size = size, angle = angle, hjust = hjust)
 }
 
 # Colorblind-friendly discrete palette generator.

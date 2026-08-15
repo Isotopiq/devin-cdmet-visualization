@@ -143,6 +143,8 @@ tick_size <- as.numeric(payload$tick_size)
 if (is.na(tick_size)) tick_size <- 11
 title_size <- as.numeric(payload$title_size)
 if (is.na(title_size)) title_size <- 16
+font_family <- as.character(payload$font_family)
+if (is.null(font_family) || font_family == "") font_family <- "Liberation Sans"
 
 nrow_mat <- nrow(mat)
 ncol_mat <- ncol(mat)
@@ -209,7 +211,7 @@ tryCatch({
       x = unit(4, "mm"),
       y = unit(4, "mm"),
       just = c("left", "bottom"),
-      gp = gpar(fontsize = 8, col = "#64748b")
+      gp = gpar(fontsize = 8, col = "#64748b", fontfamily = font_family)
     )
   }
 }, finally = {
