@@ -16,12 +16,20 @@ get_script_dir <- function() {
 
 # Publication-ready ggplot2 theme used by all R plot templates.
 theme_publication <- function(base_size = 11, title_size = 16, axis_label_size = 12,
-                              font_family = "DejaVu Sans", grid = c("y", "x_y", "none")) {
+                              font_family = "DejaVu Sans", grid = c("y", "x_y", "none"),
+                              width = NULL, height = NULL) {
   grid <- match.arg(grid)
+  scale <- 1
+  if (!is.null(width) && !is.null(height) && is.numeric(width) && is.numeric(height) && width > 0 && height > 0) {
+    scale <- max(0.55, min(1.15, min(width, height) / 900))
+  }
+  title_size <- max(10, min(18, title_size * scale))
+  axis_label_size <- max(9, min(14, axis_label_size * scale))
+  base_size <- max(8, min(12, base_size * scale))
   t <- theme_bw(base_size = base_size, base_family = font_family) +
     theme(
       plot.title = element_text(size = title_size, face = "bold", hjust = 0.5, margin = margin(b = 10)),
-      axis.title = element_text(size = axis_label_size, face = "bold", color = "#334155"),
+      axis.title = element_text(size = axis_label_size, face = "plain", color = "#334155"),
       axis.text = element_text(size = base_size, color = "#475569"),
       panel.background = element_rect(fill = "white", colour = NA),
       panel.grid.major.y = element_line(colour = "#e2e8f0", linewidth = 0.3),

@@ -50,7 +50,7 @@ p <- ggplot(df, aes(x = lfc, y = neglogp, color = regulation)) +
     x = expression(Log[2] ~ fold ~ change),
     y = expression(-Log[10] ~ adjusted ~ P ~ value)
   ) +
-  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "x_y")
+  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "x_y", width = width, height = height)
 
 png(file.path(output_dir, "plot.png"), width = width, height = height, units = "px", res = res)
 tryCatch(print(p), finally = dev.off())

@@ -46,7 +46,7 @@ p <- ggplot(df, aes(x = pc1, y = pc2, color = group, label = sample)) +
     x = payload$pc1_label,
     y = payload$pc2_label
   ) +
-  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "x_y") +
+  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "x_y", width = width, height = height) +
   theme(legend.position = "right")
 
 png(file.path(output_dir, "plot.png"), width = width, height = height, units = "px", res = res)

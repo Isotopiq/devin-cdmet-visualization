@@ -98,8 +98,8 @@ for (idx in seq_along(features)) {
     scale_fill_manual(values = local_colors, drop = FALSE) +
     scale_x_discrete(expand = expansion(add = 0.8)) +
     labs(title = feat_title, x = NULL, y = "Mean intensity") +
-    theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "y") +
-    theme(legend.position = "none")
+    theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "y", width = width, height = height) +
+    theme(legend.position = "none", plot.title = element_text(face = "plain"))
 
   png(file.path(output_dir, sprintf("%03d.png", idx)), width = width, height = height, units = "px", res = res)
   tryCatch(print(p), finally = dev.off())

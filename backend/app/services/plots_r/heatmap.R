@@ -147,8 +147,14 @@ if (is.na(title_size)) title_size <- 16
 nrow_mat <- nrow(mat)
 ncol_mat <- ncol(mat)
 
-cellwidth <- max(6, min(80, (width - 260) / max(ncol_mat, 1)))
-cellheight <- max(8, min(30, (height - 180) / max(nrow_mat, 1)))
+# pheatmap cell sizes are in points; the PNG figure is width/height pixels at res ppi,
+# i.e. width/height in points is pixels * 72 / res. Leave room for dendrograms,
+# labels, annotation bars, and the color legend.
+fig_width_pts <- width * 72 / res
+fig_height_pts <- height * 72 / res
+
+cellwidth <- max(6, min(80, (fig_width_pts - 220) / max(ncol_mat, 1)))
+cellheight <- max(8, min(30, (fig_height_pts - 180) / max(nrow_mat, 1)))
 
 fontsize_row <- max(6, min(tick_size, cellheight - 2))
 fontsize_col <- max(6, min(tick_size, cellwidth - 1))

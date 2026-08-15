@@ -41,15 +41,14 @@ if (n_classes == 1) {
 title_size <- as.numeric(payload$title_size)
 axis_label_size <- as.numeric(payload$axis_label_size)
 tick_size <- as.numeric(payload$tick_size)
-
-p <- p +
-  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "y") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 width <- as.numeric(payload$width)
 height <- as.numeric(payload$height)
 res <- as.numeric(payload$res)
 if (is.na(res) || res <= 0) res <- 120
+
+p <- p +
+  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = "DejaVu Sans", grid = "y", width = width, height = height) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 png(file.path(output_dir, "plot.png"), width = width, height = height, units = "px", res = res)
 tryCatch(print(p), finally = dev.off())
