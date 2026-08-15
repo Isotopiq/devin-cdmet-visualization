@@ -402,8 +402,8 @@ def _prepare_per_lipid_bars_data(df: pd.DataFrame, params: Dict[str, Any], style
 
     n_groups = len(selected_groups)
     longest_group = max((len(str(g)) for g in selected_groups), default=0)
-    width = max(700, n_groups * 120 + longest_group * 10 + 220)
-    height = max(650, 360 + longest_group * 8 + 80)
+    width = max(750, n_groups * 150 + longest_group * 12 + 260)
+    height = max(700, 420 + longest_group * 8 + 80)
     group_color_map = _group_color_map(style, selected_groups)
 
     return {

@@ -67,7 +67,7 @@ theme_publication <- function(base_size = 11, title_size = 16, axis_label_size =
   max_chars <- max(chars, na.rm = TRUE)
   angle <- 0
   hjust <- 0.5
-  if (is_x && (max_chars > 8 || n > 8)) {
+  if (is_x && (max_chars > 12 || n > 12)) {
     angle <- 45
     hjust <- 1
   } else if (!is_x && max_chars > 10) {
