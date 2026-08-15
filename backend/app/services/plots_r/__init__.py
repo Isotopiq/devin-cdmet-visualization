@@ -278,6 +278,7 @@ def _prepare_heatmap_data(df: pd.DataFrame, params: Dict[str, Any], style: Dict[
         "axis_label_size": int(style.get("axis_label_size", 12)),
         "tick_size": int(style.get("tick_size", 11)),
         "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
+        "title_bold": bool(style.get("r_title_bold", True)),
         "caption": caption,
     }
 
@@ -380,6 +381,7 @@ def _prepare_per_lipid_bars_data(df: pd.DataFrame, params: Dict[str, Any], style
         "r_theme": style.get("r_theme", "publication"),
         "bar_width": float(style.get("r_bar_width", 0.55)),
         "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
+        "title_bold": bool(style.get("r_title_bold", True)),
         "per_page": int(params.get("per_page", 4)),
     }
 
@@ -428,6 +430,7 @@ def _prepare_volcano_data(params: Dict[str, Any], style: Dict[str, Any]) -> Dict
         "axis_label_size": int(style.get("axis_label_size", 12)),
         "tick_size": int(style.get("tick_size", 11)),
         "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
+        "title_bold": bool(style.get("r_title_bold", True)),
         "r_theme": style.get("r_theme", "publication"),
     }
 
@@ -475,6 +478,7 @@ def _prepare_pca_data(df: pd.DataFrame, params: Dict[str, Any], style: Dict[str,
         "axis_label_size": int(style.get("axis_label_size", 12)),
         "tick_size": int(style.get("tick_size", 11)),
         "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
+        "title_bold": bool(style.get("r_title_bold", True)),
         "r_theme": style.get("r_theme", "publication"),
     }
 

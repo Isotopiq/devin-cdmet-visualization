@@ -25,6 +25,7 @@ df$class <- as.character(df$class)
 
 font_family <- as.character(payload$font_family)
 if (is.null(font_family) || font_family == "") font_family <- "Liberation Sans"
+title_bold <- isTRUE(payload$title_bold)
 
 n_classes <- length(unique(df$class))
 n_groups <- length(unique(df$group))
@@ -52,7 +53,7 @@ res <- as.numeric(payload$res)
 if (is.na(res) || res <= 0) res <- 120
 
 p <- p +
-  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "y", width = width, height = height, x_labels = x_labels)
+  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "y", width = width, height = height, x_labels = x_labels, title_bold = title_bold)
 
 png(file.path(output_dir, "plot.png"), width = width, height = height, units = "px", res = res)
 tryCatch(print(p), finally = dev.off())

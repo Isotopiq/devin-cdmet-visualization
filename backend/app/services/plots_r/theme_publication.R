@@ -17,7 +17,8 @@ get_script_dir <- function() {
 # Publication-ready ggplot2 theme used by all R plot templates.
 theme_publication <- function(base_size = 11, title_size = 16, axis_label_size = 12,
                               font_family = "Liberation Sans", grid = c("y", "x_y", "none"),
-                              width = NULL, height = NULL, x_labels = NULL, y_labels = NULL) {
+                              width = NULL, height = NULL, x_labels = NULL, y_labels = NULL,
+                              title_bold = TRUE) {
   grid <- match.arg(grid)
   scale <- 1
   if (!is.null(width) && !is.null(height) && is.numeric(width) && is.numeric(height) && width > 0 && height > 0) {
@@ -32,7 +33,7 @@ theme_publication <- function(base_size = 11, title_size = 16, axis_label_size =
 
   t <- theme_bw(base_size = base_size, base_family = font_family) +
     theme(
-      plot.title = element_text(size = title_size, face = "bold", hjust = 0.5, margin = margin(b = 10), family = font_family),
+      plot.title = element_text(size = title_size, face = if (title_bold) "bold" else "plain", hjust = 0.5, margin = margin(b = 10), family = font_family),
       axis.title = element_text(size = axis_label_size, face = "bold", color = "#334155", family = font_family),
       axis.text = element_text(size = base_size, color = "#475569", family = font_family),
       axis.text.x = element_text(size = x_label_info$size, angle = x_label_info$angle, hjust = x_label_info$hjust, family = font_family),

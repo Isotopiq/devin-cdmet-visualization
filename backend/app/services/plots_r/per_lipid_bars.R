@@ -53,6 +53,7 @@ r_theme <- as.character(payload$r_theme)
 if (is.null(r_theme) || r_theme == "") r_theme <- "publication"
 font_family <- as.character(payload$font_family)
 if (is.null(font_family) || font_family == "") font_family <- "Liberation Sans"
+title_bold <- isTRUE(payload$title_bold)
 bar_width <- as.numeric(payload$bar_width)
 if (is.na(bar_width) || bar_width <= 0 || bar_width > 1) bar_width <- 0.55
 
@@ -100,7 +101,7 @@ for (idx in seq_along(features)) {
     scale_fill_manual(values = local_colors, drop = FALSE) +
     scale_x_discrete(expand = expansion(add = 0.6)) +
     labs(title = feat_title, x = NULL, y = "Mean intensity") +
-    theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "y", width = width, height = height, x_labels = groups_used) +
+    theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "y", width = width, height = height, x_labels = groups_used, title_bold = title_bold) +
     theme(legend.position = "none")
 
   png(file.path(output_dir, sprintf("%03d.png", idx)), width = width, height = height, units = "px", res = res)

@@ -316,7 +316,7 @@ export default function Visualize() {
 
   useEffect(() => {
     if ((figure || figures.length) && !loading) generate()
-  }, [style, style.rTheme, style.rResolution, style.rBarWidth, style.rFont, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder, renameSamples, biomarkerComparisons])
+  }, [style, style.rTheme, style.rResolution, style.rBarWidth, style.rFont, style.rTitleBold, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder, renameSamples, biomarkerComparisons])
 
   const toggleInclude = (key: string) => {
     setIncludePlots((prev) => ({ ...prev, [key]: !prev[key] }))

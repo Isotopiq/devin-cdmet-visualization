@@ -54,6 +54,7 @@ STYLE_DEFAULTS = {
     "r_resolution": 150,
     "r_bar_width": 0.55,
     "r_font": "Liberation Sans",
+    "r_title_bold": True,
     "max_heatmap_rows": 120,
     "max_heatmap_cols": 120,
 }

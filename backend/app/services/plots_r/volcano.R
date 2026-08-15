@@ -40,6 +40,7 @@ res <- as.numeric(payload$res)
 if (is.na(res) || res <= 0) res <- 120
 font_family <- as.character(payload$font_family)
 if (is.null(font_family) || font_family == "") font_family <- "Liberation Sans"
+title_bold <- isTRUE(payload$title_bold)
 
 p <- ggplot(df, aes(x = lfc, y = neglogp, color = regulation)) +
   geom_point(alpha = 0.8, size = 2.2, stroke = 0) +
@@ -52,7 +53,7 @@ p <- ggplot(df, aes(x = lfc, y = neglogp, color = regulation)) +
     x = expression(Log[2] ~ fold ~ change),
     y = expression(-Log[10] ~ adjusted ~ P ~ value)
   ) +
-  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "x_y", width = width, height = height)
+  theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "x_y", width = width, height = height, title_bold = title_bold)
 
 png(file.path(output_dir, "plot.png"), width = width, height = height, units = "px", res = res)
 tryCatch(print(p), finally = dev.off())

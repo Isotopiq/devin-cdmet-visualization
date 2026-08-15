@@ -8,7 +8,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     libglib2.0-0 libnss3 libxss1 libfontconfig1 libfreetype6 libpng16-16 \
     libxcomposite1 libxcursor1 libxdamage1 libxi6 libxtst6 \
-    libgbm1 libasound2 fonts-liberation fonts-dejavu \
+    libgbm1 libasound2 \
+    fonts-liberation fonts-liberation2 fonts-dejavu fonts-dejavu-core \
+    fonts-inter fonts-inter-variable \
+    fonts-roboto fonts-roboto-slab \
+    fonts-adobe-sourcesans3 \
+    fonts-open-sans fonts-lato fonts-montserrat \
+    fonts-noto-core fonts-noto-mono fonts-noto-cjk \
+    fonts-freefont-ttf fonts-droid-fallback \
+    fonts-firacode fonts-jetbrains-mono fonts-quicksand \
     r-base r-base-dev \
     r-cran-ggplot2 r-cran-pheatmap r-cran-jsonlite \
     r-cran-rcolorbrewer r-cran-scales r-cran-ggrepel \

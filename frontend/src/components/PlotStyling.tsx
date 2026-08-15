@@ -98,12 +98,35 @@ export default function PlotStyling() {
           <div>
             <label className="label-like text-xs">R font</label>
             <select value={style.rFont} onChange={(e) => update('rFont', e.target.value)} className="input text-sm mt-1">
+              <option value="Inter">Inter</option>
               <option value="Liberation Sans">Liberation Sans</option>
-              <option value="Helvetica">Helvetica</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Open Sans">Open Sans</option>
+              <option value="Lato">Lato</option>
+              <option value="Montserrat">Montserrat</option>
+              <option value="Quicksand">Quicksand</option>
+              <option value="Fira Code">Fira Code</option>
+              <option value="JetBrains Mono">JetBrains Mono</option>
+              <option value="Noto Sans">Noto Sans</option>
+              <option value="Source Sans 3">Source Sans 3</option>
+              <option value="Roboto Slab">Roboto Slab</option>
               <option value="DejaVu Sans">DejaVu Sans</option>
-              <option value="Times">Times</option>
-              <option value="Courier New">Courier New</option>
+              <option value="FreeSans">FreeSans</option>
+              <option value="Droid Sans Fallback">Droid Sans Fallback</option>
             </select>
+            <div className="mt-2 p-2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+              <span style={{ fontFamily: style.rFont }} className="text-sm text-slate-800 dark:text-slate-100">AaBbYyZz 0123</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="rTitleBold"
+              checked={style.rTitleBold}
+              onChange={(e) => update('rTitleBold', e.target.checked)}
+              className="rounded border-slate-300"
+            />
+            <label htmlFor="rTitleBold" className="text-sm text-slate-700 dark:text-slate-200">Bold compound title</label>
           </div>
           <div>
             <label className="label-like text-xs">R resolution (DPI)</label>
