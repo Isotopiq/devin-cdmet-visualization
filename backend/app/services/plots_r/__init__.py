@@ -132,6 +132,8 @@ def _b64_png_image(data: bytes, width: int, height: int, keep_title: bool = Fals
 
 
 def _prepare_heatmap_data(df: pd.DataFrame, params: Dict[str, Any], style: Dict[str, Any]) -> Dict[str, Any]:
+    from app.services.plots import _extract_lipid_class
+
     sample_meta = dict(params.get("sample_metadata", {}))
     feature_metadata = list(params.get("feature_metadata") or [])
     max_rows = int(params.get("max_heatmap_rows") or style.get("max_heatmap_rows", 120) or 120)
@@ -220,7 +222,9 @@ def _prepare_heatmap_data(df: pd.DataFrame, params: Dict[str, Any], style: Dict[
             if v:
                 ann_val = v
                 break
-        if ann_val is not None:
+        if ann_val is None:
+            ann_val = _extract_lipid_class(row_label, meta) or "Unknown"
+        if ann_val:
             row["Class"] = str(ann_val)
         annotation_row.append(row)
 

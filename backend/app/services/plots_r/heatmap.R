@@ -79,9 +79,13 @@ if (length(payload$annotations) > 0) {
     rownames(ann_df) <- ann_df$sample
     ann_df$sample <- NULL
   }
-  keep <- sapply(ann_df, function(x) length(unique(x)) > 1)
-  ann_df <- ann_df[, keep, drop = FALSE]
-  ann_col <- ann_df
+  if (ncol(ann_df) > 0) {
+    keep <- sapply(ann_df, function(x) length(unique(x)) > 1)
+    if (length(keep) > 0 && is.logical(keep)) {
+      ann_df <- ann_df[, keep, drop = FALSE]
+    }
+  }
+  ann_col <- if (ncol(ann_df) > 0) ann_df else NULL
 }
 
 # row annotations (lipid class / pathway)
@@ -97,11 +101,13 @@ if (length(payload$annotation_row) > 0) {
     rownames(ann_df) <- ann_df$feature
     ann_df$feature <- NULL
   }
-  if (nrow(ann_df) == nrow(mat)) {
+  if (nrow(ann_df) == nrow(mat) && ncol(ann_df) > 0) {
     rownames(ann_df) <- rownames(mat)
     keep <- sapply(ann_df, function(x) length(unique(x)) > 1)
-    ann_df <- ann_df[, keep, drop = FALSE]
-    ann_row <- ann_df
+    if (length(keep) > 0 && is.logical(keep)) {
+      ann_df <- ann_df[, keep, drop = FALSE]
+    }
+    ann_row <- if (ncol(ann_df) > 0) ann_df else NULL
   }
 }
 
