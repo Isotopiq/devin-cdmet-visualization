@@ -58,6 +58,7 @@ export default function PDFReportPanel() {
   const [titleFontSize, setTitleFontSize] = useState(16)
   const [axisLabelFontSize, setAxisLabelFontSize] = useState(12)
   const [tickFontSize, setTickFontSize] = useState(11)
+  const [engine, setEngine] = useState<'plotly' | 'r' | 'publication' | 'ggplot2'>('plotly')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -105,6 +106,7 @@ export default function PDFReportPanel() {
           tags,
           footer_text: footerText,
           date: reportDate,
+          engine,
           title_size: titleFontSize,
           axis_label_size: axisLabelFontSize,
           tick_size: tickFontSize,
@@ -162,6 +164,7 @@ export default function PDFReportPanel() {
             <div><label className="label-like">p threshold</label><input type="number" step={0.001} value={pThreshold} onChange={(e) => setPThreshold(Number(e.target.value))} className="input" /></div>
             <div><label className="label-like">Statistical test</label><select value={test} onChange={(e) => setTest(e.target.value)} className="input"><option value="t_test">t_test</option><option value="mannwhitneyu">Mann-Whitney U</option><option value="wilcoxon">Wilcoxon</option></select></div>
             <div><label className="label-like">Multiple testing</label><select value={multipleTesting} onChange={(e) => setMultipleTesting(e.target.value)} className="input"><option value="fdr_bh">fdr_bh</option><option value="bonferroni">Bonferroni</option><option value="holm">Holm</option><option value="none">None</option></select></div>
+            <div><label className="label-like">Plot engine</label><select value={engine} onChange={(e) => setEngine(e.target.value as any)} className="input"><option value="plotly">Plotly</option><option value="r">R (static)</option><option value="publication">Publication</option><option value="ggplot2">Ggplot2</option></select></div>
             <div className="flex items-center gap-2 md:col-span-2"><input id="showLabels" type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /><label htmlFor="showLabels">Label top features on volcano plot</label></div>
           </div>
 

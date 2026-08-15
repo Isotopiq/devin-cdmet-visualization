@@ -1996,6 +1996,16 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         _apply_base_layout(fig, style)
         return json.loads(fig.to_json())
 
+    # Optional R-based static plot engine (ggplot2 / pheatmap)
+    if str(style.get("engine", "plotly")).startswith("r"):
+        try:
+            from app.services import plots_r
+            r_fig = plots_r.generate_plot_r(dataset, req, style, df=df, sample_meta=sample_meta, feature_metadata=feature_metadata)
+            if r_fig is not None:
+                return r_fig
+        except Exception:
+            logger.exception("R plot engine failed, falling back to Plotly")
+
     if plot_type in ("bar", "box", "violin", "dot"):
         feature = _get_feature_index(feature_metadata, params.get("feature"))
         title = f"{feature_metadata[feature].get('feature_id', feature)}"

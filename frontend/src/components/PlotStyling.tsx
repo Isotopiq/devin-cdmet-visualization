@@ -17,8 +17,9 @@ export default function PlotStyling() {
 
   const engines = [
     { value: 'plotly', label: 'Plotly' },
-    { value: 'ggplot2', label: 'Ggplot2' },
+    { value: 'r', label: 'R (static)' },
     { value: 'publication', label: 'Publication' },
+    { value: 'ggplot2', label: 'Ggplot2' },
   ]
 
   const colorscales = [

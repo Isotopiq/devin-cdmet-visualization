@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 libnss3 libxss1 libfontconfig1 libfreetype6 libpng16-16 \
     libxcomposite1 libxcursor1 libxdamage1 libxi6 libxtst6 \
     libgbm1 libasound2 fonts-liberation fonts-dejavu \
+    r-base r-base-dev \
+    r-cran-ggplot2 r-cran-pheatmap r-cran-jsonlite \
+    r-cran-rcolorbrewer r-cran-scales r-cran-ggrepel \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies without building the package itself, so this layer is

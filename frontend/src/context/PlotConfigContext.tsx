@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
 
 export interface PlotStyle {
-  engine: 'plotly' | 'ggplot2' | 'publication'
+  engine: 'plotly' | 'r' | 'publication' | 'ggplot2'
   fontFamily: string
   titleSize: number
   axisLabelSize: number

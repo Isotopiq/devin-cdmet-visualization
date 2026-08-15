@@ -3,7 +3,7 @@ const VISUALIZE_TAB_KEY = 'visualizeTab'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { usePlotConfig, styleToBackend } from '../context/PlotConfigContext'
 import DatasetPicker from '../components/DatasetPicker'
-import PlotWithDownload from '../components/PlotWithDownload'
+import PlotRenderer, { isStaticFigure } from '../components/PlotRenderer'
 import PlotStyling from '../components/PlotStyling'
 import { generatePlot, runStats, generatePDFReport, getSettings } from '../api'
 import { LuRefreshCw, LuFileDown, LuPrinter, LuChevronDown, LuChevronUp, LuX, LuFileText, LuFilter } from 'react-icons/lu'
@@ -554,6 +554,12 @@ export default function Visualize() {
       const baseName = (reportTitle || `${tab}_plots`).replace(/[^\w-]+/g, '_')
       for (let i = 0; i < figs.length; i++) {
         const f = figs[i]
+        if (isStaticFigure(f)) {
+          const fileName = figs.length === 1 ? `${tab}.png` : `${String(i + 1).padStart(2, '0')}_${tab}.png`
+          const base64 = f.image.split(',')[1]
+          zip.file(fileName, base64, { base64: true })
+          continue
+        }
         const layout = f.layout || {}
         const rawTitle = typeof layout.title === 'string' ? layout.title : layout.title?.text
         const titleText = (rawTitle || '').replace(/<[^>]+>/g, '').trim()
@@ -600,7 +606,7 @@ export default function Visualize() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {section.figures.map((f: any, i: number) => (
               <div key={i} className="card p-3">
-                <PlotWithDownload data={f.data} layout={f.layout} filename={`${section.key}_${i}`} style={{ width: '100%', height: '320px' }} />
+                <PlotRenderer figure={f} filename={`${section.key}_${i}`} style={{ width: '100%', height: isStaticFigure(f) ? (f.height ? `${f.height}px` : '320px') : '320px' }} />
               </div>
             ))}
           </div>
@@ -610,7 +616,7 @@ export default function Visualize() {
     return (
       <div key={idx} className="card p-4 mb-6">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">{section.title}</h2>
-        <PlotWithDownload data={section.figure.data} layout={section.figure.layout} filename={`${section.key}_${reportTitle.replace(/\s+/g, '_')}`} style={{ width: '100%', height: '520px' }} />
+        <PlotRenderer figure={section.figure} filename={`${section.key}_${reportTitle.replace(/\s+/g, '_')}`} style={{ width: '100%', height: isStaticFigure(section.figure) ? (section.figure.height ? `${section.figure.height}px` : '520px') : '520px' }} />
       </div>
     )
   }
@@ -948,10 +954,9 @@ export default function Visualize() {
 
               {figure && !figures.length && (
                 <div className="card p-5">
-                  <PlotWithDownload
-                    data={figure.data}
-                    layout={figure.layout}
-                    style={{ width: '100%', height: figure.layout?.height ? `${figure.layout.height}px` : (tab === 'heatmap' ? '800px' : ['pls_da','opls_da','biomarker','permanova','chain_space'].includes(tab) ? '700px' : ['functional','food_profile'].includes(tab) ? '650px' : '550px') }}
+                  <PlotRenderer
+                    figure={figure}
+                    style={{ width: '100%', height: isStaticFigure(figure) ? (figure.height ? `${figure.height}px` : (tab === 'heatmap' ? '800px' : '650px')) : (figure.layout?.height ? `${figure.layout.height}px` : (tab === 'heatmap' ? '800px' : ['pls_da','opls_da','biomarker','permanova','chain_space'].includes(tab) ? '700px' : ['functional','food_profile'].includes(tab) ? '650px' : '550px')) }}
                     filename={`${tab}_${reportTitle.replace(/\s+/g, '_')}`}
                   />
                 </div>
@@ -961,10 +966,9 @@ export default function Visualize() {
                 <div className={`grid grid-cols-1 ${tab !== 'chain_space' && tab !== 'biomarker' ? 'xl:grid-cols-2' : ''} gap-4`}>
                   {figures.map((f, i) => (
                     <div key={i} className="card p-4">
-                      <PlotWithDownload
-                        data={f.data}
-                        layout={f.layout}
-                        style={{ width: '100%', height: f.layout?.height ? `${f.layout.height}px` : (tab === 'chain_space' || tab === 'biomarker' ? '650px' : '360px') }}
+                      <PlotRenderer
+                        figure={f}
+                        style={{ width: '100%', height: isStaticFigure(f) ? (f.height ? `${f.height}px` : (tab === 'chain_space' || tab === 'biomarker' ? '650px' : '360px')) : (f.layout?.height ? `${f.layout.height}px` : (tab === 'chain_space' || tab === 'biomarker' ? '650px' : '360px')) }}
                         filename={`${tab}_${reportTitle.replace(/\s+/g, '_')}_${i}`}
                       />
                     </div>

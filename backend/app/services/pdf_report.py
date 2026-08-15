@@ -1,3 +1,4 @@
+import base64
 import io
 import os
 import datetime as dt
@@ -929,6 +930,12 @@ def _summary_metrics(dataset: models.Dataset, group_a: str, group_b: str, stats_
 
 
 def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int = 2, keep_title: bool = False) -> io.BytesIO:
+    if isinstance(fig_dict, dict) and fig_dict.get("format") == "png" and "image" in fig_dict:
+        image_data = fig_dict["image"]
+        if image_data.startswith("data:image/png;base64,"):
+            image_data = image_data.split(",", 1)[1]
+        return io.BytesIO(base64.b64decode(image_data))
+
     fig = go.Figure(data=fig_dict.get("data", []), layout=fig_dict.get("layout", {}))
 
     # Strip the figure title because the PDF card already has a title, unless the caller
