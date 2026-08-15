@@ -210,6 +210,7 @@ def _prepare_heatmap_data(df: pd.DataFrame, params: Dict[str, Any], style: Dict[
     center_zero = bool(params.get("center_zero", center_zero))
 
     samples = scaled.columns.tolist()
+    labels_col = samples
     labels_row: List[str] = []
     annotation_row: List[Dict[str, Any]] = []
     for idx, meta in zip(numeric_df.index, selected_meta):
@@ -228,27 +229,60 @@ def _prepare_heatmap_data(df: pd.DataFrame, params: Dict[str, Any], style: Dict[
             row["Class"] = str(ann_val)
         annotation_row.append(row)
 
-    group_colors_list = style.get("group_colors") or ["#2e6575", "#7eb5c9", "#e9a47f", "#f2cc8f", "#81b29a", "#9d8189"]
+    group_colors_list = style.get("group_colors") or ["#4e79a7", "#e15759", "#f28e2c", "#76b7b2", "#59a14f", "#edc949"]
     groups = sorted({str(g) for g in sample_meta.values() if g})
     group_color_map = {g: group_colors_list[i % len(group_colors_list)] for i, g in enumerate(groups)}
 
     nrow = len(scaled)
     ncol = len(scaled.columns)
-    base_width = int(style.get("width", 1200))
-    base_height = int(style.get("height", 700))
-    min_width = min(3200, max(640, ncol * 10 + 280))
-    min_height = min(2400, max(520, nrow * 10 + 220))
-    width = max(base_width, min_width)
-    height = max(base_height, min_height)
+    res = int(style.get("r_resolution", 150))
+    tick_size = max(6, int(style.get("tick_size", 11)))
+    title_size = max(10, int(style.get("title_size", 16)))
 
-    cellwidth = max(6, min(80, (width - 260) / max(ncol, 1)))
-    cellheight = max(8, min(30, (height - 180) / max(nrow, 1)))
-    show_rownames = bool(params.get("show_rownames", nrow <= max_rows))
-    show_colnames = bool(params.get("show_colnames", ncol <= max_cols))
+    # Compute font sizes that still fit many rows/columns without overlapping.
+    cellheight = min(45, max(6, 1200 / max(nrow, 1)))
+    cellwidth = min(45, max(6, 1200 / max(ncol, 1)))
+    row_font_size = max(6, min(tick_size, int(cellheight - 2), int(300 / max(nrow, 1))))
+    col_font_size = max(6, min(tick_size, int(cellwidth - 2), int(300 / max(ncol, 1))))
 
+    max_row_chars = max((len(str(l)) for l in labels_row), default=0)
+    max_col_chars = max((len(str(l)) for l in labels_col), default=0)
+    ann_values = [
+        str(v)
+        for d in annotation_row
+        for k, v in d.items()
+        if k != "feature"
+    ] + [str(g) for g in sample_meta.values()]
+    max_ann_chars = max((len(str(v)) for v in ann_values), default=0)
+
+    treeheight_row = int(min(50, max(25, nrow * 1.5))) if cluster_rows else 0
+    treeheight_col = int(min(50, max(25, ncol * 1.5))) if cluster_cols else 0
+    has_ann_row = any(len(d) > 1 for d in annotation_row)
+    ann_row_width = 60 if has_ann_row else 0
+    ann_col_height = 40
+
+    title_height = max(45, title_size * 1.2)
     caption = params.get("caption")
     if not caption:
         caption = f"Top features: {nrow}; scale: {scale}; distance: {metric}; linkage: {method}"
+    caption_height = (tick_size + 14) if caption else 0
+
+    row_label_width = max_row_chars * row_font_size * 0.55
+    col_label_height = max_col_chars * col_font_size * 0.55 + 10
+    legend_width = max(120, max_ann_chars * row_font_size * 0.6 + 30)
+
+    left = 20 + treeheight_row + ann_row_width + 10
+    right = 20 + max(row_label_width, legend_width) + 10
+    top = 20 + title_height + ann_col_height + treeheight_col + 10
+    bottom = 20 + col_label_height + caption_height
+
+    width_pts = left + right + ncol * cellwidth + 20
+    height_pts = top + bottom + nrow * cellheight + 20
+    width_px = int(width_pts * res / 72)
+    height_px = int(height_pts * res / 72)
+
+    show_rownames = bool(params.get("show_rownames", nrow <= max_rows))
+    show_colnames = bool(params.get("show_colnames", ncol <= max_cols))
 
     return {
         "matrix": scaled.where(pd.notna(scaled), np.nan).values.tolist(),
@@ -267,16 +301,20 @@ def _prepare_heatmap_data(df: pd.DataFrame, params: Dict[str, Any], style: Dict[
         "colorscale": style.get("heatmap_colorscale", "RdBu_r"),
         "center_zero": center_zero,
         "title": params.get("title") or "Heatmap",
-        "width": int(width),
-        "height": int(height),
-        "res": int(style.get("r_resolution", 120)),
+        "width": width_px,
+        "height": height_px,
+        "res": res,
         "cellwidth": float(cellwidth),
         "cellheight": float(cellheight),
+        "treeheight_row": treeheight_row,
+        "treeheight_col": treeheight_col,
+        "fontsize_row": row_font_size,
+        "fontsize_col": col_font_size,
         "show_rownames": show_rownames,
         "show_colnames": show_colnames,
-        "title_size": int(style.get("title_size", 16)),
+        "title_size": title_size,
         "axis_label_size": int(style.get("axis_label_size", 12)),
-        "tick_size": int(style.get("tick_size", 11)),
+        "tick_size": tick_size,
         "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
         "title_bold": bool(style.get("r_title_bold", True)),
         "caption": caption,
@@ -364,8 +402,8 @@ def _prepare_per_lipid_bars_data(df: pd.DataFrame, params: Dict[str, Any], style
 
     n_groups = len(selected_groups)
     longest_group = max((len(str(g)) for g in selected_groups), default=0)
-    width = max(360, n_groups * 90 + longest_group * 8 + 180)
-    height = max(320, 200 + longest_group * 8 + 80)
+    width = max(700, n_groups * 120 + longest_group * 10 + 220)
+    height = max(650, 360 + longest_group * 8 + 80)
     group_color_map = _group_color_map(style, selected_groups)
 
     return {
@@ -377,9 +415,9 @@ def _prepare_per_lipid_bars_data(df: pd.DataFrame, params: Dict[str, Any], style
         "tick_size": int(style.get("tick_size", 11)),
         "width": int(width),
         "height": int(height),
-        "res": int(style.get("r_resolution", 120)),
+        "res": int(style.get("r_resolution", 150)),
         "r_theme": style.get("r_theme", "publication"),
-        "bar_width": float(style.get("r_bar_width", 0.55)),
+        "bar_width": float(style.get("r_bar_width", 0.65)),
         "font_family": style.get("r_font") or style.get("font_family") or "Liberation Sans",
         "title_bold": bool(style.get("r_title_bold", True)),
         "per_page": int(params.get("per_page", 4)),

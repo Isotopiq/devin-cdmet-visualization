@@ -92,7 +92,7 @@ def test_prepare_per_lipid_bars_sizing_and_color_map():
     payload = plots_r._prepare_per_lipid_bars_data(df, params, style)
 
     assert len(payload["plots"]) == 4  # 2 features × 2 groups
-    assert payload["group_color_map"] == {"A": "#2e6575", "B": "#7eb5c9"}
+    assert payload["group_color_map"] == {"A": "#4e79a7", "B": "#e15759"}
     assert payload["width"] >= 360
     assert payload["height"] >= 320
     assert payload["bar_width"] == 0.6
@@ -125,7 +125,7 @@ def test_prepare_volcano_data():
         "fc_threshold": 1.0,
         "p_threshold": 0.05,
     }
-    style = {"up_color": "#c44e52", "down_color": "#2e6575", "non_significant_color": "#a0aec0"}
+    style = {"up_color": "#e15759", "down_color": "#4e79a7", "non_significant_color": "#a0aec0"}
     payload = plots_r._prepare_volcano_data(params, style)
 
     assert len(payload["points"]) == 2
@@ -137,11 +137,11 @@ def test_prepare_volcano_data():
 def test_prepare_pca_data():
     df = _make_df()
     params = {"sample_metadata": _make_meta(), "plot": "score"}
-    style = {"group_colors": ["#2e6575", "#7eb5c9"]}
+    style = {"group_colors": ["#4e79a7", "#e15759"]}
     payload = plots_r._prepare_pca_data(df, params, style)
 
     assert len(payload["points"]) == 4
-    assert payload["group_color_map"] == {"A": "#2e6575", "B": "#7eb5c9"}
+    assert payload["group_color_map"] == {"A": "#4e79a7", "B": "#e15759"}
     assert "PC1" in payload["pc1_label"]
     assert "PC2" in payload["pc2_label"]
 

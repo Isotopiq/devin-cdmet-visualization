@@ -94,14 +94,16 @@ for (idx in seq_along(features)) {
     local_colors[missing] <- pal[seq_along(missing)]
   }
 
+  dodge_width <- 0.8
   p <- ggplot(sub_summary, aes(x = group, y = mean, fill = group)) +
-    geom_col(width = bar_width, colour = NA) +
-    geom_errorbar(aes(ymin = pmax(mean - sem, 0), ymax = mean + sem), width = 0.2, linewidth = 0.5, colour = "#334155") +
-    geom_jitter(data = sub_points, aes(x = group, y = value), width = 0.12, size = 1.8, shape = 21, fill = "white", colour = "#334155", stroke = 0.5, alpha = 0.9) +
+    geom_col(width = bar_width, colour = "black", linewidth = 0.35, position = position_dodge(width = dodge_width)) +
+    geom_errorbar(aes(ymin = pmax(mean - sem, 0), ymax = mean + sem, group = group), width = 0.12, linewidth = 0.4, colour = "black", position = position_dodge(width = dodge_width)) +
+    geom_point(data = sub_points, aes(x = group, y = value, group = group), shape = 21, fill = "white", colour = "black", size = 2, stroke = 0.4, position = position_jitterdodge(dodge.width = dodge_width, jitter.width = 0.06, seed = 42)) +
     scale_fill_manual(values = local_colors, drop = FALSE) +
-    scale_x_discrete(expand = expansion(add = 0.6)) +
-    labs(title = feat_title, x = NULL, y = "Mean intensity") +
-    theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "y", width = width, height = height, x_labels = groups_used, title_bold = title_bold) +
+    scale_x_discrete(expand = expansion(add = 0.5)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+    labs(title = feat_title, subtitle = "Composition of mean intensity by sample group", x = NULL, y = "Mean intensity") +
+    theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "none", width = width, height = height, x_labels = groups_used, title_bold = title_bold) +
     theme(legend.position = "none")
 
   png(file.path(output_dir, sprintf("%03d.png", idx)), width = width, height = height, units = "px", res = res)

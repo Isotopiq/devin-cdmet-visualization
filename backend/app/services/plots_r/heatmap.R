@@ -137,7 +137,7 @@ if (!(method %in% c("average", "ward", "single", "complete", "mcquitty", "median
 width <- as.numeric(payload$width)
 height <- as.numeric(payload$height)
 res <- as.numeric(payload$res)
-if (is.na(res) || res <= 0) res <- 120
+if (is.na(res) || res <= 0) res <- 150
 
 tick_size <- as.numeric(payload$tick_size)
 if (is.na(tick_size)) tick_size <- 11
@@ -149,25 +149,27 @@ if (is.null(font_family) || font_family == "") font_family <- "Liberation Sans"
 nrow_mat <- nrow(mat)
 ncol_mat <- ncol(mat)
 
-# pheatmap cell sizes are in points; the PNG figure is width/height pixels at res ppi,
-# i.e. width/height in points is pixels * 72 / res. Leave room for dendrograms,
-# labels, annotation bars, and the color legend.
-fig_width_pts <- width * 72 / res
-fig_height_pts <- height * 72 / res
+# The backend already computes cell/tree/font sizes in points and the PNG size in
+# pixels so that dendrograms, annotation bars, labels, legends and caption fit.
+cellwidth <- as.numeric(payload$cellwidth)
+if (is.na(cellwidth) || cellwidth <= 0) cellwidth <- min(45, max(6, 1200 / max(ncol_mat, 1)))
+cellheight <- as.numeric(payload$cellheight)
+if (is.na(cellheight) || cellheight <= 0) cellheight <- min(45, max(6, 1200 / max(nrow_mat, 1)))
 
-cellwidth <- max(6, min(80, (fig_width_pts - 220) / max(ncol_mat, 1)))
-cellheight <- max(8, min(30, (fig_height_pts - 180) / max(nrow_mat, 1)))
+treeheight_row <- as.numeric(payload$treeheight_row)
+if (is.na(treeheight_row)) treeheight_row <- 30
+treeheight_col <- as.numeric(payload$treeheight_col)
+if (is.na(treeheight_col)) treeheight_col <- 30
 
-fontsize_row <- max(6, min(tick_size, cellheight - 2))
-fontsize_col <- max(6, min(tick_size, cellwidth - 1))
+fontsize_row <- as.numeric(payload$fontsize_row)
+if (is.na(fontsize_row)) fontsize_row <- max(6, min(tick_size, cellheight - 2))
+fontsize_col <- as.numeric(payload$fontsize_col)
+if (is.na(fontsize_col)) fontsize_col <- max(6, min(tick_size, cellwidth - 2))
 
 show_rownames <- isTRUE(payload$show_rownames)
 show_colnames <- isTRUE(payload$show_colnames)
 angle_col <- 45
 if (show_colnames && ncol_mat > 80) show_colnames <- FALSE
-
-treeheight_row <- if (isTRUE(payload$cluster_rows)) 30 else 0
-treeheight_col <- if (isTRUE(payload$cluster_cols)) 30 else 0
 
 caption <- as.character(payload$caption)
 if (is.null(caption)) caption <- ""
@@ -211,7 +213,7 @@ tryCatch({
       x = unit(4, "mm"),
       y = unit(4, "mm"),
       just = c("left", "bottom"),
-      gp = gpar(fontsize = 8, col = "#64748b", fontfamily = font_family)
+      gp = gpar(fontsize = max(6, tick_size - 2), col = "#64748b", fontfamily = font_family)
     )
   }
 }, finally = {

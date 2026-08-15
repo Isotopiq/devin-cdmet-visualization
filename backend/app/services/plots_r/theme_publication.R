@@ -22,36 +22,39 @@ theme_publication <- function(base_size = 11, title_size = 16, axis_label_size =
   grid <- match.arg(grid)
   scale <- 1
   if (!is.null(width) && !is.null(height) && is.numeric(width) && is.numeric(height) && width > 0 && height > 0) {
-    scale <- max(0.55, min(1.15, min(width, height) / 900))
+    scale <- max(0.8, min(1.3, min(width, height) / 700))
   }
-  title_size <- max(10, min(18, title_size * scale))
-  axis_label_size <- max(9, min(14, axis_label_size * scale))
-  base_size <- max(8, min(12, base_size * scale))
+  title_size <- max(11, min(22, title_size * scale))
+  axis_label_size <- max(10, min(16, axis_label_size * scale))
+  base_size <- max(8, min(13, base_size * scale))
 
   x_label_info <- .axis_label_params(x_labels, base_size)
   y_label_info <- .axis_label_params(y_labels, base_size, is_x = FALSE)
 
-  t <- theme_bw(base_size = base_size, base_family = font_family) +
+  t <- theme_classic(base_size = base_size, base_family = font_family) +
     theme(
-      plot.title = element_text(size = title_size, face = if (title_bold) "bold" else "plain", hjust = 0.5, margin = margin(b = 10), family = font_family),
-      axis.title = element_text(size = axis_label_size, face = "bold", color = "#334155", family = font_family),
-      axis.text = element_text(size = base_size, color = "#475569", family = font_family),
+      plot.title = element_text(size = title_size, face = if (title_bold) "bold" else "plain", hjust = 0, margin = margin(b = 4), family = font_family),
+      plot.subtitle = element_text(size = axis_label_size * 0.85, face = "plain", color = "#475569", hjust = 0, margin = margin(b = 14), family = font_family),
+      plot.title.position = "plot",
+      plot.subtitle.position = "plot",
+      axis.title = element_text(size = axis_label_size, face = "bold", color = "black", family = font_family),
+      axis.text = element_text(size = base_size, color = "#1f2937", family = font_family),
       axis.text.x = element_text(size = x_label_info$size, angle = x_label_info$angle, hjust = x_label_info$hjust, family = font_family),
       axis.text.y = element_text(size = y_label_info$size, angle = y_label_info$angle, hjust = y_label_info$hjust, family = font_family),
       panel.background = element_rect(fill = "white", colour = NA),
-      panel.grid.major.y = element_line(colour = "#e2e8f0", linewidth = 0.3),
-      panel.grid.major.x = if (grid == "y") element_blank() else element_line(colour = "#e2e8f0", linewidth = 0.3),
+      panel.grid.major.y = if (grid == "none") element_blank() else element_line(colour = "#e5e7eb", linewidth = 0.25),
+      panel.grid.major.x = if (grid %in% c("x_y")) element_line(colour = "#e5e7eb", linewidth = 0.25) else element_blank(),
       panel.grid.minor = element_blank(),
       panel.border = element_blank(),
-      axis.line = element_line(colour = "#cbd5e1", linewidth = 0.6),
-      plot.margin = unit(c(0.4, 0.4, 0.4, 0.4), "cm"),
+      axis.line = element_line(colour = "black", linewidth = 0.4),
+      axis.ticks = element_line(colour = "black", linewidth = 0.3),
+      plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
       legend.position = "bottom",
       legend.title = element_text(size = base_size, face = "bold", family = font_family),
-      legend.text = element_text(size = base_size - 1, family = font_family)
+      legend.text = element_text(size = base_size - 1, family = font_family),
+      strip.background = element_blank(),
+      strip.text = element_text(size = axis_label_size, face = "bold", family = font_family)
     )
-  if (grid == "none") {
-    t <- t + theme(panel.grid = element_blank())
-  }
   t
 }
 
