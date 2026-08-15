@@ -1,0 +1,124 @@
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(grid)
+  library(RColorBrewer)
+})
+
+# Derive the directory that this R script lives in so other templates can source it.
+get_script_dir <- function() {
+  args <- commandArgs(trailingOnly = FALSE)
+  file_arg <- args[grep("^--file=", args)]
+  if (length(file_arg) > 0) {
+    return(dirname(sub("^--file=", "", file_arg[1])))
+  }
+  getwd()
+}
+
+# Publication-ready ggplot2 theme used by all R plot templates.
+theme_publication <- function(base_size = 11, title_size = 16, axis_label_size = 12,
+                              font_family = "DejaVu Sans", grid = c("y", "x_y", "none")) {
+  grid <- match.arg(grid)
+  t <- theme_bw(base_size = base_size, base_family = font_family) +
+    theme(
+      plot.title = element_text(size = title_size, face = "bold", hjust = 0.5, margin = margin(b = 10)),
+      axis.title = element_text(size = axis_label_size, face = "bold", color = "#334155"),
+      axis.text = element_text(size = base_size, color = "#475569"),
+      panel.background = element_rect(fill = "white", colour = NA),
+      panel.grid.major.y = element_line(colour = "#e2e8f0", linewidth = 0.3),
+      panel.grid.major.x = if (grid == "y") element_blank() else element_line(colour = "#e2e8f0", linewidth = 0.3),
+      panel.grid.minor = element_blank(),
+      panel.border = element_blank(),
+      axis.line = element_line(colour = "#cbd5e1", linewidth = 0.6),
+      plot.margin = unit(c(0.4, 0.4, 0.4, 0.4), "cm"),
+      legend.position = "bottom",
+      legend.title = element_text(size = base_size, face = "bold"),
+      legend.text = element_text(size = base_size - 1)
+    )
+  if (grid == "none") {
+    t <- t + theme(panel.grid = element_blank())
+  }
+  t
+}
+
+# Colorblind-friendly discrete palette generator.
+discrete_palette <- function(n) {
+  if (n <= 8) {
+    return(brewer.pal(max(n, 3), "Set2")[1:n])
+  }
+  if (n <= 12) {
+    return(brewer.pal(12, "Set3")[1:n])
+  }
+  # Fallback hsv expansion for many categories.
+  return(hsv(h = seq(0, 1 - 1 / n, length.out = n), s = 0.6, v = 0.85))
+}
+
+# Shorten labels and make them unique so pheatmap does not fail on duplicate row names.
+sanitize_labels <- function(labels, max_len = 60) {
+  if (is.null(labels)) return(NULL)
+  labels <- as.character(labels)
+  labels[is.na(labels)] <- ""
+  labels <- ifelse(nchar(labels) > max_len, paste0(substr(labels, 1, max_len - 2), "..."), labels)
+  if (any(duplicated(labels))) {
+    dups <- duplicated(labels) | duplicated(labels, fromLast = TRUE)
+    labels[dups] <- make.names(labels[dups], unique = TRUE)
+  }
+  labels
+}
+
+# Build pheatmap annotation colors from a data frame and an optional group->color map.
+make_annotation_colors <- function(ann_df, group_color_map = NULL) {
+  if (is.null(ann_df) || ncol(ann_df) == 0) return(NULL)
+  out <- list()
+  for (col in names(ann_df)) {
+    vals <- unique(as.character(ann_df[[col]]))
+    vals <- vals[!is.na(vals)]
+    if (col == "group" && !is.null(group_color_map) && length(group_color_map) > 0) {
+      cols <- sapply(vals, function(v) {
+        c <- group_color_map[[v]]
+        if (is.null(c) || is.na(c) || c == "") "#94a3b8" else c
+      }, USE.NAMES = FALSE)
+      names(cols) <- vals
+      out[[col]] <- cols
+    } else {
+      n <- max(length(vals), 3)
+      pal <- discrete_palette(n)
+      out[[col]] <- setNames(pal[1:length(vals)], vals)
+    }
+  }
+  out
+}
+
+# Map a user-facing colorscale name to an RColorBrewer palette.
+build_color_palette <- function(colorscale, n = 100) {
+  rev <- grepl("_r$", colorscale)
+  base <- sub("_r$", "", colorscale)
+  valid <- c(
+    "RdBu", "RdYlBu", "BrBG", "PuOr", "PiYG", "PRGn", "RdGy", "PuBuGn",
+    "Blues", "Greens", "Greys", "Oranges", "Purples", "Reds",
+    "YlOrRd", "YlOrBr", "YlGnBu", "YlGn", "GnBu", "BuPu", "PuBu",
+    "PuRd", "OrRd", "BuGn", "Spectral"
+  )
+  if (!(base %in% valid)) base <- "RdBu"
+  pal <- brewer.pal(9, base)
+  if (rev) pal <- rev(pal)
+  colorRampPalette(pal)(n)
+}
+
+# Build symmetric (z-score) or quantile (abundance) breaks and a matching color palette.
+make_breaks <- function(mat, center_zero = TRUE, colorscale = "RdBu_r", n = 100) {
+  base_pal <- build_color_palette(colorscale, n = n)
+  if (center_zero) {
+    lim <- max(abs(mat), na.rm = TRUE)
+    if (!is.finite(lim) || lim == 0) lim <- 1
+    breaks <- seq(-lim, lim, length.out = n + 1)
+  } else {
+    q <- quantile(as.vector(mat), probs = seq(0, 1, length.out = n + 1), na.rm = TRUE)
+    breaks <- unique(q)
+    if (length(breaks) < 2) {
+      breaks <- seq(min(mat, na.rm = TRUE), max(mat, na.rm = TRUE), length.out = n + 1)
+    }
+    n <- length(breaks) - 1
+    base_pal <- build_color_palette(colorscale, n = n)
+  }
+  list(breaks = as.numeric(breaks), palette = base_pal)
+}

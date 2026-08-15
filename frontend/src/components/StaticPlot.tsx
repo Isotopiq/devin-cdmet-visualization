@@ -31,7 +31,7 @@ export default function StaticPlot({ figure, filename = 'plot.png' }: Props) {
         <img
           src={figure.image}
           alt="Generated plot"
-          className="w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700"
+          className="max-w-full max-h-full h-auto w-auto object-contain rounded-lg border border-slate-200 dark:border-slate-700 mx-auto"
           onLoad={() => setLoaded(true)}
           onError={() => setError(true)}
         />

@@ -85,6 +85,42 @@ export default function PlotStyling() {
         </div>
       ))}
 
+      {style.engine !== 'plotly' && (
+        <div className="space-y-3 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+          <div>
+            <label className="label-like text-xs">R theme</label>
+            <select value={style.rTheme} onChange={(e) => update('rTheme', e.target.value as any)} className="input text-sm mt-1">
+              <option value="publication">Publication</option>
+              <option value="minimal">Minimal</option>
+              <option value="bw">Black & white</option>
+            </select>
+          </div>
+          <div>
+            <label className="label-like text-xs">R resolution (DPI)</label>
+            <select value={style.rResolution} onChange={(e) => update('rResolution', Number(e.target.value) as any)} className="input text-sm mt-1">
+              <option value={120}>120</option>
+              <option value={150}>150</option>
+              <option value={300}>300</option>
+            </select>
+          </div>
+          <div>
+            <div className="flex justify-between text-xs text-slate-600 dark:text-slate-300">
+              <label className="label-like">Bar width</label>
+              <span>{style.rBarWidth}</span>
+            </div>
+            <input
+              type="range"
+              min={0.2}
+              max={0.9}
+              step={0.05}
+              value={style.rBarWidth}
+              onChange={(e) => update('rBarWidth', Number(e.target.value))}
+              className="w-full accent-slate-800"
+            />
+          </div>
+        </div>
+      )}
+
       <div>
         <label className="label-like text-xs">Heatmap colorscale</label>
         <select value={style.heatmapColorscale} onChange={(e) => update('heatmapColorscale', e.target.value)} className="input text-sm mt-1">

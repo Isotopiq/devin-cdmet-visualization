@@ -1,8 +1,11 @@
 suppressPackageStartupMessages({
   library(pheatmap)
   library(jsonlite)
-  library(RColorBrewer)
+  library(grid)
 })
+
+script_dir <- dirname(sub("^--file=", "", commandArgs(trailingOnly = FALSE)[grep("^--file=", commandArgs(trailingOnly = FALSE))]))
+source(file.path(script_dir, "theme_publication.R"))
 
 args <- commandArgs(trailingOnly = TRUE)
 input_file <- args[1]
@@ -20,20 +23,30 @@ to_matrix <- function(m, n_cols) {
   }
   if (is.list(m)) {
     rows <- lapply(m, function(row) {
-      if (is.null(row)) return(rep(NA_real_, n_cols))
-      v <- unlist(row)
-      # ensure length matches number of columns
-      if (length(v) < n_cols) {
-        v <- c(v, rep(NA_real_, n_cols - length(v)))
-      } else if (length(v) > n_cols) {
-        v <- v[seq_len(n_cols)]
+      v <- rep(NA_real_, n_cols)
+      if (is.null(row)) return(v)
+      if (is.list(row)) {
+        for (j in seq_len(min(n_cols, length(row)))) {
+          el <- row[[j]]
+          if (!is.null(el)) {
+            num <- suppressWarnings(as.numeric(el))
+            if (!is.na(num)) v[j] <- num
+          }
+        }
+      } else {
+        raw <- unlist(row)
+        l <- min(n_cols, length(raw))
+        if (l > 0) {
+          nums <- suppressWarnings(as.numeric(raw[seq_len(l)]))
+          not_na <- !is.na(nums)
+          v[seq_len(l)][not_na] <- nums[not_na]
+        }
       }
-      as.numeric(v)
+      v
     })
     m <- do.call(rbind, rows)
     return(m)
   }
-  # fallback flat vector / scalar
   if (length(m) == 0) {
     m <- matrix(0, nrow = 1, ncol = n_cols)
   } else {
@@ -44,10 +57,16 @@ to_matrix <- function(m, n_cols) {
 
 samples <- unlist(payload$samples)
 features <- unlist(payload$features)
-mat <- to_matrix(payload$matrix, length(samples))
-dimnames(mat) <- list(features, samples)
+labels_row <- unlist(payload$labels_row)
+if (is.null(labels_row)) labels_row <- features
+labels_row <- sanitize_labels(labels_row, max_len = 60)
+labels_col <- unlist(payload$labels_col)
+if (is.null(labels_col)) labels_col <- samples
 
-# annotation data frame for columns (samples)
+mat <- to_matrix(payload$matrix, length(samples))
+dimnames(mat) <- list(labels_row, labels_col)
+
+# column annotations (sample groups)
 ann_col <- NULL
 if (length(payload$annotations) > 0) {
   ann_list <- payload$annotations
@@ -60,27 +79,46 @@ if (length(payload$annotations) > 0) {
     rownames(ann_df) <- ann_df$sample
     ann_df$sample <- NULL
   }
+  keep <- sapply(ann_df, function(x) length(unique(x)) > 1)
+  ann_df <- ann_df[, keep, drop = FALSE]
   ann_col <- ann_df
 }
 
-# color scale: support RdBu_r / RdBu; otherwise use RdBu reversed by default
-colorscale <- payload$colorscale
-if (grepl("_r$", colorscale)) {
-  base_name <- sub("_r$", "", colorscale)
-  if (base_name %in% rownames(brewer.pal.info)) {
-    pal <- rev(brewer.pal(11, base_name))
+# row annotations (lipid class / pathway)
+ann_row <- NULL
+if (length(payload$annotation_row) > 0) {
+  ann_list <- payload$annotation_row
+  if (is.data.frame(ann_list)) {
+    ann_df <- ann_list
   } else {
-    pal <- rev(brewer.pal(11, "RdBu"))
+    ann_df <- as.data.frame(do.call(rbind, lapply(ann_list, unlist)), stringsAsFactors = FALSE)
   }
-} else if (colorscale %in% rownames(brewer.pal.info)) {
-  pal <- brewer.pal(11, colorscale)
-} else {
-  pal <- rev(brewer.pal(11, "RdBu"))
+  if ("feature" %in% names(ann_df)) {
+    rownames(ann_df) <- ann_df$feature
+    ann_df$feature <- NULL
+  }
+  if (nrow(ann_df) == nrow(mat)) {
+    rownames(ann_df) <- rownames(mat)
+    keep <- sapply(ann_df, function(x) length(unique(x)) > 1)
+    ann_df <- ann_df[, keep, drop = FALSE]
+    ann_row <- ann_df
+  }
 }
 
-color_palette <- colorRampPalette(pal)(100)
+group_color_map <- payload$group_color_map
+if (is.null(group_color_map)) group_color_map <- list()
 
-# map metric to pheatmap clustering_distance string
+annotation_colors <- make_annotation_colors(ann_col, group_color_map)
+if (!is.null(ann_row)) {
+  annotation_colors <- c(annotation_colors, make_annotation_colors(ann_row, NULL))
+}
+
+# color scale and breaks
+colorscale <- payload$colorscale
+if (is.null(colorscale) || colorscale == "") colorscale <- "RdBu_r"
+center_zero <- isTRUE(payload$center_zero)
+breaks_info <- make_breaks(mat, center_zero = center_zero, colorscale = colorscale, n = 100)
+
 metric <- payload$metric
 if (!(metric %in% c("euclidean", "correlation", "maximum", "manhattan", "canberra", "binary", "minkowski"))) {
   metric <- "euclidean"
@@ -90,37 +128,78 @@ if (!(method %in% c("average", "ward", "single", "complete", "mcquitty", "median
   method <- "average"
 }
 
-# use pre-scaled matrix from Python; do not double scale by default
-scale_arg <- "none"
-if (identical(payload$scale, "row")) {
-  scale_arg <- "none"  # already scaled upstream
-}
-
 width <- as.numeric(payload$width)
 height <- as.numeric(payload$height)
-tick_size <- as.numeric(payload$tick_size)
+res <- as.numeric(payload$res)
+if (is.na(res) || res <= 0) res <- 120
 
-png(file.path(output_dir, "plot.png"), width = width, height = height, units = "px", res = 120)
+tick_size <- as.numeric(payload$tick_size)
+if (is.na(tick_size)) tick_size <- 11
+title_size <- as.numeric(payload$title_size)
+if (is.na(title_size)) title_size <- 16
+
+nrow_mat <- nrow(mat)
+ncol_mat <- ncol(mat)
+
+cellwidth <- max(6, min(80, (width - 260) / max(ncol_mat, 1)))
+cellheight <- max(8, min(30, (height - 180) / max(nrow_mat, 1)))
+
+fontsize_row <- max(6, min(tick_size, cellheight - 2))
+fontsize_col <- max(6, min(tick_size, cellwidth - 1))
+
+show_rownames <- isTRUE(payload$show_rownames)
+show_colnames <- isTRUE(payload$show_colnames)
+angle_col <- 45
+if (show_colnames && ncol_mat > 80) show_colnames <- FALSE
+
+treeheight_row <- if (isTRUE(payload$cluster_rows)) 30 else 0
+treeheight_col <- if (isTRUE(payload$cluster_cols)) 30 else 0
+
+caption <- as.character(payload$caption)
+if (is.null(caption)) caption <- ""
+
+png(file.path(output_dir, "plot.png"), width = width, height = height, units = "px", res = res)
 
 tryCatch({
   pheatmap(
     mat,
-    color = color_palette,
+    color = breaks_info$palette,
+    breaks = breaks_info$breaks,
     cluster_rows = payload$cluster_rows,
     cluster_cols = payload$cluster_cols,
     clustering_distance_rows = metric,
     clustering_distance_cols = metric,
     clustering_method = method,
-    scale = scale_arg,
+    scale = "none",
     annotation_col = ann_col,
-    show_rownames = nrow(mat) <= 80,
-    show_colnames = ncol(mat) <= 80,
+    annotation_row = ann_row,
+    annotation_colors = annotation_colors,
+    labels_row = labels_row,
+    labels_col = labels_col,
+    show_rownames = show_rownames,
+    show_colnames = show_colnames,
     fontsize = tick_size,
-    fontsize_row = tick_size,
-    fontsize_col = tick_size,
+    fontsize_row = fontsize_row,
+    fontsize_col = fontsize_col,
+    angle_col = angle_col,
+    cellwidth = cellwidth,
+    cellheight = cellheight,
     main = payload$title,
-    border_color = NA
+    border_color = "#e2e8f0",
+    na_col = "#f3f4f6",
+    treeheight_row = treeheight_row,
+    treeheight_col = treeheight_col
   )
+  if (caption != "") {
+    upViewport(0)
+    grid.text(
+      caption,
+      x = unit(4, "mm"),
+      y = unit(4, "mm"),
+      just = c("left", "bottom"),
+      gp = gpar(fontsize = 8, col = "#64748b")
+    )
+  }
 }, finally = {
   dev.off()
 })

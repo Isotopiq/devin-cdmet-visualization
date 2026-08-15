@@ -50,6 +50,11 @@ STYLE_DEFAULTS = {
     "non_significant_color": "#a0aec0",
     "group_colors": ["#2e6575", "#7eb5c9", "#e9a47f", "#f2cc8f", "#81b29a", "#9d8189"],
     "heatmap_colorscale": "RdBu_r",
+    "r_theme": "publication",
+    "r_resolution": 150,
+    "r_bar_width": 0.55,
+    "max_heatmap_rows": 120,
+    "max_heatmap_cols": 120,
 }
 
 
@@ -1997,7 +2002,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         return json.loads(fig.to_json())
 
     # Optional R-based static plot engine (ggplot2 / pheatmap)
-    if str(style.get("engine", "plotly")).startswith("r"):
+    if str(style.get("engine", "plotly")) in {"r", "publication", "ggplot2"}:
         try:
             from app.services import plots_r
             r_fig = plots_r.generate_plot_r(dataset, req, style, df=df, sample_meta=sample_meta, feature_metadata=feature_metadata)

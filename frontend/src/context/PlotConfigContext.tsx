@@ -15,6 +15,9 @@ export interface PlotStyle {
   notSignificantColor: string
   groupColors: string[]
   heatmapColorscale: string
+  rTheme: 'publication' | 'minimal' | 'bw'
+  rResolution: 120 | 150 | 300
+  rBarWidth: number
 }
 
 export const DEFAULT_PLOT_STYLE: PlotStyle = {
@@ -32,6 +35,9 @@ export const DEFAULT_PLOT_STYLE: PlotStyle = {
   notSignificantColor: '#a0aec0',
   groupColors: ['#2e6575', '#7eb5c9', '#e9a47f', '#f2cc8f', '#81b29a', '#9d8189'],
   heatmapColorscale: 'RdBu_r',
+  rTheme: 'publication',
+  rResolution: 150,
+  rBarWidth: 0.55,
 }
 
 export const DEFAULT_INCLUDE_PLOTS: Record<string, boolean> = {
@@ -95,5 +101,8 @@ export function styleToBackend(style: PlotStyle): Record<string, any> {
     non_significant_color: style.notSignificantColor,
     group_colors: style.groupColors,
     heatmap_colorscale: style.heatmapColorscale,
+    r_theme: style.rTheme,
+    r_resolution: style.rResolution,
+    r_bar_width: style.rBarWidth,
   }
 }
