@@ -94,6 +94,12 @@ for (idx in seq_along(features)) {
     local_colors[missing] <- pal[seq_along(missing)]
   }
 
+  # If individual points span more than a ~10x range above the group means,
+  # use a log1p y-axis so the mean bars remain visible while still showing outliers.
+  max_mean <- suppressWarnings(max(sub_summary$mean, na.rm = TRUE))
+  max_value <- suppressWarnings(max(sub_points$value, na.rm = TRUE))
+  use_log <- is.finite(max_mean) && is.finite(max_value) && max_mean > 0 && (max_value / max_mean) > 10
+
   dodge_width <- 0.8
   p <- ggplot(sub_summary, aes(x = group, y = mean, fill = group)) +
     geom_col(width = bar_width, colour = "black", linewidth = 0.35, position = position_dodge(width = dodge_width)) +
@@ -102,10 +108,18 @@ for (idx in seq_along(features)) {
     scale_fill_manual(values = local_colors, drop = FALSE) +
     scale_colour_manual(values = setNames(rep("black", length(groups_used)), groups_used), guide = "none") +
     scale_x_discrete(expand = expansion(add = 0.5)) +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+    (if (use_log) {
+      scale_y_continuous(trans = "log1p", expand = expansion(mult = c(0, 0.05)),
+                         labels = scales::label_number(scale_cut = c(k = 1e3, M = 1e6, B = 1e9, T = 1e12)))
+    } else {
+      scale_y_continuous(expand = expansion(mult = c(0, 0.05)))
+    }) +
     labs(title = feat_title, subtitle = "Composition of mean intensity by sample group", x = NULL, y = "Mean intensity") +
     theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "none", width = width, height = height, x_labels = groups_used, title_bold = title_bold) +
-    theme(legend.position = "none")
+    theme(
+      legend.position = "none",
+      plot.title = element_text(hjust = 0.5, face = if (title_bold) "bold" else "plain", size = title_size, colour = "black", family = font_family, margin = margin(b = 4))
+    )
 
   png(file.path(output_dir, sprintf("%03d.png", idx)), width = width, height = height, units = "px", res = res)
   tryCatch(print(p), finally = dev.off())
