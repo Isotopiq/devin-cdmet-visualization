@@ -100,6 +100,27 @@ for (idx in seq_along(features)) {
   max_value <- suppressWarnings(max(sub_points$value, na.rm = TRUE))
   use_log <- is.finite(max_mean) && is.finite(max_value) && max_mean > 0 && (max_value / max_mean) > 10
 
+  # Build a clean y scale with readable breaks and human-readable labels.
+  max_for_axis <- suppressWarnings(max(c(sub_summary$mean + sub_summary$sem, sub_points$value), na.rm = TRUE))
+  if (!is.finite(max_for_axis) || max_for_axis <= 0) max_for_axis <- 1
+
+  y_scale <- if (use_log) {
+    max_exp <- floor(log10(max_for_axis))
+    step <- if (max_exp >= 4) 2 else 1
+    exps <- if (max_exp >= step) seq(step, max_exp, by = step) else max_exp
+    power_breaks <- 10^exps + 1e-6
+    unit <- 10^(max(0, max_exp - 1))
+    nice_top <- ceiling(max_for_axis / unit) * unit
+    y_breaks <- unique(c(0, power_breaks, nice_top))
+    y_breaks <- y_breaks[y_breaks <= nice_top * 1.05]
+    scale_y_continuous(trans = "log1p", expand = expansion(mult = c(0, 0.05)),
+                       breaks = y_breaks,
+                       labels = scales::label_number(scale_cut = c(k = 1e3, M = 1e6, B = 1e9, T = 1e12)))
+  } else {
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
+                       labels = scales::label_number(scale_cut = c(k = 1e3, M = 1e6, B = 1e9, T = 1e12)))
+  }
+
   dodge_width <- 0.8
   p <- ggplot(sub_summary, aes(x = group, y = mean, fill = group)) +
     geom_col(width = bar_width, colour = "black", linewidth = 0.35, position = position_dodge(width = dodge_width)) +
@@ -108,12 +129,7 @@ for (idx in seq_along(features)) {
     scale_fill_manual(values = local_colors, drop = FALSE) +
     scale_colour_manual(values = setNames(rep("black", length(groups_used)), groups_used), guide = "none") +
     scale_x_discrete(expand = expansion(add = 0.5)) +
-    (if (use_log) {
-      scale_y_continuous(trans = "log1p", expand = expansion(mult = c(0, 0.05)),
-                         labels = scales::label_number(scale_cut = c(k = 1e3, M = 1e6, B = 1e9, T = 1e12)))
-    } else {
-      scale_y_continuous(expand = expansion(mult = c(0, 0.05)))
-    }) +
+    y_scale +
     labs(title = feat_title, x = NULL, y = "Mean intensity") +
     theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "none", width = width, height = height, x_labels = groups_used, title_bold = title_bold) +
     theme(
