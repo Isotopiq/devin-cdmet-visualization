@@ -114,7 +114,7 @@ for (idx in seq_along(features)) {
     } else {
       scale_y_continuous(expand = expansion(mult = c(0, 0.05)))
     }) +
-    labs(title = feat_title, subtitle = "Composition of mean intensity by sample group", x = NULL, y = "Mean intensity") +
+    labs(title = feat_title, x = NULL, y = "Mean intensity") +
     theme_publication(base_size = tick_size, title_size = title_size, axis_label_size = axis_label_size, font_family = font_family, grid = "none", width = width, height = height, x_labels = groups_used, title_bold = title_bold) +
     theme(
       legend.position = "none",
