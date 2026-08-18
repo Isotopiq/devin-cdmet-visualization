@@ -203,7 +203,8 @@ export default function Visualize() {
 
   const generate = async () => {
     if (!projectId || !datasetId || !groupA) return
-    if (tab !== 'chain_space' && !groupB) return
+    const needsGroupB = ['volcano', 'per_lipid_bars', 'pls_da', 'opls_da', 'biomarker', 'permanova', 'functional', 'food_profile', 'chain_space']
+    if (!groupB && needsGroupB.includes(tab)) return
     const requestTab = tabRef.current
     setLoading(true)
     setFigure(null)
@@ -297,8 +298,10 @@ export default function Visualize() {
 
   // Generate when the active tab, dataset, groups, or included groups change (ignore the initial ready flag flip)
   const didInitRef = useRef(false)
+  const needsGroupB = ['volcano', 'per_lipid_bars', 'pls_da', 'opls_da', 'biomarker', 'permanova', 'functional', 'food_profile', 'chain_space']
+
   useEffect(() => {
-    const hasGroupB = groupB || tab === 'chain_space'
+    const hasGroupB = groupB || !needsGroupB.includes(tab)
     if (selectedDataset && groupA && hasGroupB) {
       if (didInitRef.current || ready) {
         didInitRef.current = true
@@ -308,7 +311,7 @@ export default function Visualize() {
   }, [tab, selectedDataset, groupA, groupB, includedGroups])
 
   useEffect(() => {
-    if (ready && selectedDataset && groupA && (groupB || tab === 'chain_space')) {
+    if (ready && selectedDataset && groupA && (groupB || !needsGroupB.includes(tab))) {
       didInitRef.current = true
       generate()
     }
@@ -316,7 +319,7 @@ export default function Visualize() {
 
   useEffect(() => {
     if ((figure || figures.length) && !loading) generate()
-  }, [style, style.rTheme, style.rResolution, style.rBarWidth, style.rFont, style.rTitleBold, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder, renameSamples, biomarkerComparisons])
+  }, [style, style.plotStyle, style.rTheme, style.rResolution, style.rBarWidth, style.rFont, style.rTitleBold, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder, renameSamples, biomarkerComparisons])
 
   const toggleInclude = (key: string) => {
     setIncludePlots((prev) => ({ ...prev, [key]: !prev[key] }))

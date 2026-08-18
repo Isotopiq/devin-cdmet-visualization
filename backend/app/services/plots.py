@@ -59,12 +59,35 @@ STYLE_DEFAULTS = {
     "max_heatmap_cols": 120,
 }
 
+LIPIDONE_COLORS = ["#0a9396", "#f4a261", "#94d2bd", "#006d77", "#002b36"]
+LIPIDONE_UP = "#0a9396"
+LIPIDONE_DOWN = "#f4a261"
+LIPIDONE_NS = "#94a3b8"
+
 
 def _merge_style(style: dict | None) -> dict:
     merged = dict(STYLE_DEFAULTS)
     if style:
         merged.update(style)
     return merged
+
+
+def _plot_style(style: dict, params: dict) -> str:
+    return str(params.get("plot_style") or style.get("plot_style") or "default").lower()
+
+
+def _style_with_palette(style: dict, plot_style: str) -> dict:
+    """Return a style dict overridden with the requested plot-style palette."""
+    if plot_style == "lipidone":
+        merged = dict(style)
+        merged.update({
+            "group_colors": LIPIDONE_COLORS,
+            "up_color": LIPIDONE_UP,
+            "down_color": LIPIDONE_DOWN,
+            "non_significant_color": LIPIDONE_NS,
+        })
+        return merged
+    return style
 
 
 def _group_color_map(style: dict, groups: list) -> dict:
@@ -1404,7 +1427,8 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         group_colorscale = [[i / (n_groups - 1), gcolor_map[g]] for i, g in enumerate(group_order)]
 
     m, n = plot_df.shape
-    is_lipidone = params.get("heatmap_style") == "lipidone"
+    heatmap_style = params.get("heatmap_style") or style.get("plot_style") or style.get("engine")
+    is_lipidone = heatmap_style == "lipidone"
     min_height = 800 if is_lipidone else 600
     height = max(min_height, min(2400, m * 16 + 260))
     feature_ids = [feature_metadata[i].get("feature_id", i) if i < len(feature_metadata) else i for i in plot_df.index]
@@ -2004,7 +2028,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         return json.loads(fig.to_json())
 
     # Optional R-based static plot engine (ggplot2 / pheatmap)
-    if str(style.get("engine", "plotly")) in {"r", "publication", "ggplot2"}:
+    if str(style.get("engine", "plotly")) == "r":
         try:
             from app.services import plots_r
             r_fig = plots_r.generate_plot_r(dataset, req, style, df=df, sample_meta=sample_meta, feature_metadata=feature_metadata)
@@ -2084,7 +2108,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
     elif plot_type == "heatmap":
         heatmap_type = params.get("heatmap_type", "abundance")
-        hstyle = params.get("heatmap_style") or style.get("engine")
+        hstyle = params.get("heatmap_style") or style.get("plot_style") or style.get("engine")
         if heatmap_type != "correlation" and hstyle in ("lipidone", "publication"):
             fig = _heatmap_publication(df, sample_meta, feature_metadata, style, params)
             return json.loads(fig.to_json())
@@ -2340,6 +2364,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
 
     elif plot_type == "pca":
         ptype = params.get("plot", "score")
+        plot_style = _plot_style(style, params)
         components = max(2, min(int(params.get("components", 3)), len(df.columns), len(df)))
         do_scale = bool(params.get("scale", True))
         X = df.dropna().T
@@ -2353,6 +2378,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         scores = pca.fit_transform(Xs)
         labels = [sample_meta.get(c, c) for c in X.index]
         display_names = [_shorten_name(c) for c in X.index]
+        style = _style_with_palette(style, plot_style)
         color_map = _group_color_map(style, labels)
 
         if ptype == "scree":
@@ -2403,7 +2429,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                               yaxis_title=f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)")
             _apply_base_layout(fig, style, title="PCA Biplot")
         else:
-            if style.get("engine") == "publication":
+            if plot_style in ("publication", "lipidone"):
                 fig = _pca_publication(scores, labels, pca, display_names, style, params)
                 return json.loads(fig.to_json())
             fig = go.Figure()
@@ -2421,18 +2447,20 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
             _apply_base_layout(fig, style, title="PCA Score Plot")
 
     elif plot_type == "volcano":
+        plot_style = _plot_style(style, params)
         fc_thresh = float(params.get("fc_threshold")) if params.get("fc_threshold") is not None else 0.5
         padj_thresh = float(params.get("padj_threshold")) if params.get("padj_threshold") is not None else float(params.get("p_threshold", 0.05))
         padj_thresh = max(padj_thresh, 1e-300)
         show_labels = bool(params.get("show_labels", False))
         top_n = max(0, int(params.get("top_n", 10)))
+        style = _style_with_palette(style, plot_style)
         up_color = style.get("up_color", "#c44e52")
         down_color = style.get("down_color", "#2e6575")
         ns_color = style.get("non_significant_color", "#a0aec0")
 
         points = _build_volcano_points(params.get("stats", []), fc_thresh, padj_thresh, up_color, down_color, ns_color)
 
-        if style.get("engine") == "publication":
+        if plot_style in ("publication", "lipidone"):
             fig = _volcano_publication(points, fc_thresh, padj_thresh, style, params)
             return json.loads(fig.to_json())
 
@@ -2497,6 +2525,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 ))
 
     elif plot_type == "lipid_class":
+        plot_style = _plot_style(style, params)
+        style = _style_with_palette(style, plot_style)
         classes = [_extract_lipid_class(f.get("feature_id", ""), f) for f in feature_metadata]
         if len(classes) != len(df):
             classes = classes[: len(df)]
@@ -2528,6 +2558,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         fig.update_yaxes(range=[0, y_max * 1.15])
 
     elif plot_type == "per_lipid_bars":
+        plot_style = _plot_style(style, params)
+        style = _style_with_palette(style, plot_style)
         stats_data = params.get("stats", [])
         group_a = params.get("group_a", "A")
         group_b = params.get("group_b", "B")

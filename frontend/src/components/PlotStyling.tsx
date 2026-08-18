@@ -18,8 +18,12 @@ export default function PlotStyling() {
   const engines = [
     { value: 'plotly', label: 'Plotly' },
     { value: 'r', label: 'R (static)' },
+  ]
+
+  const plotStyles = [
+    { value: 'default', label: 'Default' },
     { value: 'publication', label: 'Publication' },
-    { value: 'ggplot2', label: 'Ggplot2' },
+    { value: 'lipidone', label: 'LipidOne' },
   ]
 
   const colorscales = [
@@ -52,6 +56,15 @@ export default function PlotStyling() {
           ))}
         </div>
       </div>
+
+      {style.engine === 'plotly' && (
+        <div>
+          <label className="label-like text-xs">Plot style</label>
+          <select value={style.plotStyle} onChange={(e) => update('plotStyle', e.target.value as any)} className="input text-sm mt-1">
+            {plotStyles.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="label-like text-xs">Font family</label>

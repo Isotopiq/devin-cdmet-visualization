@@ -2,6 +2,7 @@ import { createContext, useContext, useState, ReactNode } from 'react'
 
 export interface PlotStyle {
   engine: 'plotly' | 'r' | 'publication' | 'ggplot2'
+  plotStyle: 'default' | 'publication' | 'lipidone'
   fontFamily: string
   titleSize: number
   axisLabelSize: number
@@ -24,6 +25,7 @@ export interface PlotStyle {
 
 export const DEFAULT_PLOT_STYLE: PlotStyle = {
   engine: 'plotly',
+  plotStyle: 'default',
   fontFamily: 'Inter Tight, Inter, Arial, sans-serif',
   titleSize: 16,
   axisLabelSize: 12,
@@ -90,8 +92,19 @@ export function usePlotConfig() {
 }
 
 export function styleToBackend(style: PlotStyle): Record<string, any> {
+  let engine = style.engine
+  let plotStyle = style.plotStyle
+  // Legacy engine values that combined renderer + style
+  if (engine === 'publication') {
+    engine = 'plotly'
+    plotStyle = plotStyle === 'default' ? 'publication' : plotStyle
+  } else if (engine === 'ggplot2') {
+    engine = 'r'
+    plotStyle = plotStyle === 'default' ? 'publication' : plotStyle
+  }
   return {
-    engine: style.engine,
+    engine,
+    plot_style: plotStyle,
     font_family: style.fontFamily,
     title_size: style.titleSize,
     axis_label_size: style.axisLabelSize,
