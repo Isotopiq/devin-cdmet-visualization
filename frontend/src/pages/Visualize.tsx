@@ -253,6 +253,7 @@ export default function Visualize() {
             cluster_rows: rowCluster,
             cluster_cols: colCluster,
             group_order: groupOrder,
+            title: reportTitle,
           }),
           style: backendStyle,
         })

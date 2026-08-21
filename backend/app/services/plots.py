@@ -1551,7 +1551,8 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
         bottom_margin = max(120, x_label_extra + 70)
         footer_y = None
 
-    _apply_base_layout(fig, style, title=f"Top {m} most-variable features", x_labels=short_cols, y_labels=short_rows)
+    title_text = params.get("title") or f"Top {m} most-variable features"
+    _apply_base_layout(fig, style, title=title_text, x_labels=short_cols, y_labels=short_rows)
 
     for g in group_order:
         fig.add_trace(go.Scatter(
@@ -1616,7 +1617,7 @@ def _heatmap_publication(df, sample_meta, feature_metadata, style, params):
                 if trace.colorbar:
                     trace.colorbar.title = {"text": "z-score", "side": "right"}
         fig.update_layout(
-            title=dict(text=""),
+            title=dict(text=title_text),
             paper_bgcolor="white",
             plot_bgcolor="white",
         )
@@ -2142,7 +2143,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 z=corr.values, x=short_cols, y=short_cols,
                 colorscale=colorscale, zmid=1,
                 colorbar=dict(title={"text": "r", "side": "right"})))
-            _apply_base_layout(fig, style, title="Sample Correlation Heatmap", x_labels=short_cols)
+            _apply_base_layout(fig, style, title=params.get("title") or "Sample Correlation Heatmap", x_labels=short_cols)
             tick_font = max(6, style.get("tick_size", 11) - 2) if len(short_cols) > 30 else style.get("tick_size", 11)
             if len(short_cols) <= 60:
                 fig.update_xaxes(side="top", tickangle=-45, tickmode="linear", dtick=1, tickfont=dict(size=tick_font), automargin=True)
@@ -2323,7 +2324,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 paper_bgcolor=style.get("paper_bgcolor"),
                 plot_bgcolor=style.get("plot_bgcolor"),
                 title={
-                    "text": f"Top {m} most-variable features",
+                    "text": params.get("title") or f"Top {m} most-variable features",
                     "font": {"size": style.get("title_size"), "color": "#1e293b"},
                     "x": 0.5,
                     "xanchor": "center",
