@@ -2018,6 +2018,15 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         df, sample_meta, _ = _rename_sample_names(df, sample_meta)
 
     excluded_groups = set(params.get("excluded_groups") or [])
+    # Comparison plots always need the selected Group A and Group B samples, so
+    # do not let the global group filter remove them.
+    comparison_plot_types = {
+        "volcano", "per_lipid_bars", "pls_da", "opls_da", "biomarker",
+        "permanova", "functional", "food_profile", "chain_space",
+    }
+    if plot_type in comparison_plot_types:
+        excluded_groups.discard(params.get("group_a"))
+        excluded_groups.discard(params.get("group_b"))
     if excluded_groups:
         keep_cols = [c for c in df.columns if sample_meta.get(c) not in excluded_groups]
         df = df[keep_cols]

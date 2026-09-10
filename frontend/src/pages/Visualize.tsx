@@ -186,9 +186,7 @@ export default function Visualize() {
       .catch(() => {})
   }, [])
 
-  useEffect(() => {
-    setIncludedGroups((prev) => new Set([...Array.from(prev), groupA, groupB].filter(Boolean)))
-  }, [groupA, groupB])
+
 
   // Debounce heatmap Top N so typing "25" doesn't fire a request for "2" first
   useEffect(() => {
@@ -932,22 +930,18 @@ export default function Visualize() {
                       <button onClick={() => setAllGroups(false)} className="btn-secondary text-xs px-2 py-1">Comparison only</button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                      {groups.map((g) => {
-                        const disabled = g === groupA || g === groupB
-                        const checked = includedGroups.has(g) || disabled
-                        return (
-                          <label key={g} className={`flex items-center gap-2 text-sm ${disabled ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'}`}>
-                            <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleGroup(g)} />
-                            {g} {disabled && <span className="text-xs">(selected)</span>}
-                          </label>
-                        )
-                      })}
+                      {groups.map((g) => (
+                        <label key={g} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                          <input type="checkbox" checked={includedGroups.has(g)} onChange={() => toggleGroup(g)} className="rounded border-slate-300" />
+                          {g}
+                        </label>
+                      ))}
                     </div>
                     <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
                       <input id="rename-samples" type="checkbox" checked={renameSamples} onChange={(e) => setRenameSamples(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
                       <label htmlFor="rename-samples" className="text-sm text-slate-700 dark:text-slate-200">Rename samples to group_R#</label>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Unchecked groups are excluded from plots and PDF reports. Selected comparison groups cannot be excluded.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Unchecked groups are excluded from overview plots. Comparison plots always include the selected Group A and Group B.</p>
                   </div>
                 )}
               </div>
