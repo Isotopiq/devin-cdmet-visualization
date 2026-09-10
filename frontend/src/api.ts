@@ -126,8 +126,16 @@ export const listLogs = (userId?: number) => API.get('/admin/logs', { params: us
 export const clearLogs = (userId?: number) => API.delete('/admin/logs', { params: userId ? { user_id: userId } : {} })
 export const getAnalysisCount = () => API.get('/admin/analyses/count')
 export const resetAnalyses = () => API.post('/admin/analyses/reset')
-export const exportDataset = (projectId: number, datasetId: number, format: 'metaboanalyst' | 'lipidone') =>
-  API.get(`/analysis/${projectId}/dataset/${datasetId}/export`, { params: { format }, responseType: 'blob' })
+export const exportDataset = (
+  projectId: number,
+  datasetId: number,
+  format: 'metaboanalyst' | 'lipidone',
+  cleanNames?: boolean
+) =>
+  API.get(`/analysis/${projectId}/dataset/${datasetId}/export`, {
+    params: { format, ...(cleanNames ? { clean_names: true } : {}) },
+    responseType: 'blob'
+  })
 export const getQC = (projectId: number, datasetId: number, selectedGroups: string[] = []) => {
   const params = new URLSearchParams()
   selectedGroups.forEach((g) => params.append('selected_groups', g))

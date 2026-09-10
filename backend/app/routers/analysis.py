@@ -1,7 +1,8 @@
 import io
 import csv
 import math
-from typing import List, Literal
+import re
+from typing import List, Literal, Optional, Tuple
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -317,11 +318,59 @@ def _fmt_export_value(v, floor: float) -> str:
     return s if s else "0"
 
 
+def _base_raw_name(raw: str) -> str:
+    name = str(raw).strip()
+    for ext in [".raw", "_raw"]:
+        if name.lower().endswith(ext):
+            name = name[: -len(ext)]
+    return name
+
+
+_AREA_RE = re.compile(r"^Area:\s*(?P<raw>.+?)(?:\s*\((?P<filecode>F\d+)\))?\s*$", re.I)
+_FCODE_RE = re.compile(r"\s*\((?P<filecode>F\d+)\)\s*$", re.I)
+
+
+def _clean_export_sample_name(name: str) -> Tuple[str, Optional[str]]:
+    """Strip Area: prefix, .RAW/_raw extension, and (FXX) file designation."""
+    n = str(name).strip()
+    m = _AREA_RE.match(n)
+    if m:
+        base = _base_raw_name(m.group("raw")).strip()
+        return base, m.group("filecode")
+    m = _FCODE_RE.search(n)
+    if m:
+        base = _base_raw_name(n[: m.start()]).strip()
+        return base, m.group("filecode")
+    return _base_raw_name(n).strip(), None
+
+
+def _resolve_cleaned_sample_names(sample_names: List[str]) -> dict:
+    """Return original -> cleaned sample name mapping, de-duplicating if needed."""
+    seen: set = set()
+    mapping = {}
+    for original in sample_names:
+        base, filecode = _clean_export_sample_name(original)
+        candidate = base
+        if candidate in seen:
+            if filecode:
+                candidate = f"{base} ({filecode})"
+            if candidate in seen or not filecode:
+                for i in range(2, 1000):
+                    suffix = f" ({filecode})" if filecode else ""
+                    candidate = f"{base}{suffix} {i}"
+                    if candidate not in seen:
+                        break
+        mapping[original] = candidate
+        seen.add(candidate)
+    return mapping
+
+
 @router.get("/{project_id}/dataset/{dataset_id}/export")
 async def export_dataset(
     project_id: int,
     dataset_id: int,
     format: Literal["metaboanalyst", "lipidone"] = Query("metaboanalyst"),
+    clean_names: bool = Query(False),
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ):
@@ -359,7 +408,15 @@ async def export_dataset(
     floor = float(pos.min()) if pos.size else 1e-12
 
     samples = df.columns.tolist()
-    groups = [str(dataset.sample_metadata.get(s, "unknown")) for s in samples]
+    if clean_names:
+        name_map = _resolve_cleaned_sample_names(samples)
+        if any(s != name_map[s] for s in samples):
+            df = df.rename(columns=name_map)
+        cleaned_metadata = {name_map[s]: dataset.sample_metadata.get(s, "unknown") for s in samples}
+        samples = df.columns.tolist()
+        groups = [str(cleaned_metadata.get(s, "unknown")) for s in samples]
+    else:
+        groups = [str(dataset.sample_metadata.get(s, "unknown")) for s in samples]
     header_key = "Sample" if format == "metaboanalyst" else "Lipid"
     header = [header_key] + samples
     label_row = ["Label"] + groups

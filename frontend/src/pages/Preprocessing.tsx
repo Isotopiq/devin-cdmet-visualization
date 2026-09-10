@@ -19,6 +19,7 @@ export default function Preprocessing() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [processedDataset, setProcessedDataset] = useState<any | null>(null)
+  const [cleanExportNames, setCleanExportNames] = useState(false)
   const [blankModalOpen, setBlankModalOpen] = useState(false)
   const [blankModalSearch, setBlankModalSearch] = useState('')
   const [blankModalPage, setBlankModalPage] = useState(1)
@@ -215,7 +216,7 @@ export default function Preprocessing() {
   const exportProcessed = async (format: 'metaboanalyst' | 'lipidone') => {
     if (!projectId || !processedDataset?.id) return
     try {
-      const res = await exportDataset(Number(projectId), Number(processedDataset.id), format)
+      const res = await exportDataset(Number(projectId), Number(processedDataset.id), format, cleanExportNames)
       const blob = new Blob([res.data], { type: 'text/csv' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -563,9 +564,13 @@ export default function Preprocessing() {
               <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
                 <span className="font-medium">{processedDataset.name}</span> is ready. Download in the format you need for downstream analysis.
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button onClick={() => exportProcessed('metaboanalyst')} className="btn-secondary"><LuDownload /> MetaboAnalyst CSV</button>
                 <button onClick={() => exportProcessed('lipidone')} className="btn-secondary"><LuDownload /> LipidOne CSV</button>
+                <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
+                  <input type="checkbox" checked={cleanExportNames} onChange={(e) => setCleanExportNames(e.target.checked)} className="rounded border-slate-300" />
+                  Clean sample names (remove Area: / .RAW / (FXX))
+                </label>
               </div>
             </div>
           )}
