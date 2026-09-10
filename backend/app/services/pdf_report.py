@@ -1039,7 +1039,9 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
         if comps and isinstance(comps, list) and len(comps) > 1:
             return {**p, "comparisons": comps}
         return p
-    if section in ("functional", "food_profile", "chain_space", "permanova", "outlier", "lipid_class"):
+    if section == "lipid_class":
+        return {"selected_classes": params.get("selected_classes"), **p}
+    if section in ("functional", "food_profile", "chain_space", "permanova", "outlier"):
         return p
     if section == "rt_mz":
         return {}

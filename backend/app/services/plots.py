@@ -2553,6 +2553,11 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         int_df = _intensity_df(df[keep], dataset.processing_history)
         classes = [c for c, ok in zip(classes, keep) if ok]
         totals = _lipid_class_totals(int_df, classes)
+        selected_classes = params.get("selected_classes") or []
+        selected_classes = [c for c in selected_classes if c]
+        if selected_classes:
+            totals = totals.loc[totals.index.isin(selected_classes)]
+            totals = totals.sort_index()
         sample_groups = {c: sample_meta.get(c, "unknown") for c in totals.columns}
         unique_groups = sorted(set(sample_groups.values()))
         fig = go.Figure()
@@ -2568,7 +2573,8 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
                 y_max = max(y_max, max(means) if means else 0)
             fig.add_trace(go.Bar(name=g, x=x, y=means, marker_color=color_map[g]))
         fig.update_layout(barmode="group", xaxis_title="Lipid class", yaxis_title="Total intensity")
-        _apply_base_layout(fig, style, title="Total abundance by lipid class × group", x_labels=x)
+        plot_title = params.get("title") or "Total abundance by lipid class × group"
+        _apply_base_layout(fig, style, title=plot_title, x_labels=x)
         fig.update_xaxes(tickmode="linear", dtick=1, automargin=True)
         fig.update_yaxes(range=[0, y_max * 1.15])
 

@@ -123,7 +123,7 @@ async def report(project_id: int, dataset_id: int, req: schemas.ReportRequest,
             }, style=style))
             sections.append({"key": key, "title": "Per-lipid bars", "figures": figs})
         elif key == "lipid_classes":
-            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="lipid_class", parameters={**base_params}, style=style))
+            fig = generate_plot(dataset, schemas.PlotRequest(plot_type="lipid_class", parameters={"selected_classes": params.get("selected_classes"), **base_params}, style=style))
             sections.append({"key": key, "title": "Lipid class analysis", "figure": fig})
         elif key == "outlier":
             fig = generate_plot(dataset, schemas.PlotRequest(plot_type="outlier", parameters={

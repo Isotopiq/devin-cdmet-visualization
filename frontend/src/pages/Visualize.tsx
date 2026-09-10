@@ -91,6 +91,10 @@ const ALL_PLOT_KEYS = [
   { key: 'food_profile', label: 'Lipid food profile' },
 ]
 
+function extractLipidClass(meta: any, featureId: string): string {
+  return meta?.top_candidate_class || meta?.class || meta?.lipid_class || (featureId && /^([A-Za-z]+)/.exec(featureId)?.[1]) || 'Unknown'
+}
+
 export default function Visualize() {
   const { selectedDataset, projectId, datasetId } = useWorkspace()
   const { style, reportTitle, setReportTitle, includePlots, setIncludePlots } = usePlotConfig()
@@ -113,9 +117,20 @@ export default function Visualize() {
     return Array.from(set)
   }, [selectedDataset])
 
+  const lipidClasses = useMemo(() => {
+    const meta = selectedDataset?.feature_metadata || []
+    const set = new Set<string>()
+    meta.forEach((m: any, i: number) => {
+      const fid = m?.feature_id || m?.name || `F${i}`
+      set.add(extractLipidClass(m, fid))
+    })
+    return Array.from(set).sort()
+  }, [selectedDataset])
+
   const [groupA, setGroupA] = useState('')
   const [groupB, setGroupB] = useState('')
   const [includedGroups, setIncludedGroups] = useState<Set<string>>(new Set())
+  const [selectedClasses, setSelectedClasses] = useState<Set<string>>(new Set())
   const [fcThreshold, setFcThreshold] = useState(1)
   const [pThreshold, setPThreshold] = useState(0.05)
   const [multipleTesting, setMultipleTesting] = useState('fdr_bh')
@@ -170,6 +185,7 @@ export default function Visualize() {
     // Default to excluding common QC/control groups; user can toggle them on
     setIncludedGroups(new Set(groups.filter(g => !isControlGroup(g))))
     setGroupOrder([...groups].sort())
+    setSelectedClasses(new Set(lipidClasses))
     setOutlierGroupOrder([...groups].sort())
     if (biomarkerComparisons.length === 0) {
       setBiomarkerComparisons([{ id: 0, group_a: groups[0] || '', group_b: groups[1] || '' }])
@@ -276,7 +292,7 @@ export default function Visualize() {
           else setFigure(res.data)
         }
       } else if (tab === 'lipid_classes') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'lipid_class', parameters: withExcluded({}), style: backendStyle })
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'lipid_class', parameters: withExcluded({ selected_classes: Array.from(selectedClasses).filter(c => lipidClasses.includes(c)), title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'chain_space') {
         const selectedGroups = Array.from(includedGroups).filter(g => groups.includes(g))
@@ -325,7 +341,7 @@ export default function Visualize() {
 
   useEffect(() => {
     if ((figure || figures.length) && !loading) generate()
-  }, [style, style.plotStyle, style.rTheme, style.rResolution, style.rBarWidth, style.rFont, style.rTitleBold, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, outlierGroupByGroup, outlierGroupOrder, renameSamples, biomarkerComparisons])
+  }, [style, style.plotStyle, style.rTheme, style.rResolution, style.rBarWidth, style.rFont, style.rTitleBold, fcThreshold, pThreshold, multipleTesting, heatmapTopN, heatmapStyle, heatmapLinkageColor, rowCluster, colCluster, heatmapScale, heatmapMetric, heatmapMethod, heatmapType, groupOrder, perLipidTest, lipidsPerPage, allLipids, includedGroups, selectedClasses, outlierGroupByGroup, outlierGroupOrder, renameSamples, biomarkerComparisons])
 
   const toggleInclude = (key: string) => {
     setIncludePlots((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -342,6 +358,19 @@ export default function Visualize() {
 
   const setAllGroups = (include: boolean) => {
     setIncludedGroups(include ? new Set(groups) : new Set([groupA, groupB].filter(Boolean)))
+  }
+
+  const toggleClass = (cls: string) => {
+    setSelectedClasses((prev) => {
+      const next = new Set(prev)
+      if (next.has(cls)) next.delete(cls)
+      else next.add(cls)
+      return next
+    })
+  }
+
+  const setAllClasses = (include: boolean) => {
+    setSelectedClasses(include ? new Set(lipidClasses) : new Set())
   }
 
   const addBiomarkerComparison = () => {
@@ -397,6 +426,7 @@ export default function Visualize() {
     group_order: groupOrder,
     per_lipid_top_n: lipidsPerPage,
     all_lipids: allLipids,
+    selected_classes: Array.from(selectedClasses).filter(c => lipidClasses.includes(c)),
     excluded_groups: excludedGroups,
     outlier_group_by_group: outlierGroupByGroup,
     outlier_group_order: outlierGroupOrder,
@@ -720,6 +750,26 @@ export default function Visualize() {
           <div><label className="label-like">Lipids/page</label><select value={lipidsPerPage} onChange={(e) => setLipidsPerPage(Number(e.target.value))} className="input">{LIPIDS_PER_PAGE.map(n => <option key={n} value={n}>{n}</option>)}</select></div>
           <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="allLipids" checked={allLipids} onChange={(e) => setAllLipids(e.target.checked)} /><label htmlFor="allLipids">All lipids</label></div>
           <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+        </div>
+      )
+    }
+    if (tab === 'lipid_classes') {
+      return (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={() => setAllClasses(true)} className="btn-secondary text-xs px-2 py-1">Select all</button>
+            <button onClick={() => setAllClasses(false)} className="btn-secondary text-xs px-2 py-1">Clear</button>
+            <button onClick={generate} disabled={loading || selectedClasses.size === 0} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            {lipidClasses.map((cls) => (
+              <label key={cls} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                <input type="checkbox" checked={selectedClasses.has(cls)} onChange={() => toggleClass(cls)} className="rounded border-slate-300" />
+                {cls}
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{selectedClasses.size} of {lipidClasses.length} classes selected</p>
         </div>
       )
     }

@@ -537,6 +537,11 @@ def _prepare_lipid_class_data(df: pd.DataFrame, params: Dict[str, Any], style: D
     mat = int_df.copy()
     mat["class"] = classes
     totals = mat.groupby("class").sum(numeric_only=True)
+    selected_classes = params.get("selected_classes") or []
+    selected_classes = [c for c in selected_classes if c]
+    if selected_classes:
+        totals = totals.loc[totals.index.isin(selected_classes)]
+        totals = totals.sort_index()
 
     sample_groups = {c: sample_meta.get(c, "unknown") for c in totals.columns}
     unique_groups = sorted(set(sample_groups.values()))
