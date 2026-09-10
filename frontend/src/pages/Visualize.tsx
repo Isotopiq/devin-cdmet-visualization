@@ -159,10 +159,16 @@ export default function Visualize() {
   const [saveReportToS3, setSaveReportToS3] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
 
+  const isControlGroup = (name: string) => {
+    const normalized = name.toLowerCase()
+    return ['blank', 'qc', 'solvent', 'standard', 'pool', 'ntc'].some(k => normalized.includes(k))
+  }
+
   useEffect(() => {
     setGroupA(groups[0] || '')
     setGroupB(groups[1] || '')
-    setIncludedGroups(new Set(groups))
+    // Default to excluding common QC/control groups; user can toggle them on
+    setIncludedGroups(new Set(groups.filter(g => !isControlGroup(g))))
     setGroupOrder([...groups].sort())
     setOutlierGroupOrder([...groups].sort())
     if (biomarkerComparisons.length === 0) {
