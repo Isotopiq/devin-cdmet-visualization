@@ -53,18 +53,28 @@ def _ss_model(G: np.ndarray, H: np.ndarray) -> float:
 def permanova_analysis(
     df: pd.DataFrame,
     sample_meta: Dict[str, str],
-    group_a: str,
-    group_b: str,
+    group_a: str = "",
+    group_b: str = "",
+    groups: Optional[List[str]] = None,
     covariates: Optional[Dict[str, float]] = None,
     block: Optional[Dict[str, str]] = None,
     metric: str = "braycurtis",
     n_perm: int = 999,
 ) -> Dict[str, Any]:
-    samples = sorted([s for s, g in sample_meta.items() if g in (group_a, group_b)])
-    if len(samples) < 4 or len({sample_meta[s] for s in samples}) < 2:
+    selected = list(groups) if groups else []
+    if len(selected) < 2 and group_a and group_b:
+        selected = [group_a, group_b]
+    if len(selected) < 2:
+        selected = sorted({g for g in sample_meta.values() if g})
+    if len(selected) < 2:
+        return {"error": "Need at least two groups for PERMANOVA."}
+    selected_set = set(selected)
+
+    samples = sorted([s for s, g in sample_meta.items() if g in selected_set])
+    group_labels = [sample_meta[s] for s in samples]
+    if len(samples) < 4 or len(set(group_labels)) < 2:
         return {"error": "Need at least two samples per group for PERMANOVA."}
 
-    y = np.array([1 if sample_meta[s] == group_b else 0 for s in samples])
     X = _prepare_X(df, samples)
     try:
         D = pairwise_distances(X, metric=metric)
@@ -95,41 +105,115 @@ def permanova_analysis(
                 design_cols.append(col)
                 col_names.append(cov_name)
 
-    # Full model including group
-    group_col = y.astype(float)
-    X_full = np.column_stack(design_cols + [group_col]) if design_cols else group_col[:, None]
-    H_full = _projection_matrix(X_full)
-    ss_full = _ss_model(G, H_full)
-    rank_full = np.linalg.matrix_rank(X_full)
+    # Binary comparison: keep original two-group code for backwards compatibility
+    if len(selected) == 2:
+        g_a, g_b = selected
+        y = np.array([1 if sample_meta[s] == g_b else 0 for s in samples])
 
+        group_col = y.astype(float)
+        X_full = np.column_stack(design_cols + [group_col]) if design_cols else group_col[:, None]
+        H_full = _projection_matrix(X_full)
+        ss_full = _ss_model(G, H_full)
+        rank_full = np.linalg.matrix_rank(X_full)
+
+        if design_cols:
+            X_base = np.column_stack(design_cols)
+            H_base = _projection_matrix(X_base)
+            ss_base = _ss_model(G, H_base)
+            rank_base = np.linalg.matrix_rank(X_base)
+        else:
+            ss_base = 0.0
+            rank_base = 0
+
+        ss_group = ss_full - ss_base
+        df_group = rank_full - rank_base
+        df_res = n - 1 - rank_full
+        ss_res = total_ss - ss_full
+        pseudo_f = (ss_group / df_group) / (ss_res / df_res) if df_group > 0 and df_res > 0 and ss_res > 0 else 0.0
+
+        rng = np.random.default_rng(42)
+        perm_f = []
+        for _ in range(n_perm):
+            y_perm = rng.permutation(y)
+            group_perm = y_perm.astype(float)
+            X_perm = np.column_stack(design_cols + [group_perm]) if design_cols else group_perm[:, None]
+            H_perm = _projection_matrix(X_perm)
+            ss_perm_full = _ss_model(G, H_perm)
+            ss_perm_group = ss_perm_full - ss_base
+            rank_perm = np.linalg.matrix_rank(X_perm)
+            df_perm_group = rank_perm - rank_base
+            df_perm_res = n - 1 - rank_perm
+            ss_perm_res = total_ss - ss_perm_full
+            f_perm = (ss_perm_group / df_perm_group) / (ss_perm_res / df_perm_res) if df_perm_group > 0 and df_perm_res > 0 and ss_perm_res > 0 else 0.0
+            perm_f.append(float(f_perm))
+
+        p_value = (np.sum(np.array(perm_f) >= pseudo_f) + 1) / (n_perm + 1)
+
+        return {
+            "method": "PERMANOVA",
+            "metric": metric,
+            "n_samples": n,
+            "df_group": int(df_group),
+            "df_res": int(df_res),
+            "ss_group": float(ss_group),
+            "ss_res": float(ss_res),
+            "pseudo_f": float(pseudo_f),
+            "p_value": float(p_value),
+            "r2": float(ss_group / total_ss) if total_ss > 0 else 0.0,
+            "perm_f": perm_f,
+            "samples": samples,
+            "groups": [g_a if g == 0 else g_b for g in y],
+        }
+
+    # Multi-group PERMANOVA (intercept + k-1 dummy codes)
+    levels = sorted(set(group_labels))
+    group_idx = {g: i for i, g in enumerate(levels[:-1])}  # drop-last dummy
+    k = len(levels)
+    dummies = np.zeros((n, k - 1))
+    for i, g in enumerate(group_labels):
+        if g in group_idx:
+            dummies[i, group_idx[g]] = 1.0
+
+    intercept = np.ones((n, 1))
     if design_cols:
-        X_base = np.column_stack(design_cols)
-        H_base = _projection_matrix(X_base)
-        ss_base = _ss_model(G, H_base)
-        rank_base = np.linalg.matrix_rank(X_base)
+        X_base = np.column_stack([intercept] + design_cols)
+        X_full = np.column_stack([intercept] + design_cols + [dummies])
     else:
-        ss_base = 0.0
-        rank_base = 0
+        X_base = intercept
+        X_full = np.column_stack([intercept, dummies])
+
+    H_base = _projection_matrix(X_base)
+    H_full = _projection_matrix(X_full)
+    ss_base = _ss_model(G, H_base)
+    ss_full = _ss_model(G, H_full)
+    rank_base = np.linalg.matrix_rank(X_base)
+    rank_full = np.linalg.matrix_rank(X_full)
 
     ss_group = ss_full - ss_base
     df_group = rank_full - rank_base
-    df_res = n - 1 - rank_full
+    df_res = n - rank_full
     ss_res = total_ss - ss_full
     pseudo_f = (ss_group / df_group) / (ss_res / df_res) if df_group > 0 and df_res > 0 and ss_res > 0 else 0.0
 
     rng = np.random.default_rng(42)
     perm_f = []
+    group_labels_arr = np.array(group_labels)
     for _ in range(n_perm):
-        y_perm = rng.permutation(y)
-        group_perm = y_perm.astype(float)
-        X_perm = np.column_stack(design_cols + [group_perm]) if design_cols else group_perm[:, None]
+        perm_labels = rng.permutation(group_labels_arr)
+        perm_dummies = np.zeros((n, k - 1))
+        for i, g in enumerate(perm_labels):
+            if g in group_idx:
+                perm_dummies[i, group_idx[g]] = 1.0
+        if design_cols:
+            X_perm = np.column_stack([intercept] + design_cols + [perm_dummies])
+        else:
+            X_perm = np.column_stack([intercept, perm_dummies])
         H_perm = _projection_matrix(X_perm)
         ss_perm_full = _ss_model(G, H_perm)
         ss_perm_group = ss_perm_full - ss_base
-        rank_perm = np.linalg.matrix_rank(X_perm)
-        df_perm_group = rank_perm - rank_base
-        df_perm_res = n - 1 - rank_perm
         ss_perm_res = total_ss - ss_perm_full
+        df_perm_res = n - np.linalg.matrix_rank(X_perm)
+        df_perm_group = np.linalg.matrix_rank(X_perm) - rank_base
         f_perm = (ss_perm_group / df_perm_group) / (ss_perm_res / df_perm_res) if df_perm_group > 0 and df_perm_res > 0 and ss_perm_res > 0 else 0.0
         perm_f.append(float(f_perm))
 
@@ -148,5 +232,5 @@ def permanova_analysis(
         "r2": float(ss_group / total_ss) if total_ss > 0 else 0.0,
         "perm_f": perm_f,
         "samples": samples,
-        "groups": [group_a if g == 0 else group_b for g in y],
+        "groups": group_labels,
     }

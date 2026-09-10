@@ -1251,17 +1251,22 @@ def _biomarker_figure(df, sample_meta, feature_metadata, style, params):
 
 
 def _permanova_figure(df, sample_meta, feature_metadata, style, params):
+    selected_groups = params.get("selected_groups") or params.get("groups") or []
     group_a = params.get("group_a", "")
     group_b = params.get("group_b", "")
+    if not selected_groups and group_a and group_b:
+        selected_groups = [group_a, group_b]
+    if not selected_groups:
+        selected_groups = sorted({g for g in sample_meta.values() if g})
     metric = params.get("metric", "braycurtis")
-    result = permanova_analysis(df, sample_meta, group_a, group_b, metric=metric, n_perm=999)
+    result = permanova_analysis(df, sample_meta, group_a=group_a, group_b=group_b, groups=selected_groups, metric=metric, n_perm=999)
     if result.get("error"):
         fig = go.Figure()
         _apply_base_layout(fig, style, title=f"PERMANOVA: {result['error']}")
         return fig
 
     display_samples = [_shorten_name(s) for s in result["samples"]]
-    color_map = _group_color_map(style, [group_a, group_b])
+    color_map = _group_color_map(style, sorted(set(result["groups"])))
 
     # Classical MDS / PCoA on Gower-centered distance matrix
     from sklearn.metrics import pairwise_distances
@@ -1314,7 +1319,7 @@ def _permanova_figure(df, sample_meta, feature_metadata, style, params):
     fig.update_xaxes(title_text="PCoA 1", row=1, col=2)
     fig.update_yaxes(title_text="PCoA 2", row=1, col=2)
 
-    title = f"PERMANOVA: {group_b} vs {group_a} (pseudo-F={actual:.2f}, p={result['p_value']:.3f}, R²={result['r2']:.2f})"
+    title = f"PERMANOVA ({len(selected_groups)} groups): pseudo-F={actual:.2f}, p={result['p_value']:.3f}, R²={result['r2']:.2f}"
     _apply_base_layout(fig, style, title=None, y_labels=display_samples)
     left_margin = max(getattr(fig.layout.margin, "l", 80), 80)
     bottom_margin = max(getattr(fig.layout.margin, "b", 110), 110)
@@ -2022,7 +2027,7 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
     # do not let the global group filter remove them.
     comparison_plot_types = {
         "volcano", "per_lipid_bars", "pls_da", "opls_da", "biomarker",
-        "permanova", "functional", "food_profile", "chain_space",
+        "functional", "food_profile", "chain_space",
     }
     if plot_type in comparison_plot_types:
         excluded_groups.discard(params.get("group_a"))
@@ -2573,7 +2578,15 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         stats_data = params.get("stats", [])
         group_a = params.get("group_a", "A")
         group_b = params.get("group_b", "B")
-        selected_groups = params.get("groups") or [group_a, group_b]
+        selected_groups = params.get("groups") or []
+        selected_groups = [g for g in selected_groups if g]
+        # For two-group tests, the Group A / Group B dropdowns are the comparison of
+        # interest and should always be displayed, even if unchecked in the global
+        # group filter.
+        if params.get("test") not in ("anova", "kruskal"):
+            selected_groups = list(dict.fromkeys([group_a, group_b] + selected_groups))
+        if not selected_groups:
+            selected_groups = [group_a, group_b]
         selected_groups = [g for g in selected_groups if g]
         top_n = int(params.get("top_n", 8))
         int_df = _intensity_df(df, dataset.processing_history)

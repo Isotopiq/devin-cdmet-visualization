@@ -201,7 +201,7 @@ export default function Visualize() {
 
   const generate = async () => {
     if (!projectId || !datasetId || !groupA) return
-    const needsGroupB = ['volcano', 'per_lipid_bars', 'pls_da', 'opls_da', 'biomarker', 'permanova', 'functional', 'food_profile', 'chain_space']
+    const needsGroupB = ['volcano', 'per_lipid_bars', 'pls_da', 'opls_da', 'biomarker', 'functional', 'food_profile', 'chain_space']
     if (!groupB && needsGroupB.includes(tab)) return
     const requestTab = tabRef.current
     setLoading(true)
@@ -227,7 +227,8 @@ export default function Visualize() {
           else setFigure(res.data)
         }
       } else if (tab === 'permanova') {
-        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'permanova', parameters: withExcluded({ group_a: groupA, group_b: groupB, metric: 'braycurtis', title: reportTitle }), style: backendStyle })
+        const selectedGroups = Array.from(includedGroups).filter(g => groups.includes(g))
+        const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'permanova', parameters: withExcluded({ selected_groups: selectedGroups, metric: 'braycurtis', title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'volcano') {
         const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: multipleTesting, alpha: pThreshold })
@@ -297,7 +298,7 @@ export default function Visualize() {
 
   // Generate when the active tab, dataset, groups, or included groups change (ignore the initial ready flag flip)
   const didInitRef = useRef(false)
-  const needsGroupB = ['volcano', 'per_lipid_bars', 'pls_da', 'opls_da', 'biomarker', 'permanova', 'functional', 'food_profile', 'chain_space']
+  const needsGroupB = ['volcano', 'per_lipid_bars', 'pls_da', 'opls_da', 'biomarker', 'functional', 'food_profile', 'chain_space']
 
   useEffect(() => {
     const hasGroupB = groupB || !needsGroupB.includes(tab)
@@ -706,29 +707,13 @@ export default function Visualize() {
     }
     if (tab === 'per_lipid_bars') {
       return (
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-8 gap-3 items-end">
-            <div><label className="label-like">Group A</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
-            <div><label className="label-like">Group B</label><select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
-            <div><label className="label-like">Test</label><select value={perLipidTest} onChange={(e) => setPerLipidTest(e.target.value)} className="input"><option value="t_test">t-test</option><option value="welch">Welch</option><option value="mannwhitney">Mann-Whitney</option>{groups.length > 2 && <><option value="anova">ANOVA</option><option value="kruskal">Kruskal-Wallis</option></>}</select></div>
-            <div><label className="label-like">Lipids/page</label><select value={lipidsPerPage} onChange={(e) => setLipidsPerPage(Number(e.target.value))} className="input">{LIPIDS_PER_PAGE.map(n => <option key={n} value={n}>{n}</option>)}</select></div>
-            <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="allLipids" checked={allLipids} onChange={(e) => setAllLipids(e.target.checked)} /><label htmlFor="allLipids">All lipids</label></div>
-            <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="label-like">Groups to display:</span>
-            {groups.map((g) => (
-              <label key={g} className={`flex items-center gap-1 ${(g === groupA || g === groupB) ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'}`}>
-                <input
-                  type="checkbox"
-                  checked={includedGroups.has(g)}
-                  disabled={g === groupA || g === groupB}
-                  onChange={() => toggleGroup(g)}
-                />
-                {g}
-              </label>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-8 gap-3 items-end">
+          <div><label className="label-like">Group A</label><select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
+          <div><label className="label-like">Group B</label><select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
+          <div><label className="label-like">Test</label><select value={perLipidTest} onChange={(e) => setPerLipidTest(e.target.value)} className="input"><option value="t_test">t-test</option><option value="welch">Welch</option><option value="mannwhitney">Mann-Whitney</option>{groups.length > 2 && <><option value="anova">ANOVA</option><option value="kruskal">Kruskal-Wallis</option></>}</select></div>
+          <div><label className="label-like">Lipids/page</label><select value={lipidsPerPage} onChange={(e) => setLipidsPerPage(Number(e.target.value))} className="input">{LIPIDS_PER_PAGE.map(n => <option key={n} value={n}>{n}</option>)}</select></div>
+          <div className="flex items-center gap-2 pb-2"><input type="checkbox" id="allLipids" checked={allLipids} onChange={(e) => setAllLipids(e.target.checked)} /><label htmlFor="allLipids">All lipids</label></div>
+          <button onClick={generate} disabled={loading} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Generate</button>
         </div>
       )
     }
