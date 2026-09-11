@@ -238,6 +238,7 @@ class ReportRequest(BaseModel):
 
 class QCPdfRequest(BaseModel):
     selected_groups: Optional[List[str]] = None
+    selected_plots: Optional[List[str]] = None
     primary_comparison: Optional[str] = None
     prepared_for: Optional[str] = None
     prepared_by: Optional[str] = None

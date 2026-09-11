@@ -34,6 +34,18 @@ const FONT_OPTIONS = [
   { label: 'Liberation', value: 'Liberation' },
 ]
 
+const PLOT_OPTIONS = [
+  { key: 'tic', label: 'Total Ion Current (TIC)' },
+  { key: 'missing_pct', label: 'Missing Values per Sample' },
+  { key: 'detected_features', label: 'Detected Features per Sample' },
+  { key: 'log2_intensity', label: 'Sample Intensity Distribution' },
+  { key: 'cv_by_group', label: 'Per-Feature CV by Group' },
+  { key: 'qc_pool_drift', label: 'QC-Pool TIC Drift' },
+  { key: 'qc_pool_correction', label: 'QC-Pool Correction' },
+  { key: 'pca', label: 'PCA Score Plot' },
+  { key: 'correlation_heatmap', label: 'Sample Correlation Heatmap' },
+]
+
 export default function QC() {
   const { projectId, datasetId, selectedDataset } = useWorkspace()
   const [data, setData] = useState<QCData | null>(null)
@@ -52,6 +64,7 @@ export default function QC() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [s3Configured, setS3Configured] = useState(false)
   const [saveToS3, setSaveToS3] = useState(false)
+  const [selectedPlots, setSelectedPlots] = useState<Set<string>>(new Set(PLOT_OPTIONS.map((p) => p.key)))
 
   const allGroups = selectedDataset?.sample_metadata
     ? Array.from(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>)))
@@ -62,6 +75,15 @@ export default function QC() {
       const next = new Set(prev)
       if (next.has(g)) next.delete(g)
       else next.add(g)
+      return next
+    })
+  }
+
+  const togglePlot = (key: string) => {
+    setSelectedPlots((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
@@ -90,6 +112,7 @@ export default function QC() {
   const buildPdfPayload = () => {
     const payload: any = {
       selected_groups: Array.from(selectedGroups),
+      selected_plots: Array.from(selectedPlots),
       primary_comparison: pdfMeta.primary_comparison || undefined,
       prepared_for: pdfMeta.prepared_for || undefined,
       prepared_by: pdfMeta.prepared_by || undefined,
@@ -312,6 +335,38 @@ export default function QC() {
                   <option value={4}>4 plots per page</option>
                   <option value={6}>6 plots per page</option>
                 </select>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="label-like">Plots to include in QC PDF</label>
+                  <div className="flex gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlots(new Set(PLOT_OPTIONS.map((p) => p.key)))}
+                      className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+                    >Select all</button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlots(new Set())}
+                      className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+                    >Clear</button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {PLOT_OPTIONS.map((plot) => (
+                    <label key={plot.key} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                      <input
+                        type="checkbox"
+                        checked={selectedPlots.has(plot.key)}
+                        onChange={() => togglePlot(plot.key)}
+                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      {plot.label}
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
           )}

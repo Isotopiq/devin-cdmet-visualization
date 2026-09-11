@@ -649,7 +649,9 @@ class _ReportPDF(FPDF):
     # ──────────────────────────────────────────────────────────────────────────
 
     def _fit_image(self, buffer: io.BytesIO, x: float, y: float, max_w: float, max_h: float):
+        buffer.seek(0)
         img = Image.open(buffer)
+        img.load()
         iw, ih = img.size
         aspect = ih / iw
         draw_w = max_w
@@ -658,7 +660,7 @@ class _ReportPDF(FPDF):
             draw_h = max_h
             draw_w = draw_h / aspect
         draw_x = x + (max_w - draw_w) / 2
-        self.image(buffer, x=draw_x, y=y, w=draw_w, h=draw_h)
+        self.image(img, x=draw_x, y=y, w=draw_w, h=draw_h)
 
     def _plot_page(self, title: str, buffer: io.BytesIO, orientation: str = "P"):
         self.add_page(orientation)
@@ -1234,6 +1236,7 @@ def build_qc_pdf(
     dataset: models.Dataset,
     project_name: str = "",
     selected_groups: list | None = None,
+    selected_plots: list | None = None,
     primary_comparison: str | None = None,
     prepared_for: str | None = None,
     prepared_by: str | None = None,
@@ -1249,7 +1252,10 @@ def build_qc_pdf(
 ) -> bytes:
     from app.services.qc import qc_analysis
 
-    result = qc_analysis(dataset, selected_groups=selected_groups)
+    plot_style: dict = {}
+    if font_family:
+        plot_style["font_family"] = font_family
+    result = qc_analysis(dataset, style=plot_style, selected_groups=selected_groups)
     metrics = result["metrics"]
     figures = result.get("figures", {})
 
@@ -1277,14 +1283,22 @@ def build_qc_pdf(
     pdf._draw_cover()
     pdf._qc_summary_page(metrics)
 
-    figure_order = [
+    default_figure_order = [
         ("tic", "default"),
         ("missing_pct", "default"),
         ("detected_features", "default"),
         ("log2_intensity", "default"),
         ("cv_by_group", "default"),
+        ("qc_pool_drift", "default"),
+        ("qc_pool_correction", "default"),
         ("pca", "pca_score"),
         ("correlation_heatmap", "heatmap_unclustered"),
+    ]
+    selected_set = set(selected_plots) if selected_plots is not None else None
+    figure_order = [
+        (key, section)
+        for key, section in default_figure_order
+        if key in figures and (selected_set is None or key in selected_set)
     ]
 
     queue: List[Tuple[str, io.BytesIO, str]] = []

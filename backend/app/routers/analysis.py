@@ -227,6 +227,7 @@ async def get_qc_pdf(
         dataset,
         project.name if project else "",
         selected_groups=body.selected_groups,
+        selected_plots=body.selected_plots,
         primary_comparison=body.primary_comparison,
         prepared_for=body.prepared_for,
         prepared_by=body.prepared_by,
