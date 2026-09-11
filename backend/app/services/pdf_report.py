@@ -16,6 +16,12 @@ from fpdf import FPDF
 from fpdf.enums import RenderStyle, Corner
 import plotly.graph_objects as go
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib.cm as mcm
+
 from app import models, schemas
 from app.config import settings as app_settings
 from app.services.preprocessing import to_dataframe
@@ -305,12 +311,18 @@ class _ReportPDF(FPDF):
         if logo_path and os.path.exists(logo_path):
             try:
                 logo_h = self.footer_h - 4
-                with Image.open(logo_path) as img:
-                    iw, ih = img.size
-                    logo_w = logo_h * (iw / ih)
+                logo_img = Image.open(logo_path)
+                logo_img.load()
+                iw, ih = logo_img.size
+                logo_w = logo_h * (iw / ih)
                 logo_x = logo_right_edge - logo_w
                 logo_y = y + (self.footer_h - logo_h) / 2
-                self.image(logo_path, x=logo_x, y=logo_y, h=logo_h)
+                logo_buf = io.BytesIO()
+                if logo_img.mode in ("RGBA", "P", "LA"):
+                    logo_img = logo_img.convert("RGBA") if logo_img.mode != "RGBA" else logo_img
+                logo_img.save(logo_buf, format="PNG")
+                logo_buf.seek(0)
+                self.image(logo_buf, x=logo_x, y=logo_y, h=logo_h)
             except Exception as _exc:
                 logger.exception("Unexpected error")
                 logo_w = 0.0
@@ -375,14 +387,24 @@ class _ReportPDF(FPDF):
             try:
                 px_per_mm = 4
                 img = _create_cover_png("minimal", int(card_w * px_per_mm), int(card_h * px_per_mm))
-                self.image(img, x=card_x, y=card_y, w=card_w)
+                cover_buf = io.BytesIO()
+                if img.mode in ("RGBA", "P", "LA"):
+                    img = img.convert("RGBA") if img.mode != "RGBA" else img
+                img.save(cover_buf, format="PNG")
+                cover_buf.seek(0)
+                self.image(cover_buf, x=card_x, y=card_y, w=card_w)
             except Exception as _exc:
                 logger.exception("Unexpected error")
                 pass
         else:
             px_per_mm = 4
             img = _create_cover_png(style_key, int(card_w * px_per_mm), int(card_h * px_per_mm))
-            self.image(img, x=card_x, y=card_y, w=card_w)
+            cover_buf = io.BytesIO()
+            if img.mode in ("RGBA", "P", "LA"):
+                img = img.convert("RGBA") if img.mode != "RGBA" else img
+            img.save(cover_buf, format="PNG")
+            cover_buf.seek(0)
+            self.image(cover_buf, x=card_x, y=card_y, w=card_w)
 
         # Logo
         logo_path = _ASSET_DIR / ("logo.png" if style_key == "minimal" else "logo_white.png")
@@ -514,27 +536,84 @@ class _ReportPDF(FPDF):
         self.set_body_font(12, "B")
         self.cell(w - 10, 7, value, align="L")
 
-    def _draw_table(self, x: float, y: float, w: float, headers: List[str], rows: List[List[str]], zebra: bool = False):
-        col_w = w / len(headers)
-        _fill(self, "#f2f0fb")
-        _draw_color(self, "#e2e8f0")
-        _color(self, "#1a1040")
-        self.set_xy(x, y)
-        self.set_body_font(9, "B")
-        for h in headers:
-            self.cell(col_w, 7, h, border=1, align="L", fill=True)
-        self.ln()
-        self.set_body_font(9, "")
-        for i, row in enumerate(rows):
-            if zebra and i % 2 == 1:
-                _fill(self, "#fafafa")
-            else:
-                _fill(self, "#ffffff")
+    def _draw_table(
+        self,
+        x: float,
+        y: float,
+        w: float,
+        headers: List[str],
+        rows: List[List[str]],
+        zebra: bool = False,
+        col_ratios: Optional[List[float]] = None,
+        wrap: bool = False,
+        font_size: int = 9,
+        line_height: float = 4,
+        allow_page_break: bool = True,
+    ) -> float:
+        if not headers or not rows:
+            return y
+
+        n_cols = len(headers)
+        if col_ratios is None:
+            col_ratios = [1.0 / n_cols] * n_cols
+        col_widths = [w * r for r in col_ratios]
+        header_height = line_height + 3
+        bottom = self.h - self.footer_h - self.margin - 2
+
+        def _draw_header(y0: float) -> float:
+            _fill(self, "#f2f0fb")
+            _draw_color(self, "#e2e8f0")
             _color(self, "#1a1040")
-            self.set_x(x)
-            for cell in row:
-                self.cell(col_w, 7, str(cell), border=1, align="L", fill=True)
-            self.ln()
+            self.set_body_font(font_size, "B")
+            for i, h in enumerate(headers):
+                self.set_xy(x + sum(col_widths[:i]), y0)
+                self.cell(col_widths[i], header_height, str(h), border=1, align="C", fill=True)
+            return y0 + header_height
+
+        y = _draw_header(y)
+        self.set_body_font(font_size, "")
+
+        for row_idx, row in enumerate(rows):
+            row = list(row)[:n_cols]
+            cell_lines = []
+            max_lines = 1
+            for i, cell in enumerate(row):
+                text = str(cell)
+                if wrap:
+                    self.set_xy(x + sum(col_widths[:i]), y)
+                    lines = self.multi_cell(col_widths[i] - 2, line_height, text, dry_run=True, output="LINES") or [text]
+                    if not lines:
+                        lines = [""]
+                else:
+                    lines = [text]
+                cell_lines.append(lines)
+                max_lines = max(max_lines, len(lines))
+
+            row_h = max(header_height, line_height * max_lines + 2)
+
+            if allow_page_break and y + row_h > bottom:
+                self._page_footer(
+                    self.page_no(),
+                    self.style.get("footer_text", "Confidential"),
+                    self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')),
+                )
+                self.add_page("P")
+                self._page_header(self.style.get("title", "Report"), self.style.get("organization", ""))
+                y = _draw_header(self.margin + 6)
+
+            fill_color = "#fafafa" if zebra and row_idx % 2 == 1 else "#ffffff"
+            _fill(self, fill_color)
+            _draw_color(self, "#e2e8f0")
+            for i, lines in enumerate(cell_lines):
+                cell_x = x + sum(col_widths[:i])
+                self.rect(cell_x, y, col_widths[i], row_h, style="DF")
+                _color(self, "#1a1040")
+                for j, line in enumerate(lines):
+                    self.set_xy(cell_x + 1, y + 1 + j * line_height)
+                    self.cell(col_widths[i] - 2, line_height, line, border=0, align="L")
+            y += row_h
+
+        return y
 
     def _summary_page(self, metrics: dict, group_a: str, group_b: str, p_threshold: float):
         self.add_page("P")
@@ -567,8 +646,8 @@ class _ReportPDF(FPDF):
         table_y = y + ((len(items) + 1) // 2) * (row_h + gap) + 6
         group_rows = [[g, str(c)] for g, c in metrics.get("group_counts", {}).items()]
         if group_rows:
-            self._draw_table(x, table_y, self.w - 2 * self.margin - 12, ["Group", "Samples"], group_rows, zebra=True)
-            table_y += 9 + len(group_rows) * 7
+            table_y = self._draw_table(x, table_y, self.w - 2 * self.margin - 12, ["Group", "Samples"], group_rows, zebra=True, col_ratios=[0.7, 0.3], wrap=True)
+            table_y += 6
 
         top = metrics.get("top_features")
         if top:
@@ -582,7 +661,7 @@ class _ReportPDF(FPDF):
                 [s.get("feature_id", ""), f"{_safe_float(s.get('log2fc'), 0):.3f}", f"{_safe_float(s.get('padj'), 1):.3e}"]
                 for s in top
             ]
-            self._draw_table(x, self.get_y(), self.w - 2 * self.margin - 12, ["Feature", "log2FC", "padj"], rows, zebra=True)
+            self._draw_table(x, self.get_y(), self.w - 2 * self.margin - 12, ["Feature", "log2FC", "padj"], rows, zebra=True, col_ratios=[0.5, 0.25, 0.25], wrap=True, font_size=8, line_height=4)
 
         self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
@@ -620,8 +699,8 @@ class _ReportPDF(FPDF):
         table_y = y + ((len(items) + 1) // 2) * (row_h + gap) + 6
         group_rows = [[g, str(c)] for g, c in metrics.get("group_counts", {}).items()]
         if group_rows:
-            self._draw_table(x, table_y, self.w - 2 * self.margin - 12, ["Group", "Samples"], group_rows, zebra=True)
-            table_y += 9 + len(group_rows) * 7
+            table_y = self._draw_table(x, table_y, self.w - 2 * self.margin - 12, ["Group", "Samples"], group_rows, zebra=True, col_ratios=[0.7, 0.3], wrap=True)
+            table_y += 6
 
         cv = metrics.get("group_cv_pct", {})
         if cv:
@@ -631,7 +710,7 @@ class _ReportPDF(FPDF):
             self.cell(0, 7, "Group median CV %", align="L")
             self.ln(9)
             rows = [[g, f"{v}%" if v is not None else "N/A"] for g, v in cv.items()]
-            self._draw_table(x, self.get_y(), self.w - 2 * self.margin - 12, ["Group", "CV %"], rows, zebra=True)
+            self._draw_table(x, self.get_y(), self.w - 2 * self.margin - 12, ["Group", "CV %"], rows, zebra=True, col_ratios=[0.7, 0.3], wrap=True)
 
         outliers = metrics.get("pca_outlier_samples") or []
         if outliers:
@@ -640,7 +719,7 @@ class _ReportPDF(FPDF):
             self.cell(0, 7, "PCA outlier samples", align="L")
             self.ln(9)
             rows = [[str(s)] for s in outliers]
-            self._draw_table(x, self.get_y(), self.w - 2 * self.margin - 12, ["Sample"], rows, zebra=True)
+            self._draw_table(x, self.get_y(), self.w - 2 * self.margin - 12, ["Sample"], rows, zebra=True, col_ratios=[1.0], wrap=True)
 
         self._page_footer(self.page_no(), self.style.get("footer_text", "Confidential"), self.style.get("date", dt.datetime.utcnow().strftime('%Y-%m-%d')))
 
@@ -652,6 +731,12 @@ class _ReportPDF(FPDF):
         buffer.seek(0)
         img = Image.open(buffer)
         img.load()
+        # Normalise every image to a clean PNG BytesIO before handing it to fpdf2.
+        if img.mode in ("RGBA", "P", "LA"):
+            img = img.convert("RGBA") if img.mode != "RGBA" else img
+        png_buf = io.BytesIO()
+        img.save(png_buf, format="PNG")
+        png_buf.seek(0)
         iw, ih = img.size
         aspect = ih / iw
         draw_w = max_w
@@ -660,7 +745,7 @@ class _ReportPDF(FPDF):
             draw_h = max_h
             draw_w = draw_h / aspect
         draw_x = x + (max_w - draw_w) / 2
-        self.image(img, x=draw_x, y=y, w=draw_w, h=draw_h)
+        self.image(png_buf, x=draw_x, y=y, w=draw_w, h=draw_h)
 
     def _plot_page(self, title: str, buffer: io.BytesIO, orientation: str = "P"):
         self.add_page(orientation)
@@ -931,44 +1016,88 @@ def _summary_metrics(dataset: models.Dataset, group_a: str, group_b: str, stats_
     }
 
 
+def _is_valid_png(buffer: io.BytesIO) -> bool:
+    try:
+        buffer.seek(0)
+        with Image.open(buffer) as img:
+            img.load()
+        return len(buffer.getvalue()) > 100
+    except Exception:
+        return False
+
+
+def _set_kaleido_chromium_args():
+    try:
+        import plotly.io as pio
+        pio.kaleido.scope.chromium_args = [
+            "--no-sandbox",
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            "--single-process",
+            "--disable-software-rasterizer",
+        ]
+    except Exception:
+        pass
+
+
 def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int = 2, keep_title: bool = False) -> io.BytesIO:
+    # Already-rendered PNG (e.g. R static plots)
     if isinstance(fig_dict, dict) and fig_dict.get("format") == "png" and "image" in fig_dict:
         image_data = fig_dict["image"]
         if image_data.startswith("data:image/png;base64,"):
             image_data = image_data.split(",", 1)[1]
-        return io.BytesIO(base64.b64decode(image_data))
+        try:
+            buf = io.BytesIO(base64.b64decode(image_data))
+            if _is_valid_png(buf):
+                return buf
+        except Exception:
+            pass
 
-    fig = go.Figure(data=fig_dict.get("data", []), layout=fig_dict.get("layout", {}))
+    # Kaleido sometimes fails in sandboxed/headless containers; disable the sandbox.
+    _set_kaleido_chromium_args()
 
-    # Strip the figure title because the PDF card already has a title, unless the caller
-    # needs the per-plot title (e.g. individual lipid bar plots).
-    if not keep_title and fig.layout.title is not None:
-        fig.update_layout(title_text="")
+    try:
+        fig = go.Figure(data=fig_dict.get("data", []), layout=fig_dict.get("layout", {}))
 
-    # Tighten the top margin when the title is removed; keep enough room when kept.
-    margin = {}
-    if fig.layout.margin is not None:
-        margin = {
-            k: getattr(fig.layout.margin, k)
-            for k in ("l", "r", "t", "b")
-            if getattr(fig.layout.margin, k) is not None
-        }
-    if keep_title:
-        margin["t"] = max(margin.get("t", 60), 60)
-    else:
-        margin["t"] = 30
-    fig.update_layout(
-        paper_bgcolor="#ffffff",
-        plot_bgcolor="#ffffff",
-        margin=margin,
-    )
+        if not keep_title and fig.layout.title is not None:
+            fig.update_layout(title_text="")
 
-    buffer = io.BytesIO()
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        fig.write_image(buffer, format="png", width=width, height=height, scale=scale)
-    buffer.seek(0)
-    return buffer
+        margin = {}
+        if fig.layout.margin is not None:
+            if isinstance(fig.layout.margin, dict):
+                margin = {
+                    k: fig.layout.margin.get(k)
+                    for k in ("l", "r", "t", "b")
+                    if fig.layout.margin.get(k) is not None
+                }
+            else:
+                margin = {
+                    k: getattr(fig.layout.margin, k)
+                    for k in ("l", "r", "t", "b")
+                    if getattr(fig.layout.margin, k) is not None
+                }
+        if keep_title:
+            margin["t"] = max(margin.get("t", 60), 60)
+        else:
+            margin["t"] = 30
+        fig.update_layout(
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
+            margin=margin,
+        )
+
+        buffer = io.BytesIO()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            fig.write_image(buffer, format="png", width=width, height=height, scale=scale)
+        buffer.seek(0)
+        if _is_valid_png(buffer):
+            return buffer
+    except Exception as _kaleido_exc:
+        logger.warning("Kaleido PNG generation failed; using matplotlib fallback: %s", _kaleido_exc)
+
+    from app.services._pdf_plot_fallback import fig_to_png_mpl
+    return fig_to_png_mpl(fig_dict, width=width, height=height, scale=scale, keep_title=keep_title)
 
 
 def _section_params(section: str, group_a: str, group_b: str, stats_data: List[dict], req: schemas.PDFReportRequest, selected_groups: Optional[List[str]] = None, dataset: Optional[models.Dataset] = None) -> Optional[dict]:
