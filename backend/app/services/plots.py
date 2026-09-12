@@ -2144,27 +2144,56 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         if heatmap_type == "correlation":
             if cluster_cols and len(df.columns) > 2:
                 try:
-                    dist = pdist(df.T.values, metric=metric)
+                    # Remove all-NaN samples/features and replace remaining NaN/Inf with 0
+                    # so the distance matrix used only for ordering is finite.
+                    sub = df.dropna(axis=0, how="all").dropna(axis=1, how="all")
+                    mat = sub.T.values
+                    mat = np.where(np.isfinite(mat), mat, 0.0)
+                    dist = pdist(mat, metric=metric)
                     link = linkage(dist, method=method)
                     order = leaves_list(link)
-                    df = df.iloc[:, order]
+                    df = sub.iloc[:, order]
                 except Exception as _exc:
                     logger.exception("Unexpected error")
                     pass
             corr = df.corr().fillna(0)
             short_cols = [_shorten_name(c) for c in corr.columns]
+            n_cols = len(short_cols)
+            longest = max((len(s) for s in short_cols), default=0)
+            tick_font = style.get("tick_size", 11)
+            if n_cols > 30 or longest > 18:
+                tick_font = max(6, tick_font - 2)
+            elif n_cols > 12 or longest > 10:
+                tick_font = max(7, tick_font - 1)
+            if n_cols > 40 or longest > 18:
+                x_tickangle = -90
+            elif n_cols > 12 or longest > 10:
+                x_tickangle = -45
+            else:
+                x_tickangle = 0
+            # Limit number of top labels so they do not overlap
+            char_w = tick_font * 0.6
+            if x_tickangle == -90:
+                footprint = longest * tick_font + tick_font + 4
+            elif x_tickangle == -45:
+                footprint = 0.707 * (longest * char_w + tick_font) + 8
+            else:
+                footprint = longest * char_w + 8
+            max_labels = max(5, int(1000 / max(footprint, 1)))
+            step = max(1, int(math.ceil(n_cols / max_labels)))
+            tick_vals = short_cols[::step]
+            tick_text = short_cols[::step]
+            top_margin = int(footprint) + 50
             fig = go.Figure(data=go.Heatmap(
                 z=corr.values, x=short_cols, y=short_cols,
                 colorscale=colorscale, zmid=1,
                 colorbar=dict(title={"text": "r", "side": "right"})))
             _apply_base_layout(fig, style, title=params.get("title") or "Sample Correlation Heatmap", x_labels=short_cols)
-            tick_font = max(6, style.get("tick_size", 11) - 2) if len(short_cols) > 30 else style.get("tick_size", 11)
-            if len(short_cols) <= 60:
-                fig.update_xaxes(side="top", tickangle=-45, tickmode="linear", dtick=1, tickfont=dict(size=tick_font), automargin=True)
-                fig.update_yaxes(tickangle=0, tickfont=dict(size=tick_font), automargin=True)
-            else:
-                fig.update_xaxes(side="top", tickangle=-45, tickfont=dict(size=tick_font), automargin=True)
-                fig.update_yaxes(tickangle=0, tickfont=dict(size=tick_font), automargin=True)
+            fig.update_xaxes(side="top", tickmode="array", tickvals=tick_vals, ticktext=tick_text,
+                             tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
+            fig.update_yaxes(tickmode="array", tickvals=tick_vals, ticktext=tick_text,
+                             tickangle=0, tickfont=dict(size=tick_font), automargin=True)
+            fig.update_layout(margin=dict(t=min(250, max(90, top_margin))))
         else:
             plot_df = df.copy()
             row_std = plot_df.std(axis=1, numeric_only=True)
@@ -2382,15 +2411,28 @@ def generate_plot(dataset: models.Dataset, req: schemas.PlotRequest):
         plot_style = _plot_style(style, params)
         components = max(2, min(int(params.get("components", 3)), len(df.columns), len(df)))
         do_scale = bool(params.get("scale", True))
-        X = df.dropna().T
-        if X.empty or X.shape[1] < 2 or X.shape[0] < 2:
+        # Keep features/samples with some data and impute remaining missing values
+        # instead of dropping any row with a single NaN, which was wiping out sparse matrices.
+        X = df.dropna(axis=0, how="all").dropna(axis=1, how="all")
+        if X.empty or X.shape[0] < 2 or X.shape[1] < 2:
             fig = go.Figure()
             _apply_base_layout(fig, style, title="Not enough data for PCA")
             return json.loads(fig.to_json())
-        X = X.fillna(X.min().min() / 2)
-        Xs = StandardScaler().fit_transform(X) if do_scale else X.values
-        pca = PCA_SKL(n_components=components)
-        scores = pca.fit_transform(Xs)
+        X = X.fillna(X.min().min() / 2).T
+        if X.shape[0] < 2 or X.shape[1] < 2:
+            fig = go.Figure()
+            _apply_base_layout(fig, style, title="Not enough data for PCA")
+            return json.loads(fig.to_json())
+        components = min(components, X.shape[0], X.shape[1])
+        try:
+            Xs = StandardScaler().fit_transform(X) if do_scale else X.values
+            pca = PCA_SKL(n_components=components)
+            scores = pca.fit_transform(Xs)
+        except Exception as _exc:
+            logger.exception("PCA computation failed")
+            fig = go.Figure()
+            _apply_base_layout(fig, style, title="Not enough data for PCA")
+            return json.loads(fig.to_json())
         labels = [sample_meta.get(c, c) for c in X.index]
         display_names = [_shorten_name(c) for c in X.index]
         style = _style_with_palette(style, plot_style)

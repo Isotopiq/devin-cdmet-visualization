@@ -148,7 +148,7 @@ export default function QC() {
   }
 
   const handlePreviewPdf = async () => {
-    if (!projectId || !datasetId || !selectedDataset || selectedGroups.size === 0) return
+    if (!projectId || !datasetId || !selectedDataset || selectedGroups.size === 0 || selectedPlots.size === 0) return
     setLoading(true)
     setError('')
     try {
@@ -165,7 +165,7 @@ export default function QC() {
   }
 
   const handleExportPdf = async () => {
-    if (!projectId || !datasetId || !selectedDataset || selectedGroups.size === 0) return
+    if (!projectId || !datasetId || !selectedDataset || selectedGroups.size === 0 || selectedPlots.size === 0) return
     setLoading(true)
     setError('')
     try {
@@ -225,8 +225,8 @@ export default function QC() {
           <div className="card p-5 flex items-end gap-4 flex-wrap">
             <button onClick={load} disabled={loading || selectedGroups.size === 0} className="btn-primary"><LuRefreshCw className={loading ? 'animate-spin' : ''} /> Run QC</button>
             <button onClick={handleExportExcel} disabled={!selectedDataset || selectedGroups.size === 0} className="btn-secondary"><LuDownload /> Export Excel Summary</button>
-            <button onClick={handlePreviewPdf} disabled={!selectedDataset || loading || selectedGroups.size === 0} className="btn-secondary"><LuEye /> Preview QC PDF</button>
-            <button onClick={handleExportPdf} disabled={!selectedDataset || loading || selectedGroups.size === 0} className="btn-secondary"><LuFileText /> Export QC PDF Report</button>
+            <button onClick={handlePreviewPdf} disabled={!selectedDataset || loading || selectedGroups.size === 0 || selectedPlots.size === 0} className="btn-secondary"><LuEye /> Preview QC PDF</button>
+            <button onClick={handleExportPdf} disabled={!selectedDataset || loading || selectedGroups.size === 0 || selectedPlots.size === 0} className="btn-secondary"><LuFileText /> Export QC PDF Report</button>
             {error && <span className="text-sm text-red-600 dark:text-red-400">{error}</span>}
           </div>
 

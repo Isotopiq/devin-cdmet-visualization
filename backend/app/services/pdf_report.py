@@ -1423,7 +1423,7 @@ def build_qc_pdf(
         ("pca", "pca_score"),
         ("correlation_heatmap", "heatmap_unclustered"),
     ]
-    selected_set = set(selected_plots) if selected_plots is not None else None
+    selected_set = set(selected_plots) if selected_plots else None
     figure_order = [
         (key, section)
         for key, section in default_figure_order

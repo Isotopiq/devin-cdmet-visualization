@@ -26,6 +26,57 @@ def _safe_log10(values):
         return np.log10(np.where(np.array(values) > 0, np.array(values), np.nan))
 
 
+def _format_qc_xaxis(fig: go.Figure, labels: list, style: dict, plot_width_px: int = 1000):
+    """Shorten, rotate, and (when necessary) thin x-axis labels so crowded QC charts stay readable."""
+    if not labels:
+        return
+    short = [_shorten_name(str(l), max_len=20) for l in labels]
+    n = len(short)
+    longest = max((len(s) for s in short), default=0)
+    tick_size = style.get("tick_size", 11)
+
+    if n > 40 or longest > 18:
+        angle = -90
+        tick_font = max(6, tick_size - 3)
+    elif n > 12 or longest > 10:
+        angle = -45
+        tick_font = max(7, tick_size - 2)
+    else:
+        angle = 0
+        tick_font = tick_size
+
+    char_w = tick_font * 0.6
+    if angle == -90:
+        footprint = longest * tick_font + tick_font + 4
+    elif angle == -45:
+        footprint = 0.707 * (longest * char_w + tick_font) + 8
+    else:
+        footprint = longest * char_w + 8
+
+    max_labels = max(5, int(plot_width_px / max(footprint, 1)))
+    step = max(1, int(math.ceil(n / max_labels)))
+    tick_vals = labels[::step]
+    tick_text = short[::step]
+
+    fig.update_xaxes(
+        tickmode="array",
+        tickvals=tick_vals,
+        ticktext=tick_text,
+        tickangle=angle,
+        tickfont=dict(size=tick_font),
+        automargin=True,
+    )
+
+    if angle == -90:
+        bottom = int(footprint) + 40
+    elif angle == -45:
+        bottom = int(footprint) + 30
+    else:
+        bottom = 70
+    bottom = min(250, max(70, bottom))
+    fig.update_layout(margin=dict(b=bottom))
+
+
 def _as_floats(df: pd.DataFrame) -> pd.DataFrame:
     return df.apply(pd.to_numeric, errors="coerce")
 
@@ -160,22 +211,21 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
     # Helper for Plotly bar colored by group
     def _bar_figure(title: str, y: dict, y_title: str) -> go.Figure:
         fig = go.Figure()
+        ordered_samples: list[str] = []
         for g in group_order:
             xs = [s for s in samples if sample_meta.get(s, "Unknown") == g]
+            ordered_samples.extend(xs)
             ys = [y.get(s, 0) for s in xs]
             fig.add_trace(go.Bar(x=xs, y=ys, name=g, marker_color=color_map.get(g, "#94a3b8")))
         fig.update_layout(barmode="group", xaxis_title="Sample", yaxis_title=y_title)
-        _apply_base_layout(fig, style, title=title, x_labels=samples)
-        n_samp = len(samples)
-        longest_samp = max([len(str(s)) for s in samples], default=0)
-        tick_font = max(6, style.get("tick_size", 11) - 2) if n_samp > 30 else max(7, style.get("tick_size", 11) - 1)
-        x_tickangle = -90 if (longest_samp > 20 or n_samp > 40) else (-45 if (longest_samp > 10 or n_samp > 12) else 0)
-        fig.update_xaxes(tickmode="linear", dtick=1, tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
+        _apply_base_layout(fig, style, title=title, x_labels=ordered_samples)
+        _format_qc_xaxis(fig, ordered_samples, style)
         return json.loads(fig.to_json())
 
     # Box plot of log2 intensities per sample
     def _log2_box_figure() -> go.Figure:
         fig = go.Figure()
+        ordered_samples: list[str] = []
         for g in group_order:
             xs = [s for s in samples if sample_meta.get(s, "Unknown") == g]
             for s in xs:
@@ -183,19 +233,17 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
                 vals = vals[~np.isnan(vals)]
                 if len(vals) == 0:
                     continue
-                fig.add_trace(go.Box(y=vals, name=s, marker_color=color_map.get(g, "#94a3b8"), showlegend=False))
+                ordered_samples.append(s)
+                fig.add_trace(go.Box(y=vals, x=[s] * len(vals), name=s, marker_color=color_map.get(g, "#94a3b8"), showlegend=False))
         fig.update_layout(xaxis_title="Sample", yaxis_title="log2 intensity")
-        _apply_base_layout(fig, style, title="Sample Intensity Distribution", x_labels=samples)
-        n_samp = len(samples)
-        longest_samp = max([len(str(s)) for s in samples], default=0)
-        tick_font = max(6, style.get("tick_size", 11) - 2) if n_samp > 30 else max(7, style.get("tick_size", 11) - 1)
-        x_tickangle = -90 if (longest_samp > 20 or n_samp > 40) else (-45 if (longest_samp > 10 or n_samp > 12) else 0)
-        fig.update_xaxes(tickmode="linear", dtick=1, tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
+        _apply_base_layout(fig, style, title="Sample Intensity Distribution", x_labels=ordered_samples)
+        _format_qc_xaxis(fig, ordered_samples, style)
         return json.loads(fig.to_json())
 
     # CV box plot per group
     def _cv_box_figure() -> go.Figure:
         fig = go.Figure()
+        present_groups: list[str] = []
         for g in group_order:
             cols = [s for s in samples if sample_meta.get(s, "Unknown") == g]
             if not cols:
@@ -208,16 +256,11 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
             cvs = cvs[cvs > 0]
             if len(cvs) == 0:
                 continue
-            fig.add_trace(go.Box(y=cvs, name=g, marker_color=color_map.get(g, "#94a3b8")))
+            present_groups.append(g)
+            fig.add_trace(go.Box(y=cvs, x=[g] * len(cvs), name=g, marker_color=color_map.get(g, "#94a3b8")))
         fig.update_layout(xaxis_title="Group", yaxis_title="Coefficient of variation (%)")
-        _apply_base_layout(fig, style, title="Per-Feature CV by Group", x_labels=group_order)
-        longest_group = max([len(str(g)) for g in group_order], default=0)
-        n_groups = len(group_order)
-        tick_font = max(7, style.get("tick_size", 11) - 1)
-        if longest_group > 18 or n_groups > 15:
-            tick_font = max(6, style.get("tick_size", 11) - 2)
-        x_tickangle = -90 if (longest_group > 18 or n_groups > 15) else (-45 if (longest_group > 12 or n_groups > 8) else 0)
-        fig.update_xaxes(tickmode="linear", dtick=1, tickangle=x_tickangle, tickfont=dict(size=tick_font), automargin=True)
+        _apply_base_layout(fig, style, title="Per-Feature CV by Group", x_labels=present_groups)
+        _format_qc_xaxis(fig, present_groups, style)
         return json.loads(fig.to_json())
 
     def _drift_figure() -> dict | None:
