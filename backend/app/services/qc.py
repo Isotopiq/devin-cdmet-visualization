@@ -27,18 +27,25 @@ def _safe_log10(values):
 
 
 def _format_qc_xaxis(fig: go.Figure, labels: list, style: dict, plot_width_px: int = 1000):
-    """Shorten, rotate, and (when necessary) thin x-axis labels so crowded QC charts stay readable."""
+    """Shorten and auto-rotate x-axis labels so every label is legible and none overlap.
+
+    Labels are shown in full (not deliberately blanked) unless there are so many that
+    even vertical text would not fit, in which case a small subset is shown.
+    """
     if not labels:
         return
     short = [_shorten_name(str(l), max_len=20) for l in labels]
     n = len(short)
-    longest = max((len(s) for s in short), default=0)
+    if n == 0:
+        return
+    longest = max(len(s) for s in short)
     tick_size = style.get("tick_size", 11)
 
-    if n > 40 or longest > 18:
+    # Choose rotation / font so labels can all fit without overlapping.
+    if n > 20 or longest > 16:
         angle = -90
         tick_font = max(6, tick_size - 3)
-    elif n > 12 or longest > 10:
+    elif n > 6 or longest > 9:
         angle = -45
         tick_font = max(7, tick_size - 2)
     else:
@@ -47,16 +54,21 @@ def _format_qc_xaxis(fig: go.Figure, labels: list, style: dict, plot_width_px: i
 
     char_w = tick_font * 0.6
     if angle == -90:
-        footprint = longest * tick_font + tick_font + 4
+        label_w = tick_font + 4
     elif angle == -45:
-        footprint = 0.707 * (longest * char_w + tick_font) + 8
+        label_w = 0.707 * (longest * char_w + tick_font) + 8
     else:
-        footprint = longest * char_w + 8
+        label_w = longest * char_w + 8
 
-    max_labels = max(5, int(plot_width_px / max(footprint, 1)))
-    step = max(1, int(math.ceil(n / max_labels)))
-    tick_vals = labels[::step]
-    tick_text = short[::step]
+    available_w = max(plot_width_px - 80, 100)
+    max_labels = max(5, int(available_w / max(label_w, 1)))
+    if n > max_labels:
+        step = max(1, int(math.ceil(n / max_labels)))
+        tick_vals = labels[::step]
+        tick_text = short[::step]
+    else:
+        tick_vals = labels
+        tick_text = short
 
     fig.update_xaxes(
         tickmode="array",
@@ -68,12 +80,11 @@ def _format_qc_xaxis(fig: go.Figure, labels: list, style: dict, plot_width_px: i
     )
 
     if angle == -90:
-        bottom = int(footprint) + 40
+        bottom = min(250, max(90, longest * tick_font + 40))
     elif angle == -45:
-        bottom = int(footprint) + 30
+        bottom = min(220, max(80, int(longest * tick_font * 0.7) + 40))
     else:
         bottom = 70
-    bottom = min(250, max(70, bottom))
     fig.update_layout(margin=dict(b=bottom))
 
 
