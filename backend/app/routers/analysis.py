@@ -251,6 +251,7 @@ async def get_qc_pdf(
         axis_label_size=body.axis_label_size,
         plots_per_page=body.plots_per_page,
         plot_layout=body.plot_layout,
+        plot_images=body.plot_images,
         footer_logo_path=footer_logo_path,
     )
     filename = f"{dataset.name.replace(' ', '_')}_qc_report.pdf"

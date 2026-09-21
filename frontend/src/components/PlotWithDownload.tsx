@@ -9,6 +9,7 @@ interface Props {
   style?: React.CSSProperties
   filename?: string
   config?: any
+  onGraphDiv?: (gd: HTMLDivElement) => void
 }
 
 function parseDim(value: any): number | null {
@@ -22,8 +23,13 @@ function parseDim(value: any): number | null {
   return null
 }
 
-export default function PlotWithDownload({ data, layout, style, filename = 'plot.png', config }: Props) {
+export default function PlotWithDownload({ data, layout, style, filename = 'plot.png', config, onGraphDiv }: Props) {
   const [graphDiv, setGraphDiv] = useState<HTMLDivElement | null>(null)
+
+  const handleInitialized = useCallback((_figure: any, gd: any) => {
+    setGraphDiv(gd)
+    onGraphDiv?.(gd)
+  }, [onGraphDiv])
 
   const downloadPng = useCallback(async () => {
     if (!graphDiv) return
@@ -60,7 +66,7 @@ export default function PlotWithDownload({ data, layout, style, filename = 'plot
         layout={layout}
         style={style}
         config={config}
-        onInitialized={(_figure: any, gd: any) => setGraphDiv(gd)}
+        onInitialized={handleInitialized}
       />
     </div>
   )

@@ -253,6 +253,7 @@ class QCPdfRequest(BaseModel):
     axis_label_size: Optional[int] = None
     plots_per_page: Optional[Literal[1, 2, 4, 6]] = 2
     plot_layout: Optional[Dict[str, str]] = {}
+    plot_images: Optional[Dict[str, str]] = None
     save_to_s3: bool = False
 
 

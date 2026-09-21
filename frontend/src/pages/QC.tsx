@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import Plotly from 'plotly.js/dist/plotly'
 import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
@@ -68,6 +69,7 @@ export default function QC() {
   const [s3Configured, setS3Configured] = useState(false)
   const [saveToS3, setSaveToS3] = useState(false)
   const [selectedPlots, setSelectedPlots] = useState<Set<string>>(new Set(PLOT_OPTIONS.map((p) => p.key)))
+  const graphDivs = useRef<Record<string, HTMLDivElement | null>>({})
 
   const allGroups = selectedDataset?.sample_metadata
     ? Array.from(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>))).sort()
@@ -132,7 +134,37 @@ export default function QC() {
       .catch(() => {})
   }, [])
 
-  const buildPdfPayload = () => {
+  const handleGraphDiv = useCallback((key: string, gd: HTMLDivElement | null) => {
+    graphDivs.current[key] = gd
+  }, [])
+
+  const capturePlotImages = useCallback(async () => {
+    if (!data) return {}
+    const images: Record<string, string> = {}
+    await Promise.all(
+      Array.from(selectedPlots).map(async (key) => {
+        const gd = graphDivs.current[key]
+        const fig = data.figures[key]
+        if (!gd || !fig) return
+        const rect = gd.getBoundingClientRect()
+        if (!rect.width || !rect.height) return
+        try {
+          const url = await Plotly.toImage(gd, {
+            format: 'png',
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            scale: 2,
+          })
+          images[key] = url
+        } catch (err) {
+          console.error(`Failed to capture QC plot ${key}`, err)
+        }
+      })
+    )
+    return images
+  }, [data, selectedPlots])
+
+  const buildPdfPayload = (plotImages?: Record<string, string>) => {
     const payload: any = {
       selected_groups: Array.from(selectedGroups),
       group_order: groupOrder,
@@ -146,6 +178,9 @@ export default function QC() {
       axis_label_size: axisLabelSize,
       plots_per_page: plotsPerPage,
       save_to_s3: saveToS3,
+    }
+    if (plotImages && Object.keys(plotImages).length > 0) {
+      payload.plot_images = plotImages
     }
     return payload
   }
@@ -168,8 +203,9 @@ export default function QC() {
   }
 
   const generatePdf = async () => {
-    if (!projectId || !datasetId || !selectedDataset) return null
-    const res = await exportQCPdf(Number(projectId), Number(datasetId), buildPdfPayload())
+    if (!projectId || !datasetId || !selectedDataset || selectedPlots.size === 0 || selectedGroups.size === 0) return null
+    const plotImages = await capturePlotImages()
+    const res = await exportQCPdf(Number(projectId), Number(datasetId), buildPdfPayload(plotImages))
     return window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
   }
 
@@ -474,7 +510,13 @@ export default function QC() {
                 {Object.entries(data.figures).map(([key, fig]) => (
                   <div key={key} className="card p-4">
                     <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2"><LuActivity /> {titleFor(key)}</h3>
-                    <PlotWithDownload data={fig.data} layout={fig.layout} style={{ width: '100%', height: '450px' }} filename={`qc_${key}`} />
+                    <PlotWithDownload
+                      data={fig.data}
+                      layout={fig.layout}
+                      style={{ width: '100%', height: '450px' }}
+                      filename={`qc_${key}`}
+                      onGraphDiv={(gd) => handleGraphDiv(key, gd)}
+                    />
                   </div>
                 ))}
               </div>

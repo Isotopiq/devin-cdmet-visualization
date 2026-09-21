@@ -1380,6 +1380,7 @@ def build_qc_pdf(
     axis_label_size: Optional[int] = None,
     plots_per_page: int = 2,
     plot_layout: Dict[str, str] | None = None,
+    plot_images: Optional[Dict[str, str]] = None,
     footer_logo_path: Optional[str] = None,
 ) -> bytes:
     from app.services.qc import qc_analysis
@@ -1470,6 +1471,7 @@ def build_qc_pdf(
             pass
         queue.clear()
 
+    plot_images = plot_images or {}
     for key, section in figure_order:
         fig = figures.get(key)
         if not isinstance(fig, dict):
@@ -1477,7 +1479,12 @@ def build_qc_pdf(
         title = _qc_figure_title(fig, key.replace("_", " ").title())
         try:
             layout = SECTION_LAYOUTS.get(section, SECTION_LAYOUTS["default"])
-            img = _fig_to_png(fig, width=layout["width"], height=layout["height"], scale=2)
+            if plot_images.get(key):
+                # Use the PNG already rendered by the web UI so the PDF matches exactly.
+                rendered = {"format": "png", "image": plot_images[key]}
+                img = _fig_to_png(rendered, width=layout["width"], height=layout["height"], scale=2)
+            else:
+                img = _fig_to_png(fig, width=layout["width"], height=layout["height"], scale=2)
             orient = layout.get("orientation", "P")
             if plot_layout.get(key) == "single":
                 _flush_queue()
