@@ -161,7 +161,7 @@ def _build_filtered_dataset(dataset: models.Dataset, df: pd.DataFrame, sample_me
     )
 
 
-def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_groups: list | None = None) -> dict:
+def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_groups: list | None = None, group_order: list | None = None) -> dict:
     style = _merge_style(style)
     df = _as_floats(to_dataframe(dataset))
     sample_meta = dataset.sample_metadata or {}
@@ -170,9 +170,20 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
 
     samples = list(df.columns)
     groups = [sample_meta.get(s, "Unknown") for s in samples]
-    group_order = sorted(set(groups))
-    if "Unknown" in group_order:
-        group_order = [g for g in group_order if g != "Unknown"] + ["Unknown"]
+    unique_groups = sorted(set(groups))
+    if "Unknown" in unique_groups:
+        unique_groups = [g for g in unique_groups if g != "Unknown"] + ["Unknown"]
+
+    # Honor a user-supplied group order while keeping any missing groups at the end.
+    if group_order:
+        seen = set(group_order)
+        ordered = [g for g in group_order if g in unique_groups]
+        for g in unique_groups:
+            if g not in seen:
+                ordered.append(g)
+        group_order = ordered
+    else:
+        group_order = unique_groups
     color_map = _group_color_map(style, group_order)
 
     # Basic metrics
@@ -523,9 +534,9 @@ def qc_analysis(dataset: models.Dataset, style: dict | None = None, selected_gro
     }
 
 
-def qc_export_excel(dataset: models.Dataset, style: dict | None = None, selected_groups: list | None = None) -> bytes:
+def qc_export_excel(dataset: models.Dataset, style: dict | None = None, selected_groups: list | None = None, group_order: list | None = None) -> bytes:
     """Build a styled, color-coded Excel QC summary workbook."""
-    result = qc_analysis(dataset, style, selected_groups)
+    result = qc_analysis(dataset, style, selected_groups, group_order)
     metrics = result["metrics"]
     sample_meta = dataset.sample_metadata or {}
     full_df = _as_floats(to_dataframe(dataset))

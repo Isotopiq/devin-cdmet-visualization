@@ -1365,6 +1365,7 @@ def build_qc_pdf(
     dataset: models.Dataset,
     project_name: str = "",
     selected_groups: list | None = None,
+    group_order: list | None = None,
     selected_plots: list | None = None,
     primary_comparison: str | None = None,
     prepared_for: str | None = None,
@@ -1375,6 +1376,8 @@ def build_qc_pdf(
     description: str | None = None,
     cover_style: str | None = None,
     font_family: str | None = None,
+    tick_size: Optional[int] = None,
+    axis_label_size: Optional[int] = None,
     plots_per_page: int = 2,
     plot_layout: Dict[str, str] | None = None,
     footer_logo_path: Optional[str] = None,
@@ -1384,7 +1387,11 @@ def build_qc_pdf(
     plot_style: dict = {}
     if font_family:
         plot_style["font_family"] = font_family
-    result = qc_analysis(dataset, style=plot_style, selected_groups=selected_groups)
+    if tick_size is not None:
+        plot_style["tick_size"] = tick_size
+    if axis_label_size is not None:
+        plot_style["axis_label_size"] = axis_label_size
+    result = qc_analysis(dataset, style=plot_style, selected_groups=selected_groups, group_order=group_order)
     metrics = result["metrics"]
     figures = result.get("figures", {})
 

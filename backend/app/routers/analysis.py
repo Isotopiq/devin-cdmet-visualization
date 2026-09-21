@@ -164,6 +164,9 @@ async def get_qc(
     project_id: int,
     dataset_id: int,
     selected_groups: List[str] | None = Query(None),
+    group_order: List[str] | None = Query(None),
+    tick_size: Optional[int] = Query(None, ge=6, le=24),
+    axis_label_size: Optional[int] = Query(None, ge=6, le=24),
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ):
@@ -172,7 +175,12 @@ async def get_qc(
     dataset = result.scalar_one_or_none()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    return qc_analysis(dataset, selected_groups=selected_groups)
+    style = {}
+    if tick_size is not None:
+        style["tick_size"] = tick_size
+    if axis_label_size is not None:
+        style["axis_label_size"] = axis_label_size
+    return qc_analysis(dataset, style=style, selected_groups=selected_groups, group_order=group_order)
 
 
 @router.get("/{project_id}/dataset/{dataset_id}/qc/excel")
@@ -180,6 +188,7 @@ async def get_qc_excel(
     project_id: int,
     dataset_id: int,
     selected_groups: List[str] | None = Query(None),
+    group_order: List[str] | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ):
@@ -188,7 +197,7 @@ async def get_qc_excel(
     dataset = result.scalar_one_or_none()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    excel_bytes = qc_export_excel(dataset, selected_groups=selected_groups)
+    excel_bytes = qc_export_excel(dataset, selected_groups=selected_groups, group_order=group_order)
     filename = f"{dataset.name.replace(' ', '_')}_qc_summary.xlsx"
     return StreamingResponse(
         io.BytesIO(excel_bytes),
@@ -227,6 +236,7 @@ async def get_qc_pdf(
         dataset,
         project.name if project else "",
         selected_groups=body.selected_groups,
+        group_order=body.group_order,
         selected_plots=body.selected_plots,
         primary_comparison=body.primary_comparison,
         prepared_for=body.prepared_for,
@@ -237,6 +247,8 @@ async def get_qc_pdf(
         description=body.description,
         cover_style=body.cover_style,
         font_family=body.font_family,
+        tick_size=body.tick_size,
+        axis_label_size=body.axis_label_size,
         plots_per_page=body.plots_per_page,
         plot_layout=body.plot_layout,
         footer_logo_path=footer_logo_path,

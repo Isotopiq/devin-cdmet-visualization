@@ -238,6 +238,7 @@ class ReportRequest(BaseModel):
 
 class QCPdfRequest(BaseModel):
     selected_groups: Optional[List[str]] = None
+    group_order: Optional[List[str]] = None
     selected_plots: Optional[List[str]] = None
     primary_comparison: Optional[str] = None
     prepared_for: Optional[str] = None
@@ -248,6 +249,8 @@ class QCPdfRequest(BaseModel):
     description: Optional[str] = None
     cover_style: Optional[str] = "teal"
     font_family: Optional[str] = None
+    tick_size: Optional[int] = None
+    axis_label_size: Optional[int] = None
     plots_per_page: Optional[Literal[1, 2, 4, 6]] = 2
     plot_layout: Optional[Dict[str, str]] = {}
     save_to_s3: bool = False

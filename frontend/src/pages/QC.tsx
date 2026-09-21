@@ -3,7 +3,7 @@ import { useWorkspace } from '../context/WorkspaceContext'
 import DatasetPicker from '../components/DatasetPicker'
 import PlotWithDownload from '../components/PlotWithDownload'
 import { getQC, exportQCExcel, exportQCPdf, getSettings } from '../api'
-import { LuActivity, LuRefreshCw, LuDownload, LuFileText, LuEye, LuX } from 'react-icons/lu'
+import { LuActivity, LuRefreshCw, LuDownload, LuFileText, LuEye, LuX, LuArrowUp, LuArrowDown } from 'react-icons/lu'
 
 interface QCData {
   metrics: {
@@ -60,6 +60,9 @@ export default function QC() {
   })
   const [fontFamily, setFontFamily] = useState('')
   const [plotsPerPage, setPlotsPerPage] = useState<1 | 2 | 4 | 6>(2)
+  const [tickSize, setTickSize] = useState(11)
+  const [axisLabelSize, setAxisLabelSize] = useState(12)
+  const [groupOrder, setGroupOrder] = useState<string[]>([])
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [s3Configured, setS3Configured] = useState(false)
@@ -67,14 +70,29 @@ export default function QC() {
   const [selectedPlots, setSelectedPlots] = useState<Set<string>>(new Set(PLOT_OPTIONS.map((p) => p.key)))
 
   const allGroups = selectedDataset?.sample_metadata
-    ? Array.from(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>)))
+    ? Array.from(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>))).sort()
     : []
+
+  const isControlLike = (g: string) => /\b(blank|qc|solvent|standard|pool|ntc)\b/i.test(g)
 
   const toggleGroup = (g: string) => {
     setSelectedGroups((prev) => {
       const next = new Set(prev)
       if (next.has(g)) next.delete(g)
       else next.add(g)
+      return next
+    })
+    setGroupOrder((prev) => {
+      if (prev.includes(g)) return prev.filter((x) => x !== g)
+      return [...prev, g]
+    })
+  }
+
+  const moveGroup = (index: number, direction: number) => {
+    setGroupOrder((prev) => {
+      if (index + direction < 0 || index + direction >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[index + direction]] = [next[index + direction], next[index]]
       return next
     })
   }
@@ -91,9 +109,14 @@ export default function QC() {
   useEffect(() => {
     setData(null)
     if (selectedDataset?.sample_metadata) {
-      setSelectedGroups(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>)))
+      const all = Array.from(new Set(Object.values(selectedDataset.sample_metadata as Record<string, string>)))
+      const nonControl = all.filter((g) => !isControlLike(g))
+      const control = all.filter((g) => isControlLike(g))
+      setSelectedGroups(new Set(nonControl))
+      setGroupOrder([...nonControl, ...control])
     } else {
       setSelectedGroups(new Set())
+      setGroupOrder([])
     }
   }, [selectedDataset])
 
@@ -112,12 +135,15 @@ export default function QC() {
   const buildPdfPayload = () => {
     const payload: any = {
       selected_groups: Array.from(selectedGroups),
+      group_order: groupOrder,
       selected_plots: Array.from(selectedPlots),
       primary_comparison: pdfMeta.primary_comparison || undefined,
       prepared_for: pdfMeta.prepared_for || undefined,
       prepared_by: pdfMeta.prepared_by || undefined,
       report_contents: pdfMeta.report_contents || undefined,
       font_family: fontFamily || undefined,
+      tick_size: tickSize,
+      axis_label_size: axisLabelSize,
       plots_per_page: plotsPerPage,
       save_to_s3: saveToS3,
     }
@@ -127,7 +153,7 @@ export default function QC() {
   const handleExportExcel = async () => {
     if (!projectId || !datasetId || !selectedDataset) return
     try {
-      const res = await exportQCExcel(Number(projectId), Number(datasetId), Array.from(selectedGroups))
+      const res = await exportQCExcel(Number(projectId), Number(datasetId), Array.from(selectedGroups), groupOrder)
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement('a')
       link.href = url
@@ -198,7 +224,7 @@ export default function QC() {
     setLoading(true)
     setError('')
     try {
-      const res = await getQC(Number(projectId), Number(datasetId), Array.from(selectedGroups))
+      const res = await getQC(Number(projectId), Number(datasetId), Array.from(selectedGroups), groupOrder, tickSize, axisLabelSize)
       setData(res.data)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load QC data')
@@ -231,19 +257,48 @@ export default function QC() {
           </div>
 
           {selectedDataset && allGroups.length > 0 && (
-            <div className="card p-4">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Groups to include in QC</div>
-              <div className="flex flex-wrap gap-4">
-                {allGroups.map((g) => (
-                  <label key={g} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                    <input
-                      type="checkbox"
-                      checked={selectedGroups.has(g)}
-                      onChange={() => toggleGroup(g)}
-                    />
-                    {g}
-                  </label>
-                ))}
+            <div className="card p-4 space-y-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Groups to include in QC</div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Blanks, QC, solvent, standard, pool, and NTC groups are unchecked by default.</p>
+                <div className="flex flex-wrap gap-4">
+                  {allGroups.map((g) => (
+                    <label key={g} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                      <input
+                        type="checkbox"
+                        checked={selectedGroups.has(g)}
+                        onChange={() => toggleGroup(g)}
+                      />
+                      {g}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Group display order</div>
+                <ul className="space-y-1">
+                  {groupOrder.map((g, i) => (
+                    <li key={g} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                      <button
+                        type="button"
+                        disabled={i === 0}
+                        onClick={() => moveGroup(i, -1)}
+                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30"
+                      >
+                        <LuArrowUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={i === groupOrder.length - 1}
+                        onClick={() => moveGroup(i, 1)}
+                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30"
+                      >
+                        <LuArrowDown className="w-4 h-4" />
+                      </button>
+                      {g}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           )}
@@ -305,6 +360,28 @@ export default function QC() {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="label-like">X-axis label size</label>
+                  <input
+                    type="number"
+                    min={6}
+                    max={24}
+                    className="input"
+                    value={tickSize}
+                    onChange={(e) => setTickSize(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label className="label-like">Axis title size</label>
+                  <input
+                    type="number"
+                    min={6}
+                    max={24}
+                    className="input"
+                    value={axisLabelSize}
+                    onChange={(e) => setAxisLabelSize(Number(e.target.value))}
+                  />
                 </div>
                 {s3Configured && (
                   <div className="flex items-center gap-2 md:col-span-2">

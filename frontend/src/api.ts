@@ -136,17 +136,21 @@ export const exportDataset = (
     params: { format, ...(cleanNames ? { clean_names: true } : {}) },
     responseType: 'blob'
   })
-export const getQC = (projectId: number, datasetId: number, selectedGroups: string[] = []) => {
+export const getQC = (projectId: number, datasetId: number, selectedGroups: string[] = [], groupOrder?: string[], tickSize?: number, axisLabelSize?: number) => {
   const params = new URLSearchParams()
   selectedGroups.forEach((g) => params.append('selected_groups', g))
+  groupOrder?.forEach((g) => params.append('group_order', g))
+  if (tickSize !== undefined) params.append('tick_size', String(tickSize))
+  if (axisLabelSize !== undefined) params.append('axis_label_size', String(axisLabelSize))
   return API.get(`/analysis/${projectId}/dataset/${datasetId}/qc`, { params })
 }
-export const exportQCExcel = (projectId: number, datasetId: number, selectedGroups: string[] = []) => {
+export const exportQCExcel = (projectId: number, datasetId: number, selectedGroups: string[] = [], groupOrder?: string[]) => {
   const params = new URLSearchParams()
   selectedGroups.forEach((g) => params.append('selected_groups', g))
+  groupOrder?.forEach((g) => params.append('group_order', g))
   return API.get(`/analysis/${projectId}/dataset/${datasetId}/qc/excel`, { params, responseType: 'blob' })
 }
-export const exportQCPdf = (projectId: number, datasetId: number, data: { selected_groups?: string[]; selected_plots?: string[]; primary_comparison?: string; prepared_for?: string; prepared_by?: string; report_contents?: string; report_type?: string; subtitle?: string; description?: string; cover_style?: string; font_family?: string; plots_per_page?: number; plot_layout?: Record<string, string>; save_to_s3?: boolean }) =>
+export const exportQCPdf = (projectId: number, datasetId: number, data: { selected_groups?: string[]; group_order?: string[]; selected_plots?: string[]; primary_comparison?: string; prepared_for?: string; prepared_by?: string; report_contents?: string; report_type?: string; subtitle?: string; description?: string; cover_style?: string; font_family?: string; tick_size?: number; axis_label_size?: number; plots_per_page?: number; plot_layout?: Record<string, string>; save_to_s3?: boolean }) =>
   API.post(`/analysis/${projectId}/dataset/${datasetId}/qc/pdf`, data, { responseType: 'blob' })
 export const generatePDFReport = (projectId: number, datasetId: number, data: any) =>
   API.post(`/plots/${projectId}/dataset/${datasetId}/report/pdf`, data, { responseType: 'blob' })
