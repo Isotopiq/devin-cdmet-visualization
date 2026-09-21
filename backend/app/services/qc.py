@@ -29,8 +29,8 @@ def _safe_log10(values):
 def _format_qc_xaxis(fig: go.Figure, labels: list, style: dict, plot_width_px: int = 1000):
     """Shorten and auto-rotate x-axis labels so every label is legible and none overlap.
 
-    Labels are shown in full (not deliberately blanked) unless there are so many that
-    even vertical text would not fit, in which case a small subset is shown.
+    Labels are shown for every bar/box unless the sample count is so large that even a
+    minimum font cannot fit, in which case the labels are thinned as a last resort.
     """
     if not labels:
         return
@@ -39,28 +39,44 @@ def _format_qc_xaxis(fig: go.Figure, labels: list, style: dict, plot_width_px: i
     if n == 0:
         return
     longest = max(len(s) for s in short)
-    tick_size = style.get("tick_size", 11)
+    tick_size = int(style.get("tick_size", 11))
+    available_w = max(plot_width_px - 80, 100)
 
-    # Choose rotation / font so labels can all fit without overlapping.
-    if n > 20 or longest > 16:
+    # Choose rotation based on density / label length.
+    if n > 20 or longest > 12:
         angle = -90
-        tick_font = max(6, tick_size - 3)
+        min_font = 5
     elif n > 6 or longest > 9:
         angle = -45
-        tick_font = max(7, tick_size - 2)
+        min_font = 6
     else:
         angle = 0
-        tick_font = tick_size
+        min_font = 6
 
-    char_w = tick_font * 0.6
+    # Compute the largest font that lets every label fit in the available width.
+    if angle == -90:
+        # Vertical text consumes roughly (tick_font + 4) px along the axis.
+        computed_font = (available_w / n) - 4
+    elif angle == -45:
+        c = 0.707 * (0.6 * longest + 1)
+        computed_font = ((available_w / n) - 8) / c
+    else:
+        if longest == 0:
+            computed_font = tick_size
+        else:
+            c = 0.6 * longest
+            computed_font = ((available_w / n) - 8) / c
+
+    tick_font = max(min_font, min(tick_size, int(computed_font)))
+
+    # If even the minimum font cannot fit every label, thin as a last resort.
     if angle == -90:
         label_w = tick_font + 4
     elif angle == -45:
-        label_w = 0.707 * (longest * char_w + tick_font) + 8
+        label_w = 0.707 * (longest * tick_font * 0.6 + tick_font) + 8
     else:
-        label_w = longest * char_w + 8
+        label_w = longest * tick_font * 0.6 + 8
 
-    available_w = max(plot_width_px - 80, 100)
     max_labels = max(5, int(available_w / max(label_w, 1)))
     if n > max_labels:
         step = max(1, int(math.ceil(n / max_labels)))
@@ -70,19 +86,25 @@ def _format_qc_xaxis(fig: go.Figure, labels: list, style: dict, plot_width_px: i
         tick_vals = labels
         tick_text = short
 
+    # Force the category order and tick positions so the labels are always aligned
+    # with the bars, even if other layout helpers are called later.
     fig.update_xaxes(
+        type="category",
+        categoryorder="array",
+        categoryarray=labels,
         tickmode="array",
         tickvals=tick_vals,
         ticktext=tick_text,
         tickangle=angle,
         tickfont=dict(size=tick_font),
         automargin=True,
+        ticklabeloverflow="allow",
     )
 
     if angle == -90:
-        bottom = min(250, max(90, longest * tick_font + 40))
+        bottom = min(250, max(90, longest * tick_font * 0.6 + 50))
     elif angle == -45:
-        bottom = min(220, max(80, int(longest * tick_font * 0.7) + 40))
+        bottom = min(220, max(80, int(longest * tick_font * 0.7) + 50))
     else:
         bottom = 70
     fig.update_layout(margin=dict(b=bottom))

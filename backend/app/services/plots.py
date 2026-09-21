@@ -106,6 +106,20 @@ def _apply_base_layout(fig: go.Figure, style: dict, title: str | None = None, x_
     bottom = max(80, int(longest_x * style.get("tick_size", 11) * 0.6)) if (longest_x > 12 or n_x > 12) else 70
     left = max(80, int(longest_y * style.get("tick_size", 11) * 0.55)) if (longest_y > 10 or n_y > 12) else 70
 
+    # Preserve margins already tuned by a caller (e.g. _format_qc_xaxis) so a
+    # later _apply_base_layout does not clip long x-axis labels.
+    margin = getattr(fig.layout, "margin", None) or {}
+    bottom = max(bottom, getattr(margin, "b", 0) or 0)
+    left = max(left, getattr(margin, "l", 0) or 0)
+    top = max(100, getattr(margin, "t", 0) or 0)
+    right = max(50, getattr(margin, "r", 0) or 0)
+
+    # If a caller already set an explicit tick array, do not clobber the
+    # tickfont/tickangle it chose. This makes the QC label layout durable
+    # against future reordering of layout helpers.
+    xaxis = getattr(fig.layout, "xaxis", None) or {}
+    is_array = getattr(xaxis, "tickmode", None) == "array"
+
     layout = {
         "font": {"family": style.get("font_family"), "color": "#334155"},
         "paper_bgcolor": style.get("paper_bgcolor"),
@@ -124,12 +138,11 @@ def _apply_base_layout(fig: go.Figure, style: dict, title: str | None = None, x_
             "font": {"size": style.get("tick_size")},
             "bgcolor": "rgba(0,0,0,0)",
         },
-        "margin": {"l": left, "r": 50, "t": 100, "b": bottom},
+        "margin": {"l": left, "r": right, "t": top, "b": bottom},
         "xaxis": {
             "showgrid": style.get("show_gridlines"),
             "gridcolor": style.get("grid_color"),
             "gridwidth": 1,
-            "tickfont": {"size": style.get("tick_size")},
             "title_font": {"size": style.get("axis_label_size")},
             "zerolinecolor": "#cbd5e1",
             "automargin": True,
@@ -144,16 +157,22 @@ def _apply_base_layout(fig: go.Figure, style: dict, title: str | None = None, x_
             "automargin": True,
         },
     }
+    if not is_array:
+        layout["xaxis"]["tickfont"] = {"size": style.get("tick_size")}
+
     fig.update_layout(**{k: v for k, v in layout.items() if v is not None})
     if fig.data:
         for trace in fig.data:
             if isinstance(trace, (go.Scatter, go.Scattergl)) and trace.mode and "markers" in trace.mode:
                 trace.marker = trace.marker or {}
                 trace.marker.size = style.get("marker_size")
-    fig.update_xaxes(automargin=True, tickfont={"size": style.get("tick_size")}, title_font={"size": style.get("axis_label_size")}, title_standoff=18)
+    if is_array:
+        fig.update_xaxes(automargin=True, title_font={"size": style.get("axis_label_size")}, title_standoff=18)
+    else:
+        fig.update_xaxes(automargin=True, tickfont={"size": style.get("tick_size")}, title_font={"size": style.get("axis_label_size")}, title_standoff=18)
+        if rotate_x:
+            fig.update_xaxes(tickangle=-45)
     fig.update_yaxes(automargin=True, tickfont={"size": style.get("tick_size")}, title_font={"size": style.get("axis_label_size")}, title_standoff=30)
-    if rotate_x:
-        fig.update_xaxes(tickangle=-45)
     if rotate_y:
         fig.update_yaxes(tickangle=0)
 
