@@ -65,14 +65,16 @@ This doc is written for the next developer taking over the project. It covers th
 - `frontend/src/pages/QC.tsx`
   - Preview / Export buttons are disabled when no plots are selected, preventing accidental empty reports.
 
-### QC x-axis autosizing
+### QC x-axis autosizing (hardened)
 - `backend/app/services/qc.py`
-  - Added `_format_qc_xaxis()` helper.
-  - TIC bar plot, log2 intensity box plot, and per-group CV box plot now:
-    - Shorten Compound Discoverer sample names (`Area: JP-000.raw (F1)` → `JP-000`).
-    - Auto-rotate labels (`-45°` or `-90°`) when labels are long or numerous.
-    - Reduce tick font size and down-sample tick density (`tickmode="array"`, `tickvals`/`ticktext`) so labels do not overlap.
-    - Increase bottom margin accordingly.
+  - `_format_qc_xaxis()` now dynamically sizes the tick font so **every sample gets a label** for all QC bar/box plots.
+  - Only thins labels as an absolute last resort (when the count is so high that even a minimum font cannot fit).
+  - Forces `tickmode="array"`, `categoryorder="array"`, and `ticklabeloverflow="allow"` so Plotly does not drop bars or labels.
+- `backend/app/services/plots.py`
+  - `_apply_base_layout()` now detects an existing `tickmode="array"` x-axis and refuses to overwrite `tickfont`, `tickangle`, or the bottom margin. This prevents unrelated layout changes from clobbering the QC label fix.
+- `backend/tests/test_qc.py`
+  - New regression tests assert `tickmode="array"` and one label per sample for `tic`, `missing_pct`, `detected_features`, `log2_intensity`, and one label per group for `cv_by_group`.
+  - Test also asserts `_apply_base_layout()` preserves an already-configured array x-axis.
 
 ### PCA NaN handling
 - `backend/app/services/plots.py`
@@ -125,7 +127,7 @@ This doc is written for the next developer taking over the project. It covers th
 ```bash
 cd /home/ubuntu/repos/metabolomics-platform/backend
 python -m pytest -q
-# expected: 81 passed, 1 skipped
+# expected: 84 passed, 1 skipped
 
 cd /home/ubuntu/repos/metabolomics-platform/frontend
 npm run lint
