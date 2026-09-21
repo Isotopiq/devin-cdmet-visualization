@@ -99,14 +99,16 @@ def _format_qc_xaxis(fig: go.Figure, labels: list, style: dict, plot_width_px: i
         tickfont=dict(size=tick_font),
         automargin=True,
         ticklabeloverflow="allow",
+        ticklabelstandoff=8,
+        title_standoff=18,
     )
 
     if angle == -90:
-        bottom = min(250, max(90, longest * tick_font * 0.6 + 50))
+        bottom = min(260, max(100, longest * tick_font * 0.6 + 60))
     elif angle == -45:
-        bottom = min(220, max(80, int(longest * tick_font * 0.7) + 50))
+        bottom = min(230, max(90, int(longest * tick_font * 0.7) + 60))
     else:
-        bottom = 70
+        bottom = 80
     fig.update_layout(margin=dict(b=bottom))
 
 
