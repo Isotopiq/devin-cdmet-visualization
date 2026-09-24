@@ -13,6 +13,7 @@ export default function Volcano() {
   const [pThreshold, setPThreshold] = useState(0.05)
   const [showLabels, setShowLabels] = useState(false)
   const [topN, setTopN] = useState(10)
+  const [test, setTest] = useState('welch')
   const [figure, setFigure] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
@@ -31,8 +32,8 @@ export default function Volcano() {
   const generate = async () => {
     if (!projectId || !datasetId) return
     setLoading(true)
-    const statsRes = await runStats(Number(projectId), Number(datasetId), { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
-    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, group_a: groupA, group_b: groupB, show_labels: showLabels, top_n: topN } })
+    const statsRes = await runStats(Number(projectId), Number(datasetId), { test, group_a: groupA, group_b: groupB, paired: false, multiple_testing: 'fdr_bh', alpha: pThreshold })
+    const res = await generatePlot(Number(projectId), Number(datasetId), { plot_type: 'volcano', parameters: { stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, group_a: groupA, group_b: groupB, show_labels: showLabels, top_n: topN, test } })
     setFigure(res.data)
     setLoading(false)
   }
@@ -52,7 +53,7 @@ export default function Volcano() {
         <>
           <div className="card p-5">
             <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><LuMicroscope /> Comparison</h3>
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-8 gap-4 items-end">
               <div>
                 <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Group A</label>
                 <select value={groupA} onChange={(e) => setGroupA(e.target.value)} className="input">
@@ -63,6 +64,16 @@ export default function Volcano() {
                 <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Group B</label>
                 <select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">
                   {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Test</label>
+                <select value={test} onChange={(e) => setTest(e.target.value)} className="input">
+                  <option value="welch">Welch t-test</option>
+                  <option value="t_test">Student t-test</option>
+                  <option value="mannwhitney">Mann-Whitney U</option>
+                  <option value="paired">Paired t-test</option>
+                  <option value="wilcoxon">Wilcoxon signed-rank</option>
                 </select>
               </div>
               <div>

@@ -1100,7 +1100,17 @@ def _fig_to_png(fig_dict: dict, width: int = 1200, height: int = 700, scale: int
     return fig_to_png_mpl(fig_dict, width=width, height=height, scale=scale, keep_title=keep_title)
 
 
-def _section_params(section: str, group_a: str, group_b: str, stats_data: List[dict], req: schemas.PDFReportRequest, selected_groups: Optional[List[str]] = None, dataset: Optional[models.Dataset] = None) -> Optional[dict]:
+TWO_GROUP_TESTS = ("t_test", "welch", "mannwhitney", "paired", "wilcoxon")
+
+
+def _volcano_test(params: dict, req: schemas.PDFReportRequest) -> str:
+    """Volcano plots are two-group comparisons; fall back to Welch when the
+    report-level test is a multi-group test (ANOVA/Kruskal)."""
+    test = params.get("volcano_test") or params.get("test") or req.test
+    return test if test in TWO_GROUP_TESTS else "welch"
+
+
+def _section_params(section: str, group_a: str, group_b: str, stats_data: List[dict], req: schemas.PDFReportRequest, selected_groups: Optional[List[str]] = None, dataset: Optional[models.Dataset] = None, volcano_stats_data: Optional[List[dict]] = None) -> Optional[dict]:
     params = req.parameters or {}
     p = {"group_a": group_a, "group_b": group_b, "rename_samples": bool(params.get("rename_samples", False))}
     if section == "heatmap_unclustered":
@@ -1155,12 +1165,13 @@ def _section_params(section: str, group_a: str, group_b: str, stats_data: List[d
         }
     if section == "volcano":
         return {
-            "stats": stats_data,
+            "stats": volcano_stats_data if volcano_stats_data is not None else stats_data,
             "fc_threshold": req.fc_threshold,
             "p_threshold": req.p_threshold,
             "padj_threshold": req.p_threshold,
             "show_labels": req.show_labels,
             "top_n": req.top_n,
+            "test": _volcano_test(params, req),
             **p,
         }
     if section == "chain_space" and selected_groups:
@@ -1209,9 +1220,11 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
 
     needs_stats = any(s in ("volcano", "per_lipid_bars") for s in sections)
     stats_data = []
+    volcano_stats_data = None
     if needs_stats and selected_groups:
+        base_test = params.get("test", req.test)
         stats_req = schemas.StatsRequest(
-            test=params.get("test", req.test),
+            test=base_test,
             group_a=group_a,
             group_b=group_b,
             selected_groups=selected_groups,
@@ -1221,6 +1234,10 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
         )
         stats_res = run_statistical_test(dataset, stats_req)
         stats_data = stats_res.get("results", [])
+        volcano_test = _volcano_test(params, req)
+        if "volcano" in sections and volcano_test != base_test:
+            volcano_req = stats_req.model_copy(update={"test": volcano_test, "selected_groups": [group_a, group_b]})
+            volcano_stats_data = run_statistical_test(dataset, volcano_req).get("results", [])
 
     style = _build_pdf_style(dataset, project_name, req, group_a, group_b, sections, footer_logo_path=footer_logo_path)
     pdf = _ReportPDF(style=style)
@@ -1235,7 +1252,7 @@ def build_pdf(dataset: models.Dataset, project_name: str, req: schemas.PDFReport
     for section in sections:
         if section == "summary":
             continue
-        section_params = _section_params(section, group_a, group_b, stats_data, req, selected_groups=selected_groups, dataset=dataset)
+        section_params = _section_params(section, group_a, group_b, stats_data, req, selected_groups=selected_groups, dataset=dataset, volcano_stats_data=volcano_stats_data)
         if section_params is None:
             continue
         plot_type = section

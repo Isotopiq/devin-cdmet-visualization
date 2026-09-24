@@ -158,6 +158,7 @@ export default function Visualize() {
   const [lipidsPerPage, setLipidsPerPage] = useState(8)
   const [allLipids, setAllLipids] = useState(false)
   const [perLipidTest, setPerLipidTest] = useState('t_test')
+  const [volcanoTest, setVolcanoTest] = useState('welch')
 
   const [showContents, setShowContents] = useState(false)
   const [groupFilterOpen, setGroupFilterOpen] = useState(true)
@@ -253,10 +254,10 @@ export default function Visualize() {
         const res = await generatePlot(base.projectId, base.datasetId, { plot_type: 'permanova', parameters: withExcluded({ selected_groups: selectedGroups, metric: 'braycurtis', title: reportTitle }), style: backendStyle })
         if (tabRef.current === requestTab) setFigure(res.data)
       } else if (tab === 'volcano') {
-        const statsRes = await runStats(base.projectId, base.datasetId, { test: 't_test', group_a: groupA, group_b: groupB, paired: false, multiple_testing: multipleTesting, alpha: pThreshold })
+        const statsRes = await runStats(base.projectId, base.datasetId, { test: volcanoTest, group_a: groupA, group_b: groupB, paired: false, multiple_testing: multipleTesting, alpha: pThreshold })
         const res = await generatePlot(base.projectId, base.datasetId, {
           plot_type: 'volcano',
-          parameters: withExcluded({ stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, show_labels: showLabels, top_n: topN, group_a: groupA, group_b: groupB, title: reportTitle }),
+          parameters: withExcluded({ stats: statsRes.data.results, fc_threshold: fcThreshold, p_threshold: pThreshold, show_labels: showLabels, top_n: topN, group_a: groupA, group_b: groupB, test: volcanoTest, title: reportTitle }),
           style: backendStyle,
         })
         if (tabRef.current === requestTab) setFigure(res.data)
@@ -405,6 +406,7 @@ export default function Visualize() {
 
   const buildReportParams = () => ({
     test: perLipidTest,
+    volcano_test: volcanoTest,
     group_a: groupA,
     group_b: groupB,
     selected_groups: Array.from(includedGroups).filter(g => groups.includes(g)),
@@ -668,6 +670,16 @@ export default function Visualize() {
           <div><label className="label-like">Group B</label><select value={groupB} onChange={(e) => setGroupB(e.target.value)} className="input">{groups.map(g => <option key={g}>{g}</option>)}</select></div>
           <div><label className="label-like">log2FC cutoff</label><input type="number" step="0.1" value={fcThreshold} onChange={(e) => setFcThreshold(Number(e.target.value))} className="input" /></div>
           <div><label className="label-like">p-value cutoff</label><input type="number" step="0.01" value={pThreshold} onChange={(e) => setPThreshold(Number(e.target.value))} className="input" /></div>
+          <div>
+            <label className="label-like">Test</label>
+            <select value={volcanoTest} onChange={(e) => setVolcanoTest(e.target.value)} className="input">
+              <option value="welch">Welch t-test</option>
+              <option value="t_test">Student t-test</option>
+              <option value="mannwhitney">Mann-Whitney U</option>
+              <option value="paired">Paired t-test</option>
+              <option value="wilcoxon">Wilcoxon signed-rank</option>
+            </select>
+          </div>
           <div>
             <label className="label-like">Multiple testing</label>
             <select value={multipleTesting} onChange={(e) => setMultipleTesting(e.target.value)} className="input">
