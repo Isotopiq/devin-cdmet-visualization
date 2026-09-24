@@ -24,6 +24,7 @@ import Preprocessing from './pages/Preprocessing'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
 import ResetPassword from './pages/ResetPassword'
+import Help from './pages/Help'
 
 function App() {
   const { user, ready, login } = useAuth()
@@ -69,6 +70,7 @@ function App() {
           <Route path="preprocessing" element={<Preprocessing />} />
           <Route path="profile" element={<Profile />} />
           <Route path="admin" element={<Admin />} />
+          <Route path="help" element={<Help />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Route>
       </Routes>

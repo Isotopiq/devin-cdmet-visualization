@@ -1199,6 +1199,12 @@ def _biomarker_figure_single(df, sample_meta, feature_metadata, style, params, g
     ), row=1, col=1)
     fig.update_xaxes(tickangle=-60, row=1, col=1)
     fig.update_yaxes(title_text="AUC", row=1, col=1)
+    for grp, fallback in ((group_b, "#c44e52"), (group_a, "#2e6575")):
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None], mode="markers",
+            marker=dict(color=color_map.get(grp, fallback), symbol="square", size=10),
+            name=f"Higher in {grp}", legendgroup="direction", hoverinfo="skip",
+        ), row=1, col=1)
 
     # ROC
     if mv["fpr"] and mv["tpr"]:

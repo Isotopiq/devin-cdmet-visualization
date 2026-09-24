@@ -4,7 +4,7 @@ import {
   LuLayoutDashboard, LuFolderOpen, LuUploadCloud, LuTable,
   LuSlidersHorizontal, LuCalculator, LuBarChart3, LuLayers, LuDna,
   LuGitMerge, LuFileText, LuSettings, LuSun, LuMoon,
-  LuLogOut, LuMenu, LuChevronLeft, LuUsers, LuUser, LuActivity
+  LuLogOut, LuMenu, LuChevronLeft, LuUsers, LuUser, LuActivity, LuHelpCircle
 } from 'react-icons/lu'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { useAuth } from '../context/AuthContext'
@@ -205,6 +205,9 @@ export default function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Link to="/help" className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700" title="Help & methods">
+              <LuHelpCircle />
+            </Link>
             <ThemeToggle />
             <UserMenu user={user} onLogout={logout} />
           </div>
