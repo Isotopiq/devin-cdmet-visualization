@@ -251,6 +251,7 @@ class QCPdfRequest(BaseModel):
     font_family: Optional[str] = None
     tick_size: Optional[int] = None
     axis_label_size: Optional[int] = None
+    group_colors: Optional[Dict[str, str]] = None
     plots_per_page: Optional[Literal[1, 2, 4, 6]] = 2
     plot_layout: Optional[Dict[str, str]] = {}
     plot_images: Optional[Dict[str, str]] = None

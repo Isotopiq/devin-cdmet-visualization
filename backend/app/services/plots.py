@@ -93,7 +93,12 @@ def _style_with_palette(style: dict, plot_style: str) -> dict:
 def _group_color_map(style: dict, groups: list) -> dict:
     colors = style.get("group_colors") or STYLE_DEFAULTS["group_colors"]
     uniq = sorted(set(str(g) for g in groups if g))
-    return {g: colors[i % len(colors)] for i, g in enumerate(uniq)}
+    cmap = {g: colors[i % len(colors)] for i, g in enumerate(uniq)}
+    overrides = style.get("group_color_map") or {}
+    for g, c in overrides.items():
+        if g in cmap and isinstance(c, str) and c:
+            cmap[g] = c
+    return cmap
 
 
 def _apply_base_layout(fig: go.Figure, style: dict, title: str | None = None, x_labels: list | None = None, y_labels: list | None = None):

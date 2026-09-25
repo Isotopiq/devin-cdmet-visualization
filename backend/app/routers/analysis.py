@@ -1,5 +1,6 @@
 import io
 import csv
+import json
 import math
 import re
 from typing import List, Literal, Optional, Tuple
@@ -159,6 +160,22 @@ async def batch_combine(
     return {"dataset": result, "qc_report": None}
 
 
+HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def _parse_group_colors(raw: Optional[str]) -> dict[str, str]:
+    """Parse a JSON ``{group: "#rrggbb"}`` query value; ignore anything malformed."""
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except ValueError:
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+    return {str(k): v for k, v in parsed.items() if isinstance(v, str) and HEX_COLOR_RE.match(v)}
+
+
 @router.get("/{project_id}/dataset/{dataset_id}/qc")
 async def get_qc(
     project_id: int,
@@ -167,6 +184,7 @@ async def get_qc(
     group_order: List[str] | None = Query(None),
     tick_size: Optional[int] = Query(None, ge=6, le=24),
     axis_label_size: Optional[int] = Query(None, ge=6, le=24),
+    group_colors: Optional[str] = Query(None, description="JSON object mapping group name to hex color"),
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ):
@@ -180,6 +198,9 @@ async def get_qc(
         style["tick_size"] = tick_size
     if axis_label_size is not None:
         style["axis_label_size"] = axis_label_size
+    color_map = _parse_group_colors(group_colors)
+    if color_map:
+        style["group_color_map"] = color_map
     return qc_analysis(dataset, style=style, selected_groups=selected_groups, group_order=group_order)
 
 
@@ -189,6 +210,7 @@ async def get_qc_excel(
     dataset_id: int,
     selected_groups: List[str] | None = Query(None),
     group_order: List[str] | None = Query(None),
+    group_colors: Optional[str] = Query(None, description="JSON object mapping group name to hex color"),
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ):
@@ -197,7 +219,9 @@ async def get_qc_excel(
     dataset = result.scalar_one_or_none()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    excel_bytes = qc_export_excel(dataset, selected_groups=selected_groups, group_order=group_order)
+    color_map = _parse_group_colors(group_colors)
+    style = {"group_color_map": color_map} if color_map else None
+    excel_bytes = qc_export_excel(dataset, style=style, selected_groups=selected_groups, group_order=group_order)
     filename = f"{dataset.name.replace(' ', '_')}_qc_summary.xlsx"
     return StreamingResponse(
         io.BytesIO(excel_bytes),
@@ -249,6 +273,7 @@ async def get_qc_pdf(
         font_family=body.font_family,
         tick_size=body.tick_size,
         axis_label_size=body.axis_label_size,
+        group_colors=body.group_colors,
         plots_per_page=body.plots_per_page,
         plot_layout=body.plot_layout,
         plot_images=body.plot_images,

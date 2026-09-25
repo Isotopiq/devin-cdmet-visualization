@@ -35,6 +35,9 @@ const FONT_OPTIONS = [
   { label: 'Liberation', value: 'Liberation' },
 ]
 
+// Keep in sync with STYLE_DEFAULTS.group_colors in backend/app/services/plots.py
+const DEFAULT_GROUP_COLORS = ['#4e79a7', '#e15759', '#f28e2c', '#76b7b2', '#59a14f', '#edc949']
+
 const PLOT_OPTIONS = [
   { key: 'tic', label: 'Total Ion Current (TIC)' },
   { key: 'missing_pct', label: 'Missing Values per Sample' },
@@ -64,6 +67,7 @@ export default function QC() {
   const [tickSize, setTickSize] = useState(11)
   const [axisLabelSize, setAxisLabelSize] = useState(12)
   const [groupOrder, setGroupOrder] = useState<string[]>([])
+  const [groupColors, setGroupColors] = useState<Record<string, string>>({})
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [s3Configured, setS3Configured] = useState(false)
@@ -76,6 +80,18 @@ export default function QC() {
     : []
 
   const isControlLike = (g: string) => /\b(blank|qc|solvent|standard|pool|ntc)\b/i.test(g)
+
+  // Mirrors the backend default palette assignment (sorted included groups).
+  const defaultColorFor = (g: string) => {
+    const included = Array.from(selectedGroups).sort()
+    const idx = included.indexOf(g)
+    return DEFAULT_GROUP_COLORS[(idx < 0 ? 0 : idx) % DEFAULT_GROUP_COLORS.length]
+  }
+  const colorFor = (g: string) => groupColors[g] || defaultColorFor(g)
+  const setGroupColor = (g: string, color: string) => setGroupColors((prev) => ({ ...prev, [g]: color }))
+  const resetGroupColors = () => setGroupColors({})
+  const activeGroupColors = () =>
+    Object.fromEntries(Object.entries(groupColors).filter(([g]) => selectedGroups.has(g)))
 
   const toggleGroup = (g: string) => {
     setSelectedGroups((prev) => {
@@ -120,6 +136,7 @@ export default function QC() {
       setSelectedGroups(new Set())
       setGroupOrder([])
     }
+    setGroupColors({})
   }, [selectedDataset])
 
   useEffect(() => {
@@ -179,6 +196,10 @@ export default function QC() {
       plots_per_page: plotsPerPage,
       save_to_s3: saveToS3,
     }
+    const colors = activeGroupColors()
+    if (Object.keys(colors).length > 0) {
+      payload.group_colors = colors
+    }
     if (plotImages && Object.keys(plotImages).length > 0) {
       payload.plot_images = plotImages
     }
@@ -188,7 +209,7 @@ export default function QC() {
   const handleExportExcel = async () => {
     if (!projectId || !datasetId || !selectedDataset) return
     try {
-      const res = await exportQCExcel(Number(projectId), Number(datasetId), Array.from(selectedGroups), groupOrder)
+      const res = await exportQCExcel(Number(projectId), Number(datasetId), Array.from(selectedGroups), groupOrder, activeGroupColors())
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement('a')
       link.href = url
@@ -260,7 +281,7 @@ export default function QC() {
     setLoading(true)
     setError('')
     try {
-      const res = await getQC(Number(projectId), Number(datasetId), Array.from(selectedGroups), groupOrder, tickSize, axisLabelSize)
+      const res = await getQC(Number(projectId), Number(datasetId), Array.from(selectedGroups), groupOrder, tickSize, axisLabelSize, activeGroupColors())
       setData(res.data)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load QC data')
@@ -311,7 +332,15 @@ export default function QC() {
                 </div>
               </div>
               <div>
-                <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Group display order</div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">Group display order &amp; colors</div>
+                  {Object.keys(groupColors).length > 0 && (
+                    <button type="button" onClick={resetGroupColors} className="text-xs text-indigo-600 hover:underline dark:text-indigo-400">
+                      Reset colors
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Click a swatch to change that group's color, then Run QC to apply. Colors are also used in Excel and PDF exports.</p>
                 <ul className="space-y-1">
                   {groupOrder.map((g, i) => (
                     <li key={g} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
@@ -331,7 +360,16 @@ export default function QC() {
                       >
                         <LuArrowDown className="w-4 h-4" />
                       </button>
-                      {g}
+                      <input
+                        type="color"
+                        aria-label={`Color for ${g}`}
+                        title={`Color for ${g}`}
+                        value={colorFor(g)}
+                        onChange={(e) => setGroupColor(g, e.target.value)}
+                        disabled={!selectedGroups.has(g)}
+                        className="w-6 h-6 p-0 border border-slate-300 dark:border-slate-600 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed bg-transparent"
+                      />
+                      <span className={selectedGroups.has(g) ? '' : 'opacity-50'}>{g}</span>
                     </li>
                   ))}
                 </ul>

@@ -93,3 +93,25 @@ def test_apply_base_layout_preserves_array_xaxis():
     assert fig.layout.xaxis.tickmode == "array"
     assert fig.layout.xaxis.tickangle == -90
     assert fig.layout.xaxis.tickfont.size == 8
+
+
+def test_qc_group_color_overrides_apply_to_all_group_traces():
+    dataset = _make_dataset(36)
+    overrides = {"CTRL": "#123456", "MCT-Veh": "#abcdef"}
+    result = qc_analysis(dataset, style={"group_color_map": overrides})
+
+    for key in ["tic", "cv_by_group", "pca"]:
+        fig = result["figures"][key]
+        by_name = {t.get("name"): t for t in fig["data"] if t.get("name")}
+        for grp, color in overrides.items():
+            assert by_name[grp]["marker"]["color"] == color, (key, grp)
+        # Non-overridden groups keep the default palette assignment.
+        assert by_name["MCT-EGCG"]["marker"]["color"] in STYLE_DEFAULTS["group_colors"], key
+
+
+def test_qc_group_color_overrides_ignore_unknown_groups():
+    dataset = _make_dataset(36)
+    baseline = qc_analysis(dataset)
+    result = qc_analysis(dataset, style={"group_color_map": {"Nope": "#000000"}})
+    for key in ["tic", "cv_by_group"]:
+        assert result["figures"][key]["data"] == baseline["figures"][key]["data"], key

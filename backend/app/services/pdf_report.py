@@ -1395,6 +1395,7 @@ def build_qc_pdf(
     font_family: str | None = None,
     tick_size: Optional[int] = None,
     axis_label_size: Optional[int] = None,
+    group_colors: Optional[Dict[str, str]] = None,
     plots_per_page: int = 2,
     plot_layout: Dict[str, str] | None = None,
     plot_images: Optional[Dict[str, str]] = None,
@@ -1409,6 +1410,8 @@ def build_qc_pdf(
         plot_style["tick_size"] = tick_size
     if axis_label_size is not None:
         plot_style["axis_label_size"] = axis_label_size
+    if group_colors:
+        plot_style["group_color_map"] = group_colors
     result = qc_analysis(dataset, style=plot_style, selected_groups=selected_groups, group_order=group_order)
     metrics = result["metrics"]
     figures = result.get("figures", {})
